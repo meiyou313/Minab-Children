@@ -36,6 +36,7 @@ public class Settings_Basic extends KeyChainSettingsFragment implements OnItemSe
     private EditText mPassword;
     private View mView;
     private EditText mProfileName;
+    private EditText mProfileCategory;
     private EditText mKeyPassword;
     private CheckBox mEnablePeerFingerprint;
     private EditText mPeerFingerprints;
@@ -63,6 +64,7 @@ public class Settings_Basic extends KeyChainSettingsFragment implements OnItemSe
         mView = inflater.inflate(R.layout.basic_settings, container, false);
 
         mProfileName = mView.findViewById(id.profilename);
+        mProfileCategory = mView.findViewById(id.profile_category);
         mClientCert = mView.findViewById(id.certselect);
         mClientKey = mView.findViewById(id.keyselect);
         mCaCert = mView.findViewById(id.caselect);
@@ -187,6 +189,8 @@ public class Settings_Basic extends KeyChainSettingsFragment implements OnItemSe
     protected void loadPreferences() {
         super.loadPreferences();
         mProfileName.setText(mProfile.mName);
+        // Minab Children: category field (edit screen assignment path).
+        mProfileCategory.setText(mProfile.getCategory());
         mClientCert.setData(mProfile.mClientCertFilename, getActivity());
         mClientKey.setData(mProfile.mClientKeyFilename, getActivity());
         mCaCert.setData(mProfile.mCaFilename, getActivity());
@@ -209,6 +213,8 @@ public class Settings_Basic extends KeyChainSettingsFragment implements OnItemSe
     protected void savePreferences() {
         super.savePreferences();
         mProfile.mName = mProfileName.getText().toString();
+        // Minab Children: persist the category with the profile.
+        mProfile.setCategory(mProfileCategory.getText().toString());
         mProfile.mCaFilename = mCaCert.getData();
         mProfile.mClientCertFilename = mClientCert.getData();
         mProfile.mClientKeyFilename = mClientKey.getData();
