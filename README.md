@@ -1,3 +1,125 @@
+# Minab Children — Minab Beta v0.1
+
+Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
+Android by Arne Schwabe, GPLv2). This repository is **public on
+purpose**: the base is GPLv2 and its author requires anyone building on
+it to publish their source (see the upstream note below).
+
+- App name: **Minab Children**
+- Package (applicationId): `com.minab.children`
+  (the internal Java package stays `de.blinkt.openvpn` — `VpnProfile`
+  is Java-serialised and its class name must not change, or profiles
+  saved by older versions would stop loading)
+- Repo: `https://github.com/meiyou313/minab` (public)
+- Version: **Minab Beta v0.1** — `versionName = "0.1-beta"`, `versionCode = 1`, tag `v0.1`
+- Platform: **Android only** (minSdk 23). No Windows / Linux build.
+- Base commit: `schwabe/ics-openvpn` master `660901ce320539aec476bd04bd1999c396d5e778`
+- Completely separate from the Namaki / Mozilla-VPN project: no Namaki
+  code, no Namaki signing key, no shared repo.
+
+## What Minab adds on top of stock ics-openvpn
+
+Stock ics-openvpn imports `.ovpn` files one by one and has no bulk
+ping. Minab adds three features, without changing the stock
+connect / disconnect flow:
+
+### 1. Bulk import — many configs at once, one username/password for all
+- Menu: **Bulk import (.ovpn / .zip)** → pick many `.ovpn` / `.conf`
+  files at once (`ACTION_OPEN_DOCUMENT` + `EXTRA_ALLOW_MULTIPLE`) or
+  one `.zip` containing them (up to 200 files, 2 MB each).
+- One username field + one password field + **"Apply to all"**
+  checkbox. When checked, the values are written into
+  `VpnProfile.mUsername` / `mPassword` of every imported profile that
+  uses `auth-user-pass` — exactly the fields the profile editor
+  (`Settings_Basic`) writes, persisted by `ProfileManager` into the
+  profile file (encrypted when upstream profile encryption is
+  enabled). No password is stored in SharedPreferences or in any extra
+  file, and the dialog clears the password field when it finishes.
+- Duplicates are skipped, never overwritten: same profile **name +
+  primary remote host:port** as an existing profile counts as a
+  duplicate. The summary shows `Imported: X, duplicates skipped: Y,
+  failed: Z` with the failed file names.
+
+### 2. Categories — manual + automatic by country
+- Every profile has a category (`VpnProfile.mCategory`, persisted
+  with the profile; old profiles migrate to `"Uncategorized"` in
+  `upgradeProfile()`, profile version 10 → 11, `serialVersionUID`
+  unchanged so old saves still load).
+- Manual (the path that always works): long-press a profile →
+  **Assign category**; or the **Category** field in the profile editor
+  (Basic settings); or the filter bar → **Manage categories**
+  (create / rename / delete; deleting a category moves its profiles
+  back to Uncategorized).
+- Filter: tap the category bar at the top of the profile list, or menu
+  → **Filter by category** (All + each category).
+- Automatic (best effort, never blocks an import): on bulk import the
+  app guesses the country from the remote host —
+  1. offline heuristic: a 2-letter country code in the profile/file
+     name or hostname (`us-01…`, `de.ovpn`), then the hostname TLD;
+  2. online: DNS-resolve the host, then `https://ip-api.com/json/<ip>`
+     (3 s timeout, result cached 30 days).
+  Any failure leaves the manual category untouched. Honest limits:
+  the free ip-api.com tier is rate-limited (~45 req/min per IP), so
+  lookups run one at a time with a 1 s gap; offline or DNS failure
+  means only the heuristic runs; a hostname can point at a CDN /
+  anycast IP whose country is not the country in its name.
+
+### 3. Bulk ping — test all profiles, or one category, at once
+- Menu: **Test ping: all profiles** / **Test ping: this category**,
+  or long-press one profile → **Test ping**.
+- 8 threads in parallel. Per host: first ICMP via
+  `/system/bin/ping -c 1 -W 2`, falling back to TCP-connect timing
+  to the profile's remote host:port (3 s timeout) when ICMP gives no
+  answer. Overall budget ~3 s per host.
+- Each row shows live `42 ms` / `Timeout` / `Failed`; when finished
+  the list is sorted fastest-first and the result (`mLastPingMs`,
+  `mLastPingTime`, `mLastPingResult`) is saved on the profile and shown
+  under its name. **Cancel** is available (tap the ping status bar).
+- What the numbers mean: ICMP time is a real ping; the TCP fallback
+  is a connect time, not an ICMP ping — it answers "is this server
+  reachable and how fast does it answer", not a true round-trip.
+  `Timeout` = silent on both; `Failed` = DNS failure / refused.
+- VPN safety: pings use plain sockets and the ping binary from the
+  app process only. They do not touch `VpnService`, do not call
+  `protect()`, and cannot disconnect or break a running tunnel. While
+  a VPN is connected the app warns that the numbers go through the
+  tunnel and may not reflect direct latency.
+
+## Build (GitHub Actions — no local SDK needed)
+
+There is no Android SDK on the machine this was prepared on, so the
+APK is built by CI:
+
+- Workflow: `.github/workflows/build-android.yml` —
+  `ubuntu-24.04`, JDK 17 (Temurin), Android SDK, then
+  `./gradlew assembleUiOvpn23Debug`, APK uploaded as an artifact.
+- Pushing tag `v0.1` publishes the GitHub Release **"Minab Beta v0.1"**
+  (pre-release) with the debug APK attached.
+- The upstream workflow (`.github/workflows/build.yaml`) is kept
+  untouched and still runs.
+
+## Signing — read before 1.0.0
+
+**v0.1 is a debug-signed beta on purpose.** A permanent release
+keystore must be created before the first non-beta (1.0.0), and 1.0.0
+must be signed with it; installing 1.0.0 over this beta will then
+need a **one-time uninstall** (different signing key), after which
+later versions install over each other normally. Do NOT reuse any
+other app's keystore (in particular not Namaki's) for Minab.
+
+## Attribution & licence
+
+- Base: ics-openvpn / OpenVPN for Android, Copyright (c) Arne
+  Schwabe, GPLv2 — see `doc/LICENSE.txt` and the upstream README
+  below. Minab's own additions are under the same GPLv2.
+- `LICENSE` / `doc/LICENSE.txt` from upstream is kept unchanged.
+- This app is a client only: it ships **no VPN servers and no
+  accounts**. You bring your own `.ovpn` configs / server.
+
+---
+
+# Upstream README (ics-openvpn, preserved unchanged below)
+
 OpenVPN for Android
 =============
 ![build status](https://github.com/schwabe/ics-openvpn/actions/workflows/build.yaml/badge.svg)
