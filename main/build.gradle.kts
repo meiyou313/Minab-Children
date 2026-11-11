@@ -25,6 +25,9 @@ android {
         aidl = true
         buildConfig = true
     }
+    // Minab Children: the internal Java package stays de.blinkt.openvpn
+    // (VpnProfile serialization depends on that class name), but the
+    // installed app's package / applicationId is com.minab.children.
     namespace = "de.blinkt.openvpn"
     compileSdk = 37
     //compileSdkPreview = "UpsideDownCake"
@@ -33,11 +36,14 @@ android {
     ndkVersion = "30.0.14904198"
 
     defaultConfig {
+        applicationId = "com.minab.children"
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
-        versionCode = 225
-        versionName = "0.7.69"
+        // Minab Beta v0.1 (beta numbering; first non-beta will be 1.0.0
+        // and must use a permanent release keystore — see README.md).
+        versionCode = 1
+        versionName = "0.1-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
