@@ -29,6 +29,19 @@
             style="@style/item"
             android:inputType="text" />
 
+        <!-- Minab Children: category of this profile -->
+        <TextView
+                style="@style/item"
+                android:text="@string/minab_category"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:labelFor="@id/profile_category" />
+
+        <EditText
+                android:id="@+id/profile_category"
+                style="@style/item"
+                android:hint="@string/minab_category_hint"
+                android:inputType="text" />
+
         <TextView
                 style="@style/item"
                 android:text="@string/compat_mode_label"

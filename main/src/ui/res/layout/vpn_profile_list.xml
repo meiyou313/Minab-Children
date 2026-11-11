@@ -26,6 +26,23 @@
                 android:visibility="gone"
                 android:text="@string/missing_notification_permission" />
 
+        <!-- Minab Children: category filter + ping status bar -->
+        <TextView
+                android:id="@+id/minab_category_filter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="@dimen/stdpadding"
+                android:text="@string/minab_all_categories"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <TextView
+                android:id="@+id/minab_ping_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="@dimen/stdpadding"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:visibility="gone" />
+
         <ListView
                 android:id="@android:id/list"
                 android:layout_width="fill_parent"
