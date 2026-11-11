@@ -57,6 +57,12 @@
                 android:windowSoftInputMode="stateHidden" />
 
         <activity android:name=".activities.FileSelect" />
+
+        <!-- Minab Children: bulk import of many .ovpn files / one .zip -->
+        <activity
+            android:name=".activities.BulkImportActivity"
+            android:exported="false"
+            android:label="@string/minab_bulk_import_title" />
         <service
                 android:exported="true"
                 android:name=".OpenVPNTileService"
