@@ -3,7 +3,7 @@
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   -->
 <resources>
-    <string name="app">OpenVPN for Android</string>
+    <string name="app">Minab Children</string>
     <string name="address">Server Address:</string>
     <string name="port">Server Port:</string>
     <string name="location">Location</string>
@@ -508,5 +508,39 @@
     <string name="local_network_permission_summary">Allows to connect to a VPN server on the local network.</string>
     <string name="openvpn3_different_proxy">OpenVPN 3 C++ implementation does not support different proxy settings per remote</string>
     <string name="auth_retry_interact_not_supported">The configuration uses auth-retry interact is not supported.</string>
+
+    <!-- Minab Children additions -->
+    <string name="minab_bulk_import">Bulk import (.ovpn / .zip)</string>
+    <string name="minab_bulk_import_title">Bulk import configs</string>
+    <string name="minab_bulk_import_hint">Pick many .ovpn/.conf files at once, or one .zip containing them. One username and password below can be applied to all imported profiles that need a username/password.</string>
+    <string name="minab_pick_files">Pick files</string>
+    <string name="minab_pick_zip">Pick a .zip file</string>
+    <string name="minab_username">Username (for all)</string>
+    <string name="minab_password">Password (for all)</string>
+    <string name="minab_apply_to_all">Apply this username/password to all imported profiles</string>
+    <string name="minab_import_category">Category for imported profiles</string>
+    <string name="minab_auto_category">Try to detect the country automatically (best effort)</string>
+    <string name="minab_importing">Importing…</string>
+    <string name="minab_import_summary">Imported: %1$d, duplicates skipped: %2$d, failed: %3$d</string>
+    <string name="minab_no_files_picked">No files picked.</string>
+    <string name="minab_category">Category</string>
+    <string name="minab_category_hint">e.g. Germany, or leave as Uncategorized</string>
+    <string name="minab_all_categories">All categories</string>
+    <string name="minab_filter_category">Filter by category</string>
+    <string name="minab_manage_categories">Manage categories</string>
+    <string name="minab_new_category">New category</string>
+    <string name="minab_rename_category">Rename category</string>
+    <string name="minab_delete_category">Delete category</string>
+    <string name="minab_assign_category">Assign category</string>
+    <string name="minab_ping_all">Test ping: all profiles</string>
+    <string name="minab_ping_category">Test ping: this category</string>
+    <string name="minab_ping_one">Test ping</string>
+    <string name="minab_ping_running">Pinging %1$d profiles… %2$d done</string>
+    <string name="minab_ping_done">Ping test finished. Fastest first.</string>
+    <string name="minab_ping_cancelled">Ping test cancelled.</string>
+    <string name="minab_ping_cancel">Cancel ping test</string>
+    <string name="minab_ping_while_vpn">Note: a VPN is currently connected, so these pings go through the tunnel and may not reflect the direct latency.</string>
+    <string name="minab_no_profiles_in_category">No profiles in this category.</string>
+    <string name="minab_sort_by_ping">Sorted by ping (fastest first)</string>
 
 </resources>
