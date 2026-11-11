@@ -1,0 +1,81 @@
+# Minab Children — Android CI for Minab Beta v0.1
+#
+# Builds the debug APK with GitHub Actions (no local SDK needed) and,
+# when the v0.1 tag is pushed, publishes it as the "Minab Beta v0.1"
+# release. The upstream ics-openvpn workflow (.github/workflows/build.yaml)
+# is kept untouched and still runs; this workflow is the Minab one.
+#
+# Signing: 0.1 is a BETA and is debug-signed on purpose. A permanent
+# release keystore must be created before the first non-beta (1.0.0),
+# otherwise installing 1.0.0 over this beta will require an uninstall.
+# See README.md ("Signing") and PUSH.md.
+name: Minab Android (Beta v0.1)
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [minab-beta-0.1, master, main]
+    tags: ["v0.1"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Build Minab Beta v0.1 (debug APK)"
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Accept Android SDK licences
+        run: yes | sdkmanager --licenses || true
+
+      - name: Build debug APK (UiOvpn23 flavour)
+        run: ./gradlew assembleUiOvpn23Debug --stacktrace
+
+      - name: List built APKs
+        run: find main/build/outputs/apk -name '*.apk' -print
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: minab-beta-v0.1-debug-apk
+          path: main/build/outputs/apk/**/debug/*.apk
+          if-no-files-found: error
+
+      - name: Publish GitHub Release "Minab Beta v0.1"
+        if: startsWith(github.ref, 'refs/tags/v0.1')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1
+          name: Minab Beta v0.1
+          draft: false
+          prerelease: true
+          files: main/build/outputs/apk/**/debug/*.apk
+          body: |
+            Minab Beta v0.1 — Android only, debug-signed beta.
+
+            OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
+            with bulk import of many .ovpn files / a .zip, one username
+            and password for all, profile categories (manual + automatic
+            by country), and bulk ping test of all profiles or one
+            category.
+
+            Install: download the APK below and install it on Android.
+            This beta is debug-signed; the first non-beta (1.0.0) will
+            use a permanent release keystore, so installing it over
+            this beta will need a one-time uninstall. See README.md.
