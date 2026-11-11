@@ -70,7 +70,7 @@ public class VpnProfile implements Serializable, Cloneable {
     public static final String INLINE_TAG = "[[INLINE]]";
     public static final String DISPLAYNAME_TAG = "[[NAME]]";
     public static final int MAXLOGLEVEL = 4;
-    public static final int CURRENT_PROFILE_VERSION = 10;
+    public static final int CURRENT_PROFILE_VERSION = 11;
     public static final int DEFAULT_MSSFIX_SIZE = 1280;
     public static final int TYPE_CERTIFICATES = 0;
     public static final int TYPE_PKCS12 = 1;
@@ -179,6 +179,18 @@ public class VpnProfile implements Serializable, Cloneable {
     public String mTlSCertProfile = "";
     public long mCreationDate = 0;
     public boolean mDpc1protocol = false;
+    // --- Minab Children additions (GPLv2, same licence as this file) ---
+    // Category of this profile, e.g. "Germany" or "Uncategorized".
+    // Persisted with the profile by Java serialization (ProfileManager),
+    // exactly like every other field here. serialVersionUID is unchanged
+    // on purpose, so profiles saved by older versions still load and
+    // this field simply deserialises as null -> getCategory() defaults it.
+    public String mCategory;
+    // Last bulk-ping result: ms, or -1 when never tested / last test failed.
+    public long mLastPingMs = -1;
+    public long mLastPingTime = 0;
+    // Human-readable last result: "42 ms", "Timeout" or "Failed".
+    public String mLastPingResult = "";
 
 
     static class ChangeLogEntry implements Serializable {
@@ -320,6 +332,54 @@ public class VpnProfile implements Serializable, Cloneable {
         return mName;
     }
 
+    // --- Minab Children: category + primary remote helpers ---
+
+    /** Category, never null/empty. Old profiles default to "Uncategorized". */
+    public String getCategory() {
+        if (TextUtils.isEmpty(mCategory))
+            return "Uncategorized";
+        return mCategory;
+    }
+
+    public void setCategory(String category) {
+        if (TextUtils.isEmpty(category))
+            mCategory = "Uncategorized";
+        else
+            mCategory = category.trim();
+    }
+
+    /** Remote host of the first enabled connection, or of connection[0]. */
+    public String getPrimaryRemoteHost() {
+        if (mConnections == null || mConnections.length == 0)
+            return null;
+        for (Connection c : mConnections) {
+            if (c != null && c.mEnabled && !TextUtils.isEmpty(c.mServerName))
+                return c.mServerName;
+        }
+        Connection first = mConnections[0];
+        return first == null ? null : first.mServerName;
+    }
+
+    /** Remote port of the primary connection, or 1194 when unparsable. */
+    public int getPrimaryRemotePort() {
+        if (mConnections == null || mConnections.length == 0)
+            return 1194;
+        for (Connection c : mConnections) {
+            if (c != null && c.mEnabled && !TextUtils.isEmpty(c.mServerName)) {
+                try {
+                    return Integer.parseInt(c.mServerPort);
+                } catch (NumberFormatException e) {
+                    return 1194;
+                }
+            }
+        }
+        try {
+            return Integer.parseInt(mConnections[0].mServerPort);
+        } catch (Exception e) {
+            return 1194;
+        }
+    }
+
     public void upgradeProfile() {
 
         /* Fallthrough is intended here */
@@ -359,8 +419,21 @@ public class VpnProfile implements Serializable, Cloneable {
                         mDataCiphers.toUpperCase(Locale.ROOT).contains("BF-CBC")) {
                     mUseLegacyProvider = true;
                 }
+            case 10:
+                // Minab Children: category + last ping were added in
+                // profile version 11. Older profiles have null/empty
+                // values here; the guard below defaults them.
             default:
         }
+
+        // Minab Children migration guard: runs for every version,
+        // including profiles already at the current version whose
+        // fields deserialised as null (Java serialization of a class
+        // with added fields yields null for those fields).
+        if (TextUtils.isEmpty(mCategory))
+            mCategory = "Uncategorized";
+        if (mLastPingResult == null)
+            mLastPingResult = "";
 
         mProfileVersion = CURRENT_PROFILE_VERSION;
         if (changesLog == null) {
