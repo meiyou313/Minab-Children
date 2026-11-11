@@ -8,8 +8,8 @@
  * Flow:
  *   1. User picks many files at once (ACTION_OPEN_DOCUMENT +
  *      EXTRA_ALLOW_MULTIPLE, MIME application/x-openvpn-profile and
- *      */* so file managers that do not know the .ovpn MIME type can
- *      still pick them) or a single .zip.
+ *      any MIME type, so file managers that do not know the .ovpn MIME
+ *      type can still pick them) or a single .zip.
  *   2. One username + one password + "apply to all" checkbox. When
  *      checked, BulkImportHelper writes them into VpnProfile.mUsername /
  *      mPassword of every imported profile that uses auth-user-pass —
