@@ -41,6 +41,7 @@ import de.blinkt.openvpn.LaunchVPN
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.VpnProfile
 import de.blinkt.openvpn.activities.BaseActivity
+import de.blinkt.openvpn.activities.BulkImportActivity
 import de.blinkt.openvpn.activities.ConfigConverter
 import de.blinkt.openvpn.activities.DisconnectVPN
 import de.blinkt.openvpn.activities.FileSelect
@@ -52,6 +53,8 @@ import de.blinkt.openvpn.core.Preferences
 import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.core.VpnStatus.StateListener
+import de.blinkt.openvpn.minab.CategoryStore
+import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
 import de.blinkt.openvpn.fragments.Utils.alwaysUseOldFileChooser
 import de.blinkt.openvpn.fragments.Utils.getWarningText
@@ -67,6 +70,17 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     private var defaultVPN: VpnProfile? = null
     private lateinit var mPermissionView: View
     private lateinit var mPermReceiver: ActivityResultLauncher<String>
+
+    // --- Minab Children state ---
+    /** Null = show all categories; otherwise only this category is listed. */
+    private var selectedCategory: String? = null
+    /** When true the list is sorted by last ping, fastest first. */
+    private var sortByPing: Boolean = false
+    private var pingTester: PingTester? = null
+    private var pingDoneCount: Int = 0
+    private var pingTotalCount: Int = 0
+    private var pingStatusView: TextView? = null
+    private var categoryFilterView: TextView? = null
 
     override fun updateState(
         state: String?,
@@ -243,6 +257,13 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         VpnStatus.removeStateListener(this)
     }
 
+    override fun onDestroy() {
+        // Stop the ping pool when the fragment is really gone. Results
+        // already saved on profiles are kept.
+        cancelPingTest()
+        super.onDestroy()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -272,6 +293,14 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         if (fab_add != null) fab_add.setOnClickListener(this)
 
         if (fab_import != null) fab_import.setOnClickListener(this)
+
+        // Minab Children: category filter bar + long-press menu.
+        categoryFilterView = v.findViewById<View?>(R.id.minab_category_filter) as TextView?
+        pingStatusView = v.findViewById<View?>(R.id.minab_ping_status) as TextView?
+        categoryFilterView?.setOnClickListener { showCategoryFilterDialog() }
+        pingStatusView?.setOnClickListener { cancelPingTest() }
+        updateCategoryFilterLabel()
+        registerForContextMenu(v.findViewById(android.R.id.list))
 
         // TV builds show the minimal UI that already have the notification
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !((activity as BaseActivity).isAndroidTV))
@@ -307,16 +336,245 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         )
         this.pM.refreshVPNList(requireContext())
         val allvpn: MutableCollection<VpnProfile?>? = this.pM.getProfiles()
+        // Minab Children: filter by the selected category (null = all).
+        val filtered = allvpn?.filter { profile ->
+            selectedCategory == null || profile?.getCategory() == selectedCategory
+        } ?: emptyList()
         val sortedset: TreeSet<VpnProfile?>?
-        if (sortByLRU) sortedset = TreeSet<VpnProfile?>(VpnProfileLRUComparator())
+        if (sortByPing) sortedset = TreeSet<VpnProfile?>(VpnProfilePingComparator())
+        else if (sortByLRU) sortedset = TreeSet<VpnProfile?>(VpnProfileLRUComparator())
         else sortedset = TreeSet<VpnProfile?>(VpnProfileNameComparator())
 
-        sortedset.addAll(allvpn!!)
+        sortedset.addAll(filtered)
         mArrayadapter!!.clear()
         mArrayadapter!!.addAll(sortedset)
 
         setListAdapter(mArrayadapter)
         mArrayadapter!!.notifyDataSetChanged()
+        updateCategoryFilterLabel()
+    }
+
+    // --- Minab Children: categories ---
+
+    private fun updateCategoryFilterLabel() {
+        categoryFilterView?.text = selectedCategory
+            ?: getString(R.string.minab_all_categories)
+    }
+
+    private fun showCategoryFilterDialog() {
+        val categories = mutableListOf<String?>(null) // null = All
+        categories.addAll(CategoryStore.getCategories(requireContext()))
+        val labels = categories.map {
+            it ?: getString(R.string.minab_all_categories)
+        }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.minab_filter_category)
+            .setItems(labels) { _, which ->
+                selectedCategory = categories[which]
+                sortByPing = false
+                populateVpnList()
+            }
+            .setNeutralButton(R.string.minab_manage_categories) { _, _ ->
+                showManageCategoriesDialog()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showAssignCategoryDialog(profile: VpnProfile) {
+        val categories = CategoryStore.getCategories(requireContext())
+        val labels = (categories + getString(R.string.minab_new_category)).toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.minab_assign_category))
+            .setItems(labels) { _, which ->
+                if (which < categories.size) {
+                    assignCategory(profile, categories[which])
+                } else {
+                    showNewCategoryDialog { name -> assignCategory(profile, name) }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showNewCategoryDialog(onCreated: (String) -> Unit) {
+        val entry = EditText(requireContext())
+        entry.setSingleLine()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.minab_new_category)
+            .setView(entry)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val name = CategoryStore.normalise(entry.text.toString())
+                CategoryStore.addCategory(requireContext(), name)
+                onCreated(name)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun assignCategory(profile: VpnProfile, category: String) {
+        profile.setCategory(category)
+        CategoryStore.addCategory(requireContext(), category)
+        ProfileManager.saveProfile(requireContext(), profile)
+        populateVpnList()
+    }
+
+    private fun showManageCategoriesDialog() {
+        val categories = CategoryStore.getCategories(requireContext())
+            .filter { it != CategoryStore.DEFAULT_CATEGORY }
+        if (categories.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.minab_new_category, Toast.LENGTH_SHORT).show()
+            showNewCategoryDialog { populateVpnList() }
+            return
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.minab_manage_categories)
+            .setItems(categories.toTypedArray()) { _, which ->
+                val oldName = categories[which]
+                AlertDialog.Builder(requireContext())
+                    .setTitle(oldName)
+                    .setItems(
+                        arrayOf(
+                            getString(R.string.minab_rename_category),
+                            getString(R.string.minab_delete_category)
+                        )
+                    ) { _, action ->
+                        if (action == 0) {
+                            val entry = EditText(requireContext())
+                            entry.setText(oldName)
+                            AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.minab_rename_category)
+                                .setView(entry)
+                                .setPositiveButton(android.R.string.ok) { _, _ ->
+                                    CategoryStore.renameCategory(
+                                        requireContext(), oldName,
+                                        entry.text.toString()
+                                    )
+                                    if (selectedCategory == oldName) {
+                                        selectedCategory = CategoryStore.normalise(entry.text.toString())
+                                    }
+                                    populateVpnList()
+                                }
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show()
+                        } else {
+                            CategoryStore.deleteCategory(requireContext(), oldName)
+                            if (selectedCategory == oldName) selectedCategory = null
+                            populateVpnList()
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .setNeutralButton(R.string.minab_new_category) { _, _ ->
+                showNewCategoryDialog { populateVpnList() }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    // --- Minab Children: bulk ping ---
+
+    private fun visibleProfiles(): List<VpnProfile> {
+        val all = pM.getProfiles().toList()
+        val wanted = selectedCategory
+        return if (wanted == null) all else all.filter { it.getCategory() == wanted }
+    }
+
+    private fun startPingTest(profiles: List<VpnProfile>) {
+        if (profiles.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.minab_no_profiles_in_category, Toast.LENGTH_SHORT).show()
+            return
+        }
+        cancelPingTest()
+        val tester = PingTester()
+        pingTester = tester
+        pingDoneCount = 0
+        pingTotalCount = profiles.size
+        sortByPing = false
+        updatePingStatus()
+        if (VpnStatus.isVPNActive()) {
+            Toast.makeText(requireContext(), R.string.minab_ping_while_vpn, Toast.LENGTH_LONG).show()
+        }
+        tester.testAll(profiles, object : PingTester.PingListener {
+            override fun onResult(result: PingTester.Result) {
+                // Post to the UI thread; the fragment may be gone by then.
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.profile.mLastPingMs =
+                        if (result.status == PingTester.Status.OK) result.ms else -1
+                    result.profile.mLastPingTime = result.timestampMs
+                    result.profile.mLastPingResult = result.displayText()
+                    ProfileManager.saveProfile(requireContext(), result.profile)
+                    pingDoneCount++
+                    updatePingStatus()
+                    mArrayadapter?.notifyDataSetChanged()
+                }
+            }
+
+            override fun onFinished(cancelled: Boolean) {
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    pingTester = null
+                    if (cancelled) {
+                        Toast.makeText(requireContext(), R.string.minab_ping_cancelled, Toast.LENGTH_SHORT).show()
+                        pingStatusView?.visibility = View.GONE
+                    } else {
+                        sortByPing = true
+                        populateVpnList()
+                        Toast.makeText(requireContext(), R.string.minab_ping_done, Toast.LENGTH_SHORT).show()
+                        pingStatusView?.text = getString(R.string.minab_sort_by_ping)
+                    }
+                }
+            }
+        })
+    }
+
+    private fun updatePingStatus() {
+        val view = pingStatusView ?: return
+        if (pingTester == null) {
+            view.visibility = View.GONE
+            return
+        }
+        view.visibility = View.VISIBLE
+        view.text = getString(R.string.minab_ping_running, pingTotalCount, pingDoneCount) +
+            " — " + getString(R.string.minab_ping_cancel)
+    }
+
+    private fun cancelPingTest() {
+        pingTester?.cancel()
+        pingTester = null
+        pingStatusView?.visibility = View.GONE
+    }
+
+    override fun onCreateContextMenu(
+        menu: android.view.ContextMenu,
+        v: View,
+        menuInfo: android.view.ContextMenu.ContextMenuInfo?
+    ) {
+        super.onCreateContextMenu(menu, v, menuInfo)
+        val info = menuInfo as? android.widget.AdapterView.AdapterContextMenuInfo ?: return
+        val profile = mArrayadapter?.getItem(info.position) ?: return
+        menu.setHeaderTitle(profile.name)
+        menu.add(0, MENU_ASSIGN_CATEGORY, 0, R.string.minab_assign_category)
+        menu.add(0, MENU_PING_ONE, 0, R.string.minab_ping_one)
+    }
+
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        val info = item.menuInfo as? android.widget.AdapterView.AdapterContextMenuInfo
+            ?: return super.onContextItemSelected(item)
+        val profile = mArrayadapter?.getItem(info.position) ?: return super.onContextItemSelected(item)
+        return when (item.itemId) {
+            MENU_ASSIGN_CATEGORY -> {
+                showAssignCategoryDialog(profile)
+                true
+            }
+            MENU_PING_ONE -> {
+                startPingTest(listOf(profile))
+                true
+            }
+            else -> super.onContextItemSelected(item)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -343,6 +601,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             .setAlphabeticShortcut('p')
             .setTitleCondensed("Import AS")
             .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+
+        // Minab Children
+        menu.add(0, MENU_BULK_IMPORT, 0, R.string.minab_bulk_import)
+            .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        menu.add(0, MENU_PING_ALL, 0, R.string.minab_ping_all)
+            .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        menu.add(0, MENU_PING_CATEGORY, 0, R.string.minab_ping_category)
+            .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+        menu.add(0, MENU_FILTER_CATEGORY, 0, R.string.minab_filter_category)
+            .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -356,6 +624,18 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             return changeSorting()
         } else if (itemId == MENU_IMPORT_AS) {
             return startASProfileImport()
+        } else if (itemId == MENU_BULK_IMPORT) {
+            startActivity(Intent(requireContext(), BulkImportActivity::class.java))
+            return true
+        } else if (itemId == MENU_PING_ALL) {
+            startPingTest(pM.getProfiles().toList())
+            return true
+        } else if (itemId == MENU_PING_CATEGORY) {
+            startPingTest(visibleProfiles())
+            return true
+        } else if (itemId == MENU_FILTER_CATEGORY) {
+            showCategoryFilterDialog()
+            return true
         } else {
             return super.onOptionsItemSelected(item)
         }
@@ -546,6 +826,19 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         startActivity(intent)
     }
 
+    internal class VpnProfilePingComparator : Comparator<VpnProfile?> {
+        override fun compare(lhs: VpnProfile?, rhs: VpnProfile?): Int {
+            if (lhs === rhs) return 0
+            if (lhs == null) return -1
+            if (rhs == null) return 1
+            // Tested profiles first, fastest first; untested / failed last.
+            val l = if (lhs.mLastPingMs >= 0) lhs.mLastPingMs else Long.MAX_VALUE
+            val r = if (rhs.mLastPingMs >= 0) rhs.mLastPingMs else Long.MAX_VALUE
+            if (l != r) return l.compareTo(r)
+            return (lhs.mName ?: "").compareTo(rhs.mName ?: "")
+        }
+    }
+
     internal class VpnProfileNameComparator : Comparator<VpnProfile?> {
         override fun compare(lhs: VpnProfile?, rhs: VpnProfile?): Int {
             if (lhs === rhs)  // Catches also both null
@@ -605,9 +898,20 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 subtitle.setText(mLastStatusMessage)
                 subtitle.setVisibility(View.VISIBLE)
             } else {
-                subtitle.setText(warningText)
-                if (warningText.length > 0) subtitle.setVisibility(View.VISIBLE)
-                else subtitle.setVisibility(View.GONE)
+                // Minab Children: always show category + last ping under
+                // the name, even when there is no warning to show.
+                val minabInfo = StringBuilder()
+                minabInfo.append("[").append(profile.getCategory()).append("]")
+                if (profile.mLastPingResult.isNotEmpty()) {
+                    minabInfo.append(" • ").append(profile.mLastPingResult)
+                }
+                if (warningText.length > 0) {
+                    warningText.append(" — ").append(minabInfo)
+                    subtitle.setText(warningText)
+                } else {
+                    subtitle.setText(minabInfo.toString())
+                }
+                subtitle.setVisibility(View.VISIBLE)
             }
 
 
@@ -647,6 +951,13 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         private val MENU_IMPORT_PROFILE = Menu.FIRST + 1
         private val MENU_CHANGE_SORTING = Menu.FIRST + 2
         private val MENU_IMPORT_AS = Menu.FIRST + 3
+        // Minab Children menu ids
+        private val MENU_BULK_IMPORT = Menu.FIRST + 4
+        private val MENU_PING_ALL = Menu.FIRST + 5
+        private val MENU_PING_CATEGORY = Menu.FIRST + 6
+        private val MENU_FILTER_CATEGORY = Menu.FIRST + 7
+        private val MENU_ASSIGN_CATEGORY = Menu.FIRST + 8
+        private val MENU_PING_ONE = Menu.FIRST + 9
         private const val PREF_SORT_BY_LRU = "sortProfilesByLRU"
     }
 }
