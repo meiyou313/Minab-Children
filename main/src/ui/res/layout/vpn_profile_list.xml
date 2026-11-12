@@ -202,13 +202,42 @@
                 style="@style/Minab.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="36dp"
+                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
                 android:drawableStart="@drawable/ic_minab_ping_small"
                 android:drawableTint="@color/minab_teal"
                 android:minHeight="36dp"
                 android:text="@string/minab_test_ping"
                 android:textSize="12sp" />
+
+            <!-- Minab Beta v0.6: Real test — connect each server in
+                 turn and fetch web.telegram.org through the tunnel,
+                 so the result proves the server really bypasses
+                 filtering (a plain ping cannot prove that). -->
+            <Button
+                android:id="@+id/minab_btn_real_test"
+                style="@style/Minab.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:drawableStart="@drawable/ic_minab_ping_small"
+                android:drawableTint="@color/minab_teal"
+                android:minHeight="36dp"
+                android:text="@string/minab_real_test"
+                android:textSize="12sp" />
         </LinearLayout>
+
+        <!-- Minab Beta v0.6 — what the two tests mean, so the user
+             knows the ping test is fast but the real test is the
+             accurate one. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/vazirmatn"
+            android:text="@string/minab_tests_explained"
+            android:textColor="@color/minab_text_secondary"
+            android:textSize="11sp" />
 
         <!-- Minab Children: group tabs (v0.4). One tab per group
              (country groups are assigned automatically on import by
