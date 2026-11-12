@@ -1,6 +1,7 @@
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskProvider
+import java.util.Base64
 
 /*
  * Copyright (c) 2012-2016 Arne Schwabe
@@ -103,7 +104,7 @@ android {
             if (!keystoreB64.isNullOrBlank()) {
                 val ksFile = layout.buildDirectory.file("minab-release.p12").get().asFile
                 ksFile.parentFile?.mkdirs()
-                ksFile.writeBytes(java.util.Base64.getDecoder().decode(keystoreB64))
+                ksFile.writeBytes(Base64.getDecoder().decode(keystoreB64))
                 storeFile = ksFile
                 storePassword = System.getenv("MINAB_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("MINAB_KEY_ALIAS") ?: "minab"
