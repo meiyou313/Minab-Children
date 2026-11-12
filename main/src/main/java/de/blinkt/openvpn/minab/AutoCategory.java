@@ -19,9 +19,10 @@
  *
  * Honest limits (also documented in README.md):
  *   - ip-api.com free endpoint is rate-limited (~45 requests/minute from
- *     one IP). Bulk imports therefore do the lookup one profile at a
- *     time with a small delay, and any 429 / error simply leaves the
- *     profile uncategorised instead of failing.
+ *     one IP). Bulk imports therefore do the lookup in chunks of 8 in
+ *     parallel with no artificial delay (v0.3; v0.2 paused 1 s per
+ *     profile), and any 429 / error simply leaves the profile
+ *     uncategorised instead of failing.
  *   - Offline, or when DNS fails, only step 1 runs.
  *   - A hostname can be a CDN / anycast address whose country is not the
  *     country in its name; the heuristic is a guess, the user can always
