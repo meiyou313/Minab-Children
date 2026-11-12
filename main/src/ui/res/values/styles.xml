@@ -43,6 +43,45 @@
 
     <style name="blinkt" parent="blinkt.baseTheme" />
 
+    <!-- Minab Beta v0.2 — light minimal UI.
+         Plain AppCompat buttons (not MaterialButton, which needs a
+         MaterialComponents theme this app does not use) with rounded
+         drawable backgrounds, so they work with the stock theme. -->
+    <style name="Minab.PrimaryButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/minab_btn_primary</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:drawablePadding">8dp</item>
+    </style>
+
+    <style name="Minab.OutlinedButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/minab_btn_outline</item>
+        <item name="android:textColor">@color/minab_teal</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:drawablePadding">8dp</item>
+    </style>
+
+    <!-- Small pill badge that shows a profile's last ping ("24 ms",
+         "Timeout", "Failed") next to its name in the list. -->
+    <style name="Minab.PingBadge">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minWidth">52dp</item>
+    </style>
 
     <style name="item">
         <item name="android:layout_width">match_parent</item>
