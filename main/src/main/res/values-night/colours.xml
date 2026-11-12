@@ -16,6 +16,8 @@
     <color name="minab_chip_text">#E8EAF6</color>
     <color name="minab_teal_tint">#2A2C5E</color>
     <color name="minab_card_border">#29FFFFFF</color>
+    <!-- Minab Beta v0.5 — faint frame around each bottom tab. -->
+    <color name="minab_tab_frame">#26FFFFFF</color>
     <color name="minab_gradient_top">#141B3D</color>
     <color name="minab_gradient_bottom">#070A18</color>
 </resources>
