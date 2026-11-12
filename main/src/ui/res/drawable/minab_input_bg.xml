@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minab Children — light minimal UI: text field background. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="12dp" />
+    <solid android:color="@color/minab_surface" />
+    <stroke android:width="1dp" android:color="@color/minab_divider" />
+</shape>
