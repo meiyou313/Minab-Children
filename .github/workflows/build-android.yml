@@ -1,10 +1,10 @@
-# Minab — Android CI for Minab Beta v0.4
+# Minab — Android CI for Minab Beta v0.5
 #
 # Builds the debug APK with GitHub Actions (no local SDK needed) and,
-# when the v0.4 tag is pushed, publishes it as the "Minab Beta v0.4"
-# release. The upstream ics-openvpn workflow (.github/workflows/build.yaml)
+# when the v0.5 tag is pushed, publishes it as the "Minab debug Beta
+# v0.5" release. The upstream ics-openvpn workflow (.github/workflows/build.yaml)
 # is kept untouched and still runs; this workflow is the Minab one.
-# (v0.3 used the same flow with tag v0.3 / "Minab Beta v0.3".)
+# (v0.4 used the same flow with tag v0.4 / "Minab Beta v0.4".)
 #
 # Signing: v0.4+ are all signed with ONE permanent keystore (RSA 2048,
 # valid to 2056, alias "minab"), so they install over each other.
@@ -17,21 +17,21 @@
 # v0.1–v0.3 could not install over each other. v0.4 itself needs a
 # ONE-TIME uninstall of older betas, because its key differs from
 # the old per-build debug keys. See README.md ("Signing").
-name: Minab Android (Beta v0.4)
+name: Minab Android (Beta v0.5)
 
 permissions:
   contents: write
 
 on:
   push:
-    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, master, main]
-    tags: ["v0.4"]
+    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, master, main]
+    tags: ["v0.5"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    name: "Build Minab Beta v0.4 (debug APK)"
+    name: "Build Minab Beta v0.5 (debug APK)"
     runs-on: ubuntu-24.04
     env:
       MINAB_KEYSTORE_BASE64_1: ${{ secrets.MINAB_KEYSTORE_BASE64_1 }}
@@ -83,24 +83,34 @@ jobs:
       - name: List built APKs
         run: find main/build/outputs/apk -name '*.apk' -print
 
+      # Minab Beta v0.5 — the release asset carries its version in
+      # its name (Minab-debug-Beta-v0.5.apk), so releases are easy to
+      # tell apart. The built file is copied, not moved, so the
+      # stock name stays available too.
+      - name: Rename APK with version
+        run: |
+          APK=$(find main/build/outputs/apk -name 'main-ui-ovpn23-debug.apk' | head -n 1)
+          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.5.apk"
+          ls -l "$(dirname "$APK")"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: minab-beta-v0.4-debug-apk
-          path: main/build/outputs/apk/**/debug/*.apk
+          name: minab-beta-v0.5-debug-apk
+          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.5.apk
           if-no-files-found: error
 
-      - name: Publish GitHub Release "Minab Beta v0.4"
-        if: startsWith(github.ref, 'refs/tags/v0.4')
+      - name: Publish GitHub Release "Minab debug Beta v0.5"
+        if: startsWith(github.ref, 'refs/tags/v0.5')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.4
-          name: Minab Beta v0.4
+          tag_name: v0.5
+          name: Minab debug Beta v0.5
           draft: false
           prerelease: true
-          files: main/build/outputs/apk/**/debug/*.apk
+          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.5.apk
           body: |
-            Minab Beta v0.4 — Android only, debug build signed with the permanent Minab key.
+            Minab debug Beta v0.5 — Android only, debug build signed with the permanent Minab key.
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
@@ -108,36 +118,34 @@ jobs:
             by country), and bulk ping test of all profiles or one
             group.
 
-            New in v0.4:
-            - Notification permission is asked at first launch; if
-              declined, only a minimal one-line banner is shown.
-            - Bulk import / Test ping buttons are full-size (48dp)
-              with standard 24dp icons, no longer cut off.
-            - Group tabs under the buttons: one tab per country group
-              (automatic), a "+" tab to create a group, and a small
-              ping icon next to each group name that pings just that
-              group.
-            - The connect button is ~20% smaller; the home screen
-              stays minimal.
-            - Tapping connect no longer auto-opens the log page — you
-              stay on Home while connecting.
-            - New CONFIGS tab (between Home and Graph): delete configs,
-              change username/password for one group or for all,
-              rename configs, and back up all configs to a zip.
-            - New setting (on by default): show download/upload speed
-              in the VPN notification after connecting.
-            - The main tab bar moved to the bottom, smaller and more
-              minimal. The first tab is now HOME.
-            - New-version notice on Home, in Settings and in About
-              (checks GitHub releases, cached 24 h).
-            - One permanent signing key: from v0.4 onward every version
-              installs over the previous one.
-            - Home subtitle, About and FAQ now describe Minab.
+            New in v0.5:
+            - The repo is now "Minab Children"
+              (github.com/meiyou313/Minab-Children); the app is still
+              just "Minab".
+            - Releases carry their version in the title and the APK
+              file name ("Minab debug Beta v0.5").
+            - FAQ moved out of the bottom tab bar to the end of
+              Settings; the tab bar is smaller and each tab has a
+              faint frame, so all five tabs fit without scrolling.
+            - The home header shows a memorial line next to "Minab":
+              "In memory of the 168 innocent children of Minab
+              Elementary School, who took flight to heaven far too
+              soon."
+            - Action buttons and group tabs are smaller and more
+              minimal; the group bar fades at the right edge so it
+              is clear it scrolls; the first tab reads "all" and the
+              "+" tab is last.
+            - Config rows are minimal, with the country's flag before
+              the name (36 most-used countries bundled, tiny
+              vectors); the home list scrolls together with the whole
+              home page now.
+            - Configs tab: tick boxes to select configs and delete
+              the selected ones, or share them as one zip file; the
+              Share button also shares one group or all configs.
+              The credentials buttons now explain that they set the
+              VPN username/password the configs use to log in.
+            - The top bar has add / bulk-import / settings icons on
+              every tab, not only on Home.
 
             Install: download the APK below and install it on Android.
-            ONE-TIME UNINSTALL NEEDED: v0.4 uses a new permanent
-            signing key, so it cannot install over v0.1–v0.3 — uninstall
-            the old beta once (profiles stored in the app will be lost,
-            so keep your .ovpn files to re-import with Bulk import),
-            then install v0.4. Later versions will install over v0.4
-            normally.
+            It installs over v0.4 normally (same permanent key).
