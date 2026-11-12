@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.Icon
 import android.net.Uri
@@ -28,8 +29,11 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultCallback
@@ -80,7 +84,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     private var pingDoneCount: Int = 0
     private var pingTotalCount: Int = 0
     private var pingStatusView: TextView? = null
-    private var categoryFilterView: TextView? = null
+    private var pingProgressRow: View? = null
+    private var pingProgressBar: ProgressBar? = null
+    private var pingCancelButton: Button? = null
+    private var categoryChipsContainer: LinearLayout? = null
 
     override fun updateState(
         state: String?,
@@ -294,12 +301,22 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
 
         if (fab_import != null) fab_import.setOnClickListener(this)
 
-        // Minab Children: category filter bar + long-press menu.
-        categoryFilterView = v.findViewById<View?>(R.id.minab_category_filter) as TextView?
+        // Minab Children (v0.2): visible buttons, category chips and
+        // ping progress row. In v0.1 these entry points were text-only
+        // items in the overflow menu, so users could not find them.
+        val bulkImportButton = v.findViewById<View?>(R.id.minab_btn_bulk_import) as Button?
+        bulkImportButton?.setOnClickListener {
+            startActivity(Intent(requireContext(), BulkImportActivity::class.java))
+        }
+        val pingButton = v.findViewById<View?>(R.id.minab_btn_ping) as Button?
+        pingButton?.setOnClickListener { startPingTest(visibleProfiles()) }
+        categoryChipsContainer = v.findViewById<View?>(R.id.minab_category_chips) as LinearLayout?
+        pingProgressRow = v.findViewById<View?>(R.id.minab_ping_progress_row)
+        pingProgressBar = v.findViewById<View?>(R.id.minab_ping_progress) as ProgressBar?
         pingStatusView = v.findViewById<View?>(R.id.minab_ping_status) as TextView?
-        categoryFilterView?.setOnClickListener { showCategoryFilterDialog() }
-        pingStatusView?.setOnClickListener { cancelPingTest() }
-        updateCategoryFilterLabel()
+        pingCancelButton = v.findViewById<View?>(R.id.minab_ping_cancel_btn) as Button?
+        pingCancelButton?.setOnClickListener { cancelPingTest() }
+        rebuildCategoryChips()
         registerForContextMenu(v.findViewById(android.R.id.list))
 
         // TV builds show the minimal UI that already have the notification
@@ -351,14 +368,70 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
 
         setListAdapter(mArrayadapter)
         mArrayadapter!!.notifyDataSetChanged()
-        updateCategoryFilterLabel()
+        rebuildCategoryChips()
     }
 
     // --- Minab Children: categories ---
 
-    private fun updateCategoryFilterLabel() {
-        categoryFilterView?.text = selectedCategory
-            ?: getString(R.string.minab_all_categories)
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
+
+    /** Rebuilds the visible category chips (v0.2): All + one chip per
+        category + a Manage chip that opens the rename/delete dialog.
+        The selected chip is tinted teal; tapping a chip filters the
+        list. Replaces the single small "All categories" text line of
+        v0.1, which users did not recognise as a filter. */
+    private fun rebuildCategoryChips() {
+        val container = categoryChipsContainer ?: return
+        container.removeAllViews()
+        val context = requireContext()
+        val categories = mutableListOf<String?>(null) // null = All
+        categories.addAll(CategoryStore.getCategories(context))
+        for (category in categories) {
+            val label = category ?: getString(R.string.minab_all_categories)
+            val selected = category == selectedCategory
+            val chip = TextView(context)
+            chip.text = label
+            chip.textSize = 13f
+            chip.setTextColor(
+                resources.getColor(
+                    if (selected) R.color.minab_teal_dark else R.color.minab_chip_text,
+                    context.theme
+                )
+            )
+            chip.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+            chip.setBackgroundResource(
+                if (selected) R.drawable.minab_chip_bg_selected
+                else R.drawable.minab_chip_bg
+            )
+            chip.setPadding(dp(14), dp(7), dp(14), dp(7))
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.marginEnd = dp(8)
+            chip.layoutParams = params
+            chip.setOnClickListener {
+                selectedCategory = category
+                sortByPing = false
+                populateVpnList()
+            }
+            container.addView(chip)
+        }
+        val manage = TextView(context)
+        manage.text = getString(R.string.minab_manage_categories)
+        manage.textSize = 13f
+        manage.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
+        manage.setBackgroundResource(R.drawable.minab_chip_bg)
+        manage.setPadding(dp(14), dp(7), dp(14), dp(7))
+        val manageParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        manageParams.marginEnd = dp(8)
+        manage.layoutParams = manageParams
+        manage.setOnClickListener { showManageCategoriesDialog() }
+        container.addView(manage)
     }
 
     private fun showCategoryFilterDialog() {
@@ -518,11 +591,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                     pingTester = null
                     if (cancelled) {
                         Toast.makeText(requireContext(), R.string.minab_ping_cancelled, Toast.LENGTH_SHORT).show()
-                        pingStatusView?.visibility = View.GONE
+                        pingProgressRow?.visibility = View.GONE
                     } else {
                         sortByPing = true
                         populateVpnList()
                         Toast.makeText(requireContext(), R.string.minab_ping_done, Toast.LENGTH_SHORT).show()
+                        // Keep the progress row visible as a "done" line:
+                        // full bar, no Cancel button, sorted-fastest note.
+                        pingProgressRow?.visibility = View.VISIBLE
+                        pingProgressBar?.progress = 100
+                        pingCancelButton?.visibility = View.GONE
                         pingStatusView?.text = getString(R.string.minab_sort_by_ping)
                     }
                 }
@@ -531,20 +609,22 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     }
 
     private fun updatePingStatus() {
-        val view = pingStatusView ?: return
+        val row = pingProgressRow ?: return
         if (pingTester == null) {
-            view.visibility = View.GONE
+            row.visibility = View.GONE
             return
         }
-        view.visibility = View.VISIBLE
-        view.text = getString(R.string.minab_ping_running, pingTotalCount, pingDoneCount) +
-            " — " + getString(R.string.minab_ping_cancel)
+        row.visibility = View.VISIBLE
+        pingCancelButton?.visibility = View.VISIBLE
+        pingProgressBar?.progress =
+            if (pingTotalCount > 0) pingDoneCount * 100 / pingTotalCount else 0
+        pingStatusView?.text = getString(R.string.minab_ping_running, pingTotalCount, pingDoneCount)
     }
 
     private fun cancelPingTest() {
         pingTester?.cancel()
         pingTester = null
-        pingStatusView?.visibility = View.GONE
+        pingProgressRow?.visibility = View.GONE
     }
 
     override fun onCreateContextMenu(
@@ -898,13 +978,11 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 subtitle.setText(mLastStatusMessage)
                 subtitle.setVisibility(View.VISIBLE)
             } else {
-                // Minab Children: always show category + last ping under
-                // the name, even when there is no warning to show.
+                // Minab Children: the category stays under the name; the
+                // ping result moved to the visible badge (v0.2), so the
+                // small " • 24 ms" text is no longer appended here.
                 val minabInfo = StringBuilder()
                 minabInfo.append("[").append(profile.getCategory()).append("]")
-                if (profile.mLastPingResult.isNotEmpty()) {
-                    minabInfo.append(" • ").append(profile.mLastPingResult)
-                }
                 if (warningText.length > 0) {
                     warningText.append(" — ").append(minabInfo)
                     subtitle.setText(warningText)
@@ -914,6 +992,27 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 subtitle.setVisibility(View.VISIBLE)
             }
 
+            // Minab Children (v0.2): visible ping badge next to the name.
+            // Teal < 100 ms, amber 100–299 ms, grey >= 300 ms / Timeout /
+            // Failed. Hidden until a profile has a ping result.
+            val badge = v.findViewById<TextView>(R.id.minab_ping_badge)
+            if (profile.mLastPingMs >= 0) {
+                badge.visibility = View.VISIBLE
+                badge.text = profile.mLastPingResult.ifEmpty { profile.mLastPingMs.toString() + " ms" }
+                badge.setBackgroundResource(
+                    when {
+                        profile.mLastPingMs < 100 -> R.drawable.minab_ping_badge_fast
+                        profile.mLastPingMs < 300 -> R.drawable.minab_ping_badge_slow
+                        else -> R.drawable.minab_ping_badge_fail
+                    }
+                )
+            } else if (profile.mLastPingResult.isNotEmpty()) {
+                badge.visibility = View.VISIBLE
+                badge.text = profile.mLastPingResult
+                badge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
+            } else {
+                badge.visibility = View.GONE
+            }
 
             return v
         }
