@@ -40,10 +40,13 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
-        // Minab Beta v0.1 (beta numbering; first non-beta will be 1.0.0
+        // Minab Beta v0.2 (beta numbering; first non-beta will be 1.0.0
         // and must use a permanent release keystore — see README.md).
-        versionCode = 1
-        versionName = "0.1-beta"
+        // v0.2: light minimal UI + visible entry points for bulk import,
+        // bulk ping and categories (v0.1 had the features, but hidden
+        // in the overflow menu, so users could not find them).
+        versionCode = 2
+        versionName = "0.2-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
