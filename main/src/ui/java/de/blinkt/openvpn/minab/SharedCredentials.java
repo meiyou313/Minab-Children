@@ -113,6 +113,33 @@ public final class SharedCredentials {
         return updated;
     }
 
+    /**
+     * Write the credentials into every profile in one category that
+     * needs a username/password, and save each one. Returns how many
+     * profiles were updated.
+     */
+    public static int applyToCategory(Context context, String category, String username, String password) {
+        int updated = 0;
+        try {
+            String wanted = CategoryStore.normalise(category);
+            ProfileManager pm = ProfileManager.getInstance(context);
+            for (VpnProfile profile : pm.getProfiles()) {
+                if (profile.isUserPWAuth()
+                        && wanted.equals(CategoryStore.normalise(profile.getCategory()))) {
+                    profile.mUsername = username == null ? "" : username;
+                    profile.mPassword = password == null ? "" : password;
+                    ProfileManager.saveProfile(context, profile);
+                    updated++;
+                }
+            }
+            pm.saveProfileList(context);
+        } catch (Exception ignored) {
+            // Best effort: profiles already saved keep the new
+            // credentials; the count reports only what succeeded.
+        }
+        return updated;
+    }
+
     /** Apply the saved shared credentials to one profile, if it needs them. */
     public static boolean applyToProfile(Context context, VpnProfile profile) {
         if (profile == null || !profile.isUserPWAuth()) return false;
