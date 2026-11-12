@@ -9,8 +9,9 @@
 # Signing: v0.4+ are all signed with ONE permanent keystore (RSA 2048,
 # valid to 2056, alias "minab"), so they install over each other.
 # The keystore itself lives OUTSIDE the repo; CI decodes it from the
-# MINAB_KEYSTORE_BASE64 secret (its base64 is in
-# ~/workspace/minab-keystore/minab-release.p12.b64). If any signing
+# MINAB_KEYSTORE_BASE64_1/2/3 secrets (its base64, in three parts,
+# is in ~/workspace/minab-keystore/minab-release.p12.b64 — one
+# 3520-char paste arrived truncated, so it is stored in parts). If any signing
 # secret is missing the build FAILS LOUDLY below instead of silently
 # falling back to a fresh debug key — a fresh key per build was why
 # v0.1–v0.3 could not install over each other. v0.4 itself needs a
@@ -33,6 +34,9 @@ jobs:
     name: "Build Minab Beta v0.4 (debug APK)"
     runs-on: ubuntu-24.04
     env:
+      MINAB_KEYSTORE_BASE64_1: ${{ secrets.MINAB_KEYSTORE_BASE64_1 }}
+      MINAB_KEYSTORE_BASE64_2: ${{ secrets.MINAB_KEYSTORE_BASE64_2 }}
+      MINAB_KEYSTORE_BASE64_3: ${{ secrets.MINAB_KEYSTORE_BASE64_3 }}
       MINAB_KEYSTORE_BASE64: ${{ secrets.MINAB_KEYSTORE_BASE64 }}
       MINAB_KEYSTORE_PASSWORD: ${{ secrets.MINAB_KEYSTORE_PASSWORD }}
       MINAB_KEY_ALIAS: ${{ secrets.MINAB_KEY_ALIAS }}
@@ -46,7 +50,7 @@ jobs:
       - name: Check Minab release keystore secrets
         run: |
           missing=""
-          for v in MINAB_KEYSTORE_BASE64 MINAB_KEYSTORE_PASSWORD MINAB_KEY_ALIAS MINAB_KEY_PASSWORD; do
+          for v in MINAB_KEYSTORE_BASE64_1 MINAB_KEYSTORE_BASE64_2 MINAB_KEYSTORE_BASE64_3 MINAB_KEYSTORE_PASSWORD MINAB_KEY_ALIAS MINAB_KEY_PASSWORD; do
             if [ -z "${!v}" ]; then missing="$missing $v"; fi
           done
           if [ -n "$missing" ]; then
@@ -54,10 +58,11 @@ jobs:
             exit 1
           fi
           echo "All Minab signing secrets are present."
-          # Only the LENGTH is printed (never the value): the correct
-          # base64 is 3520 chars. If this number differs, the secret
-          # was pasted wrong and must be re-entered.
-          echo "MINAB_KEYSTORE_BASE64 length: ${#MINAB_KEYSTORE_BASE64} (expected 3520)"
+          # Only LENGTHS are printed (never values): the three parts
+          # must be 1173 + 1173 + 1174 = 3520 chars. A single 3520-char
+          # paste through the web UI arrived truncated (2322 chars),
+          # so the keystore is stored in three parts instead.
+          echo "MINAB_KEYSTORE_BASE64 part lengths: ${#MINAB_KEYSTORE_BASE64_1} + ${#MINAB_KEYSTORE_BASE64_2} + ${#MINAB_KEYSTORE_BASE64_3} (expected 1173 + 1173 + 1174 = 3520)"
 
       - name: Set up JDK 17 (Temurin)
         uses: actions/setup-java@v4
