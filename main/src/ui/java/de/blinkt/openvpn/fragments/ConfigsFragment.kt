@@ -24,6 +24,8 @@ import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,17 +36,22 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.ListFragment
+import de.blinkt.openvpn.LaunchVPN
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.VpnProfile
+import de.blinkt.openvpn.core.OpenVPNService
 import de.blinkt.openvpn.core.ProfileManager
+import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.minab.CategoryStore
 import de.blinkt.openvpn.minab.FlagHelper
 import de.blinkt.openvpn.minab.PingTester
+import de.blinkt.openvpn.minab.RealTester
 import de.blinkt.openvpn.minab.SharedCredentials
 import java.io.File
 import java.io.FileOutputStream
@@ -62,6 +69,35 @@ class ConfigsFragment : ListFragment() {
     private val selectedUuids = mutableSetOf<String>()
     private var selectionRow: View? = null
     private var shareButton: Button? = null
+    // --- Minab v0.6: the two server tests (Test ping / Real test) ---
+    // The Real test runner itself is minab.RealTester (shared with
+    // Home); this fragment only owns the UI state and the connect
+    // action (startVPN). Ping tests are independent (they do not
+    // touch the tunnel); real tests are exclusive app-wide.
+    private var pingTester: PingTester? = null
+    private var pingDoneCount: Int = 0
+    private var pingTotalCount: Int = 0
+    private var testProgressRow: View? = null
+    private var testProgressBar: ProgressBar? = null
+    private var testStatusView: TextView? = null
+    private var testCancelButton: Button? = null
+    /** True while our real test runs. */
+    private var realTestActive: Boolean = false
+    private var realTester: RealTester? = null
+    /** Bumped on every start/cancel so listener callbacks from a
+        superseded run are ignored. */
+    private var realTestRunId = 0
+    private val testPauseHandler = Handler(Looper.getMainLooper())
+    private val testPauseStop = Runnable {
+        if (realTestActive) {
+            cancelRealTest()
+            try {
+                Toast.makeText(requireContext(), R.string.minab_real_cancelled, Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                // Fragment gone meanwhile: nothing to tell.
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,6 +137,29 @@ class ConfigsFragment : ListFragment() {
         v.findViewById<Button>(R.id.minab_configs_share_selected)?.setOnClickListener {
             shareProfiles(selectedProfiles())
         }
+        // Minab v0.6: the two server tests. Test ping is the fast
+        // parallel check; Real test actually connects each server
+        // and opens Telegram Web through it (see startRealTest).
+        v.findViewById<Button>(R.id.minab_configs_test_ping)?.setOnClickListener {
+            startPingTest(visibleProfiles())
+        }
+        v.findViewById<Button>(R.id.minab_configs_test_real)?.setOnClickListener {
+            startRealTest(visibleProfiles())
+        }
+        testProgressRow = v.findViewById(R.id.minab_configs_test_progress_row)
+        testProgressBar = v.findViewById(R.id.minab_configs_test_progress)
+        testStatusView = v.findViewById(R.id.minab_configs_test_status)
+        testCancelButton = v.findViewById(R.id.minab_configs_test_cancel_btn)
+        testCancelButton?.setOnClickListener {
+            // The same Cancel button stops whichever test runs.
+            if (realTestActive) {
+                cancelRealTest()
+                Toast.makeText(requireContext(), R.string.minab_real_cancelled, Toast.LENGTH_SHORT).show()
+            } else {
+                cancelPingTest()
+                Toast.makeText(requireContext(), R.string.minab_ping_cancelled, Toast.LENGTH_SHORT).show()
+            }
+        }
         v.findViewById<ListView>(android.R.id.list).setOnItemLongClickListener { _, _, position, _ ->
             val profile = mArrayadapter?.getItem(position) ?: return@setOnItemLongClickListener false
             toggleSelection(profile)
@@ -111,7 +170,28 @@ class ConfigsFragment : ListFragment() {
 
     override fun onResume() {
         super.onResume()
+        // Minab v0.6: we are back (e.g. after our own LaunchVPN
+        // round-trip) — do not stop a running real test for it.
+        testPauseHandler.removeCallbacks(testPauseStop)
         refreshList()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Minab v0.6: leaving Configs mid-run stops the real test —
+        // but launching LaunchVPN pauses us briefly too, so wait
+        // 8 s: a quick round-trip (our own connect/disconnect)
+        // resumes in time and the run survives it.
+        if (realTestActive) testPauseHandler.postDelayed(testPauseStop, 8000)
+    }
+
+    override fun onDestroy() {
+        // Stop the tests when the fragment is really gone. Results
+        // already saved on profiles are kept.
+        testPauseHandler.removeCallbacks(testPauseStop)
+        cancelPingTest()
+        cancelRealTest()
+        super.onDestroy()
     }
 
     private fun dp(value: Int): Int =
@@ -137,9 +217,22 @@ class ConfigsFragment : ListFragment() {
                         ?: LayoutInflater.from(context).inflate(R.layout.minab_config_row, parent, false)
                     val profile = getItem(position)!!
                     (view.findViewById<TextView>(R.id.minab_config_name)).text = profile.mName
+                    // Minab v0.6: the subtitle also carries the last
+                    // test results when present, so the Configs list
+                    // shows them without opening Home.
+                    val subtitle = StringBuilder()
+                    subtitle.append("[").append(profile.getCategory()).append("]")
+                    if (profile.mLastPingResult.isNotEmpty()) {
+                        subtitle.append(" · ").append(profile.mLastPingResult)
+                    }
+                    if (profile.mLastRealResult.isNotEmpty()) {
+                        subtitle.append(" · ").append(profile.mLastRealResult)
+                    }
+                    if (profile.isUserPWAuth()) {
+                        subtitle.append(" · ").append(profile.mUsername)
+                    }
                     (view.findViewById<TextView>(R.id.minab_config_subtitle)).text =
-                        "[" + profile.getCategory() + "]" +
-                            if (profile.isUserPWAuth()) " · " + profile.mUsername else ""
+                        subtitle.toString()
                     val flagView = view.findViewById<ImageView>(R.id.minab_config_flag)
                     val flagRes = FlagHelper.flagResForCategory(profile.getCategory())
                     if (flagRes != 0) {
@@ -572,6 +665,187 @@ class ConfigsFragment : ListFragment() {
         })
     }
 
+    // --- Minab v0.6: the two server tests ---
+
+    /** Configs currently shown (same filter as the list): the whole
+        list, or one group when a group tab is selected. */
+    private fun visibleProfiles(): List<VpnProfile> {
+        val all = ProfileManager.getInstance(requireContext()).getProfiles().toList()
+        val wanted = selectedCategory
+        return if (wanted == null) all else all.filter { it.getCategory() == wanted }
+    }
+
+    /** Fast parallel ping over the visible configs. Ping tests are
+        independent: they do not touch the tunnel, so they are not
+        blocked by a real test running on Home. Within this tab the
+        two tests share one progress row, so starting one cancels
+        the other (same as Home). */
+    private fun startPingTest(profiles: List<VpnProfile>) {
+        if (profiles.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.minab_no_profiles_in_category, Toast.LENGTH_SHORT).show()
+            return
+        }
+        cancelRealTest()
+        cancelPingTest()
+        if (VpnStatus.isVPNActive()) {
+            Toast.makeText(requireContext(), R.string.minab_ping_while_vpn, Toast.LENGTH_LONG).show()
+        }
+        val tester = PingTester()
+        pingTester = tester
+        pingDoneCount = 0
+        pingTotalCount = profiles.size
+        updateTestPingStatus()
+        tester.testAll(profiles, object : PingTester.PingListener {
+            override fun onResult(result: PingTester.Result) {
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    result.profile.mLastPingMs =
+                        if (result.status == PingTester.Status.OK) result.ms else -1
+                    result.profile.mLastPingTime = result.timestampMs
+                    result.profile.mLastPingResult = result.displayText()
+                    ProfileManager.saveProfile(requireContext(), result.profile)
+                    pingDoneCount++
+                    updateTestPingStatus()
+                    mArrayadapter?.notifyDataSetChanged()
+                }
+            }
+
+            override fun onFinished(cancelled: Boolean) {
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    pingTester = null
+                    if (cancelled) {
+                        Toast.makeText(requireContext(), R.string.minab_ping_cancelled, Toast.LENGTH_SHORT).show()
+                    } else {
+                        refreshList()
+                        Toast.makeText(requireContext(), R.string.minab_ping_done, Toast.LENGTH_SHORT).show()
+                    }
+                    testProgressRow?.visibility = View.GONE
+                }
+            }
+        })
+    }
+
+    private fun updateTestPingStatus() {
+        val row = testProgressRow ?: return
+        if (pingTester == null) {
+            row.visibility = View.GONE
+            return
+        }
+        row.visibility = View.VISIBLE
+        testCancelButton?.visibility = View.VISIBLE
+        testProgressBar?.progress =
+            if (pingTotalCount > 0) pingDoneCount * 100 / pingTotalCount else 0
+        testStatusView?.text = getString(R.string.minab_ping_running, pingTotalCount, pingDoneCount)
+    }
+
+    private fun cancelPingTest() {
+        pingTester?.cancel()
+        pingTester = null
+        if (!realTestActive) testProgressRow?.visibility = View.GONE
+    }
+
+    /** Real test: the same two-stage run as Home (ping first when
+        stale, then connect each server in ranked order and fetch
+        Telegram Web through it, stopping after 3 passes) — but
+        with a 20 s wait per server instead of Home's 12 s. The
+        runner is shared, so a real test running on Home blocks
+        starting one here (and vice versa). */
+    private fun startRealTest(profiles: List<VpnProfile>) {
+        if (profiles.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.minab_no_profiles_in_category, Toast.LENGTH_SHORT).show()
+            return
+        }
+        cancelPingTest()
+        cancelRealTest()
+        realTestRunId++
+        val runId = realTestRunId
+        val tester = RealTester(
+            requireContext().applicationContext,
+            CONFIGS_REAL_CONNECT_TIMEOUT_MS,
+            RealTester.REAL_TEST_TARGET,
+            object : RealTester.Listener {
+                override fun onPingProgress(done: Int, total: Int) {
+                    if (!isAdded || runId != realTestRunId) return
+                    pingDoneCount = done
+                    pingTotalCount = total
+                    testProgressRow?.visibility = View.VISIBLE
+                    testCancelButton?.visibility = View.VISIBLE
+                    testProgressBar?.progress =
+                        if (total > 0) done * 100 / total else 0
+                    testStatusView?.text =
+                        getString(R.string.minab_ping_running, total, done)
+                }
+
+                override fun onRealProgress(
+                    done: Int, total: Int, currentName: String?, working: Int
+                ) {
+                    if (!isAdded || runId != realTestRunId) return
+                    testProgressRow?.visibility = View.VISIBLE
+                    testCancelButton?.visibility = View.VISIBLE
+                    testProgressBar?.progress =
+                        if (total > 0) done * 100 / total else 0
+                    testStatusView?.text = getString(
+                        R.string.minab_real_running,
+                        done, total, currentName ?: "", working
+                    )
+                }
+
+                override fun onProfileResult(profile: VpnProfile) {
+                    if (!isAdded || runId != realTestRunId) return
+                    refreshList()
+                }
+
+                override fun onFinished(cancelled: Boolean, working: Int) {
+                    if (!isAdded || runId != realTestRunId) return
+                    realTester = null
+                    realTestActive = false
+                    testProgressRow?.visibility = View.GONE
+                    if (!cancelled) {
+                        refreshList()
+                        Toast.makeText(requireContext(), R.string.minab_real_done, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onConnectRequested(profile: VpnProfile) {
+                    if (!isAdded || runId != realTestRunId) return
+                    startVPN(profile)
+                }
+            }
+        )
+        if (!tester.start(profiles)) {
+            Toast.makeText(requireContext(), R.string.minab_real_already_running, Toast.LENGTH_SHORT).show()
+            return
+        }
+        realTester = tester
+        realTestActive = true
+    }
+
+    /** Stop our real test: the runner drops the VPN under test (if
+        any), stops scheduling further servers, leaves already-
+        recorded results. No toast here — the caller toasts when
+        the cancel is the user's own tap. Safe to call when
+        nothing runs. */
+    private fun cancelRealTest() {
+        realTestRunId++
+        realTester?.cancel()
+        realTester = null
+        realTestActive = false
+        testProgressRow?.visibility = View.GONE
+    }
+
+    /** Connect a profile — the same LaunchVPN path as Home's
+        startVPN, so the real test can drive it from this tab. */
+    private fun startVPN(profile: VpnProfile) {
+        ProfileManager.saveProfile(requireContext(), profile)
+        val intent = Intent(requireContext(), LaunchVPN::class.java)
+        intent.putExtra(LaunchVPN.EXTRA_KEY, profile.getUUID().toString())
+        intent.putExtra(OpenVPNService.EXTRA_START_REASON, "configs real test")
+        intent.putExtra(LaunchVPN.EXTRA_HIDELOG, true)
+        intent.action = Intent.ACTION_MAIN
+        startActivity(intent)
+    }
+
     /** Export every profile as a .ovpn file inside one zip. Runs off
         the UI thread; the result toast is posted back to it. */
     private fun exportBackup(uri: Uri) {
@@ -599,5 +873,14 @@ class ConfigsFragment : ListFragment() {
                 ).show()
             }
         }.start()
+    }
+
+    companion object {
+        // Minab v0.6: how long the Real test waits for one server
+        // to report CONNECTED from the Configs tab (Home waits
+        // 12 s). Configs is the deliberate, patient choice: a
+        // server that needs longer to connect still gets its
+        // chance here instead of being marked Blocked.
+        private const val CONFIGS_REAL_CONNECT_TIMEOUT_MS = 20_000L
     }
 }
