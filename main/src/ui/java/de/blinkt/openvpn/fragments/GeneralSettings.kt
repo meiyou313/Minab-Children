@@ -62,6 +62,8 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
         val clearapi = findPreference<Preference>("clearapi") as Preference
         clearapi.onPreferenceClickListener = this
         findPreference<Preference>("osslspeed")!!.onPreferenceClickListener = this
+        // Minab Beta v0.5: FAQ lives at the end of Settings now.
+        findPreference<Preference>("minab_faq")!!.onPreferenceClickListener = this
         // Minab v0.4: manual update check. Tapping it again while an
         // update is known opens the releases page.
         val checkUpdate = findPreference<Preference>("minab_check_update")!!
@@ -225,6 +227,11 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
             builder.show()
         } else if (preference.key == "osslspeed") {
             startActivity(Intent(activity, OpenSSLSpeed::class.java))
+        } else if (preference.key == "minab_faq") {
+            // Minab Beta v0.5 — FAQ moved out of the bottom tab bar
+            // and to the end of Settings; it opens full-screen over
+            // the tabs (MainActivity.showFaq), back closes it.
+            (activity as? de.blinkt.openvpn.activities.MainActivity)?.showFaq()
         } else if (preference.key == "minab_check_update") {
             if (minabLatestTag != null &&
                 MinabUpdateChecker.isNewer(BuildConfig.VERSION_NAME, minabLatestTag!!)

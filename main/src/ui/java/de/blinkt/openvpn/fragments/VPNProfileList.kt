@@ -59,6 +59,7 @@ import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.core.VpnStatus.StateListener
 import de.blinkt.openvpn.minab.CategoryStore
+import de.blinkt.openvpn.minab.FlagHelper
 import de.blinkt.openvpn.minab.MinabUpdateChecker
 import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
@@ -443,6 +444,37 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         setListAdapter(mArrayadapter)
         mArrayadapter!!.notifyDataSetChanged()
         rebuildCategoryChips()
+        // Minab v0.5: the list is part of the page's single scroll,
+        // so size the ListView to its content (no inner scroll).
+        listView?.post { expandListView() }
+    }
+
+    /** Minab v0.5 — size the (non-scrolling) ListView to the total
+        height of its rows, so the whole Home page scrolls as one.
+        Called after the layout pass, when the width is known. */
+    private fun expandListView() {
+        if (!isAdded) return
+        val list = listView ?: return
+        val adapter = mArrayadapter ?: return
+        if (adapter.count == 0) {
+            list.layoutParams.height = 0
+            list.requestLayout()
+            return
+        }
+        val width = if (list.width > 0) list.width
+            else resources.displayMetrics.widthPixels - dp(32)
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        var totalHeight = 0
+        for (i in 0 until adapter.count) {
+            val item = adapter.getView(i, null, list)
+            item.measure(widthSpec, heightSpec)
+            totalHeight += item.measuredHeight
+        }
+        totalHeight += list.dividerHeight * (adapter.count - 1)
+        val params = list.layoutParams
+        params.height = totalHeight
+        list.layoutParams = params
     }
 
     // --- Minab Children: categories ---
@@ -451,12 +483,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         (value * resources.displayMetrics.density).toInt()
 
     /** Rebuilds the group tabs (v0.4): All + one tab per group +
-        a "+" tab to create a group by hand + a Manage tab. Groups
+        a Manage tab + a "+" tab to create a group by hand. Groups
         are the categories: countries are assigned automatically on
         import by AutoCategory, and the user can create or rename
         groups. Each tab carries a small ping icon that tests just
         that group (All tests every profile). Tapping the label
-        filters the list. Replaces the plain v0.2 chips. */
+        filters the list. Replaces the plain v0.2 chips.
+        v0.5: smaller and more minimal (11sp, tighter padding), the
+        first tab reads just "all", the "+" tab is LAST, and a
+        trailing peek spacer makes the fade at the right edge show
+        that the bar scrolls. */
     private fun rebuildCategoryChips() {
         val container = categoryChipsContainer ?: return
         container.removeAllViews()
@@ -466,38 +502,44 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             val inGroup = pM.getProfiles().toList().filter { it.getCategory() == category }
             addGroupTab(container, category, inGroup)
         }
-        val add = TextView(context)
-        add.text = "+ " + getString(R.string.minab_new_group)
-        add.textSize = 13f
-        add.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
-        add.setBackgroundResource(R.drawable.minab_chip_bg)
-        add.setPadding(dp(14), dp(7), dp(14), dp(7))
-        val addParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        addParams.marginEnd = dp(8)
-        add.layoutParams = addParams
-        add.setOnClickListener { showNewCategoryDialog { populateVpnList() } }
-        container.addView(add)
         val manage = TextView(context)
         manage.text = getString(R.string.minab_manage_categories)
-        manage.textSize = 13f
+        manage.textSize = 11f
         manage.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
         manage.setBackgroundResource(R.drawable.minab_chip_bg)
-        manage.setPadding(dp(14), dp(7), dp(14), dp(7))
+        manage.setPadding(dp(10), dp(5), dp(10), dp(5))
         val manageParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
-        manageParams.marginEnd = dp(8)
+        manageParams.marginEnd = dp(6)
         manage.layoutParams = manageParams
         manage.setOnClickListener { showManageCategoriesDialog() }
         container.addView(manage)
+        val add = TextView(context)
+        add.text = "+ " + getString(R.string.minab_new_group)
+        add.textSize = 11f
+        add.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
+        add.setBackgroundResource(R.drawable.minab_chip_bg)
+        add.setPadding(dp(10), dp(5), dp(10), dp(5))
+        val addParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        addParams.marginEnd = dp(6)
+        add.layoutParams = addParams
+        add.setOnClickListener { showNewCategoryDialog { populateVpnList() } }
+        container.addView(add)
+        // Trailing peek spacer: the last tab is cut off mid-way by
+        // the fade, so the bar visibly invites scrolling right.
+        val peek = View(context)
+        peek.layoutParams = LinearLayout.LayoutParams(dp(20), dp(1))
+        container.addView(peek)
     }
 
     /** One group tab: label (tap = filter) + small ping icon
-        (tap = ping just this group). category == null is "All". */
+        (tap = ping just this group). category == null is "all".
+        v0.5: 11sp, tighter padding, 18dp ping icon. */
     private fun addGroupTab(
         container: LinearLayout,
         category: String?,
@@ -512,16 +554,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             if (selected) R.drawable.minab_chip_bg_selected
             else R.drawable.minab_chip_bg
         )
-        tab.setPadding(dp(14), dp(7), dp(10), dp(7))
+        tab.setPadding(dp(10), dp(5), dp(7), dp(5))
         val tabParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
-        tabParams.marginEnd = dp(8)
+        tabParams.marginEnd = dp(6)
         tab.layoutParams = tabParams
         val label = TextView(context)
-        label.text = category ?: getString(R.string.minab_all_categories)
-        label.textSize = 13f
+        label.text = category ?: getString(R.string.minab_all_tab)
+        label.textSize = 11f
         label.setTextColor(
             resources.getColor(
                 if (selected) R.color.minab_teal_dark else R.color.minab_chip_text,
@@ -542,9 +584,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             android.graphics.PorterDuff.Mode.SRC_IN
         )
         pingIcon.contentDescription = getString(R.string.minab_ping_group)
-        pingIcon.setPadding(dp(6), dp(6), dp(2), dp(6))
-        val iconParams = LinearLayout.LayoutParams(dp(24), dp(24))
-        iconParams.marginStart = dp(4)
+        pingIcon.setPadding(dp(4), dp(4), dp(1), dp(4))
+        val iconParams = LinearLayout.LayoutParams(dp(18), dp(18))
+        iconParams.marginStart = dp(3)
         pingIcon.layoutParams = iconParams
         pingIcon.setOnClickListener { startPingTest(profiles) }
         tab.addView(pingIcon)
@@ -827,18 +869,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        menu.add(0, MENU_ADD_PROFILE, 0, R.string.menu_add_profile)
-            .setIcon(R.drawable.ic_menu_add)
-            .setAlphabeticShortcut('a')
-            .setTitleCondensed(getActivity()!!.getString(R.string.add))
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-
-        menu.add(0, MENU_IMPORT_PROFILE, 0, R.string.menu_import)
-            .setIcon(R.drawable.ic_menu_import)
-            .setAlphabeticShortcut('i')
-            .setTitleCondensed(getActivity()!!.getString(R.string.menu_import_short))
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-
+        // Minab Beta v0.5 — add / single import / bulk import moved
+        // to the activity's top bar (MainActivity), so they are the
+        // same on every tab and are not duplicated here.
         menu.add(0, MENU_CHANGE_SORTING, 0, R.string.change_sorting)
             .setIcon(R.drawable.ic_sort)
             .setAlphabeticShortcut('s')
@@ -852,8 +885,6 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
 
         // Minab Children
-        menu.add(0, MENU_BULK_IMPORT, 0, R.string.minab_bulk_import)
-            .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(0, MENU_PING_ALL, 0, R.string.minab_ping_all)
             .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM)
         menu.add(0, MENU_PING_CATEGORY, 0, R.string.minab_ping_category)
@@ -864,18 +895,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val itemId = item.getItemId()
-        if (itemId == MENU_ADD_PROFILE) {
-            onAddOrDuplicateProfile(null)
-            return true
-        } else if (itemId == MENU_IMPORT_PROFILE) {
-            return startImportConfigFilePicker()
-        } else if (itemId == MENU_CHANGE_SORTING) {
+        if (itemId == MENU_CHANGE_SORTING) {
             return changeSorting()
         } else if (itemId == MENU_IMPORT_AS) {
             return startASProfileImport()
-        } else if (itemId == MENU_BULK_IMPORT) {
-            startActivity(Intent(requireContext(), BulkImportActivity::class.java))
-            return true
         } else if (itemId == MENU_PING_ALL) {
             startPingTest(pM.getProfiles().toList())
             return true
@@ -944,6 +967,14 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         intent.putExtra(FileSelect.NO_INLINE_SELECTION, true)
         intent.putExtra(FileSelect.WINDOW_TITLE, R.string.import_configuration_file)
         startActivityForResult(intent, SELECT_PROFILE)
+    }
+
+    /** Minab Beta v0.5 — entry point for the top-bar "+" (the
+        activity switches to Home, then calls this). Opens the same
+        add-one-config dialog as the old overflow item. */
+    fun openAddProfile() {
+        if (!isAdded) return
+        onAddOrDuplicateProfile(null)
     }
 
     private fun onAddOrDuplicateProfile(mCopyProfile: VpnProfile?) {
@@ -1168,6 +1199,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             // v0.3 colours follow Namaki: green < 100 ms, amber
             // 100–299 ms, grey >= 300 ms / Timeout / Failed. Hidden
             // until a profile has a ping result.
+            // Minab Beta v0.5: country flag before the name (bundled
+            // flags for the 36 most-used countries, globe otherwise).
+            val flagView = v.findViewById<android.widget.ImageView>(R.id.minab_flag)
+            val flagRes = FlagHelper.flagResForCategory(profile.getCategory())
+            if (flagRes != 0) {
+                flagView.setImageResource(flagRes)
+                flagView.visibility = View.VISIBLE
+            } else {
+                flagView.visibility = View.GONE
+            }
             val badge = v.findViewById<TextView>(R.id.minab_ping_badge)
             if (profile.mLastPingMs >= 0) {
                 badge.visibility = View.VISIBLE
@@ -1215,16 +1256,14 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
 
         // Shortcut version is increased to refresh all shortcuts
         const val SHORTCUT_VERSION: Int = 1
-        private val MENU_ADD_PROFILE = Menu.FIRST
         private const val EDIT_VPN_CONFIG = 92
         private const val SELECT_PROFILE = 43
         private const val IMPORT_PROFILE = 231
         private const val FILE_PICKER_RESULT_KITKAT = 392
-        private val MENU_IMPORT_PROFILE = Menu.FIRST + 1
         private val MENU_CHANGE_SORTING = Menu.FIRST + 2
         private val MENU_IMPORT_AS = Menu.FIRST + 3
-        // Minab Children menu ids
-        private val MENU_BULK_IMPORT = Menu.FIRST + 4
+        // Minab Children menu ids (v0.5: add / import / bulk import
+        // moved to the activity top bar, so their ids are gone)
         private val MENU_PING_ALL = Menu.FIRST + 5
         private val MENU_PING_CATEGORY = Menu.FIRST + 6
         private val MENU_FILTER_CATEGORY = Menu.FIRST + 7

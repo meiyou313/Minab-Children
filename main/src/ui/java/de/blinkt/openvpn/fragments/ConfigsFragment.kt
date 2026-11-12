@@ -7,12 +7,20 @@
  * manage configs. Group filter tabs on top, buttons for credentials
  * (this group / all) and backup, then the config list. Tap a config
  * for rename, credentials, category, ping or delete.
+ *
+ * v0.5: minimal rows (checkbox, country flag, small name) like
+ * Home; ticking boxes selects configs for Delete selected and
+ * Share as zip; the Share button shares the selection, or the
+ * current group, or all configs as one zip file (Android share
+ * intent via the app FileProvider); the credentials buttons sit
+ * under a plain "VPN username & password" explanation.
  */
 
 package de.blinkt.openvpn.fragments
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
@@ -21,7 +29,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
@@ -33,8 +43,12 @@ import de.blinkt.openvpn.R
 import de.blinkt.openvpn.VpnProfile
 import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.minab.CategoryStore
+import de.blinkt.openvpn.minab.FlagHelper
 import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.minab.SharedCredentials
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
 import java.util.TreeSet
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -44,6 +58,10 @@ class ConfigsFragment : ListFragment() {
     private var mArrayadapter: ArrayAdapter<VpnProfile>? = null
     private var chipsContainer: LinearLayout? = null
     private lateinit var backupLauncher: ActivityResultLauncher<String>
+    /** UUIDs of the configs ticked for Delete / Share. */
+    private val selectedUuids = mutableSetOf<String>()
+    private var selectionRow: View? = null
+    private var shareButton: Button? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +92,20 @@ class ConfigsFragment : ListFragment() {
                 backupLauncher.launch("minab-backup.ovpn.zip")
             }
         }
+        shareButton = v.findViewById(R.id.minab_configs_share)
+        shareButton?.setOnClickListener { shareCurrentScope() }
+        selectionRow = v.findViewById(R.id.minab_configs_selection_row)
+        v.findViewById<Button>(R.id.minab_configs_delete_selected)?.setOnClickListener {
+            showDeleteSelectedDialog()
+        }
+        v.findViewById<Button>(R.id.minab_configs_share_selected)?.setOnClickListener {
+            shareProfiles(selectedProfiles())
+        }
+        v.findViewById<ListView>(android.R.id.list).setOnItemLongClickListener { _, _, position, _ ->
+            val profile = mArrayadapter?.getItem(position) ?: return@setOnItemLongClickListener false
+            toggleSelection(profile)
+            true
+        }
         return v
     }
 
@@ -90,22 +122,36 @@ class ConfigsFragment : ListFragment() {
         val context = requireContext()
         val pm = ProfileManager.getInstance(context)
         val all = pm.getProfiles().toList()
+        // Drop selections for configs that no longer exist.
+        selectedUuids.retainAll(all.map { it.getUUIDString() }.toSet())
         val filtered = if (selectedCategory == null) all
         else all.filter { it.getCategory() == selectedCategory }
         val sorted = TreeSet<VpnProfile>(Comparator { a, b -> (a.mName ?: "").compareTo(b.mName ?: "") })
         sorted.addAll(filtered)
         if (mArrayadapter == null) {
             mArrayadapter = object : ArrayAdapter<VpnProfile>(
-                context, android.R.layout.simple_list_item_2, android.R.id.text1,
-                ArrayList(sorted)
+                context, R.layout.minab_config_row, ArrayList(sorted)
             ) {
                 override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                    val view = super.getView(position, convertView, parent)
+                    val view = convertView
+                        ?: LayoutInflater.from(context).inflate(R.layout.minab_config_row, parent, false)
                     val profile = getItem(position)!!
-                    (view.findViewById<TextView>(android.R.id.text1)).text = profile.mName
-                    (view.findViewById<TextView>(android.R.id.text2)).text =
+                    (view.findViewById<TextView>(R.id.minab_config_name)).text = profile.mName
+                    (view.findViewById<TextView>(R.id.minab_config_subtitle)).text =
                         "[" + profile.getCategory() + "]" +
                             if (profile.isUserPWAuth()) " · " + profile.mUsername else ""
+                    val flagView = view.findViewById<ImageView>(R.id.minab_config_flag)
+                    val flagRes = FlagHelper.flagResForCategory(profile.getCategory())
+                    if (flagRes != 0) {
+                        flagView.setImageResource(flagRes)
+                        flagView.visibility = View.VISIBLE
+                    } else {
+                        flagView.visibility = View.GONE
+                    }
+                    val checkBox = view.findViewById<CheckBox>(R.id.minab_config_checkbox)
+                    checkBox.setOnCheckedChangeListener(null)
+                    checkBox.isChecked = selectedUuids.contains(profile.getUUIDString())
+                    checkBox.setOnCheckedChangeListener { _, _ -> toggleSelection(profile) }
                     return view
                 }
             }
@@ -116,6 +162,161 @@ class ConfigsFragment : ListFragment() {
             mArrayadapter!!.notifyDataSetChanged()
         }
         rebuildChips()
+        updateSelectionBar()
+    }
+
+    // --- Minab v0.5: selection (delete / share) ---
+
+    private fun selectedProfiles(): List<VpnProfile> {
+        val all = ProfileManager.getInstance(requireContext()).getProfiles().toList()
+        return all.filter { selectedUuids.contains(it.getUUIDString()) }
+    }
+
+    private fun toggleSelection(profile: VpnProfile) {
+        val uuid = profile.getUUIDString()
+        if (!selectedUuids.remove(uuid)) selectedUuids.add(uuid)
+        mArrayadapter?.notifyDataSetChanged()
+        updateSelectionBar()
+    }
+
+    private fun clearSelection() {
+        if (selectedUuids.isEmpty()) return
+        selectedUuids.clear()
+        mArrayadapter?.notifyDataSetChanged()
+        updateSelectionBar()
+    }
+
+    /** Show the Delete/Share row while something is ticked, and
+        keep the Share button's label truthful about its scope. */
+    private fun updateSelectionBar() {
+        if (!isAdded) return
+        val count = selectedUuids.size
+        selectionRow?.visibility = if (count > 0) View.VISIBLE else View.GONE
+        val shareSelected = view?.findViewById<Button>(R.id.minab_configs_share_selected)
+        if (count > 0) shareSelected?.text = getString(R.string.minab_share_selected, count)
+        shareButton?.text = when {
+            count > 0 -> getString(R.string.minab_share_selected, count)
+            selectedCategory != null -> getString(R.string.minab_share_group)
+            else -> getString(R.string.minab_share_all)
+        }
+    }
+
+    private fun showDeleteSelectedDialog() {
+        val count = selectedUuids.size
+        if (count == 0) return
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.minab_delete_selected)
+            .setMessage(getString(R.string.minab_delete_selected_confirm, count))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val pm = ProfileManager.getInstance(requireContext())
+                val context = requireContext()
+                for (profile in selectedProfiles()) {
+                    pm.removeProfile(context, profile)
+                }
+                val deleted = count
+                clearSelection()
+                Toast.makeText(
+                    context,
+                    getString(R.string.minab_configs_deleted, deleted),
+                    Toast.LENGTH_SHORT
+                ).show()
+                refreshList()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    // --- Minab v0.5: share configs as one zip ---
+
+    /** Share button scope: the ticked configs, else the current
+        group, else every config. */
+    private fun shareCurrentScope() {
+        val context = requireContext()
+        val profiles = when {
+            selectedUuids.isNotEmpty() -> selectedProfiles()
+            selectedCategory != null -> ProfileManager.getInstance(context).getProfiles()
+                .toList().filter { it.getCategory() == selectedCategory }
+            else -> ProfileManager.getInstance(context).getProfiles().toList()
+        }
+        if (profiles.isEmpty()) {
+            Toast.makeText(context, R.string.minab_backup_none, Toast.LENGTH_SHORT).show()
+            return
+        }
+        shareProfiles(profiles)
+    }
+
+    /** Write the profiles as .ovpn files into one zip in the cache
+        dir, then hand it to the Android share sheet. The zip goes
+        through the app FileProvider (see FileProvider.java: .zip
+        files in the cache dir are served), so no storage permission
+        is needed. */
+    private fun shareProfiles(profiles: List<VpnProfile>) {
+        if (profiles.isEmpty()) return
+        val context = requireContext()
+        Toast.makeText(context, R.string.minab_share_creating, Toast.LENGTH_SHORT).show()
+        Thread {
+            var count = 0
+            var file: File? = null
+            try {
+                file = File(context.cacheDir, "minab-share-" + System.currentTimeMillis() + ".zip")
+                FileOutputStream(file).use { out ->
+                    count = writeProfilesZip(context, profiles, out)
+                }
+                if (count == 0) file = null
+            } catch (ignored: Exception) {
+                file = null
+            }
+            val outFile = file
+            val doneCount = count
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                if (outFile == null || doneCount == 0) {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.minab_share_failed,
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    val uri = Uri.parse(
+                        "content://" + requireContext().packageName +
+                            ".FileProvider/" + outFile.name
+                    )
+                    val intent = Intent(Intent.ACTION_SEND)
+                    intent.type = "application/zip"
+                    intent.putExtra(Intent.EXTRA_STREAM, uri)
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    startActivity(
+                        Intent.createChooser(intent, getString(R.string.minab_share_zip))
+                    )
+                    clearSelection()
+                }
+            }
+        }.start()
+    }
+
+    /** Write each profile's .ovpn text as one zip entry. Returns
+        the number of entries written. Shared by backup and share. */
+    private fun writeProfilesZip(
+        context: Context,
+        profiles: List<VpnProfile>,
+        out: OutputStream
+    ): Int {
+        var count = 0
+        ZipOutputStream(out).use { zip ->
+            for (profile in profiles) {
+                try {
+                    val name = profile.mName
+                        .replace(Regex("[^A-Za-z0-9._-]"), "_")
+                        .ifEmpty { "config" } + ".ovpn"
+                    zip.putNextEntry(ZipEntry(name))
+                    zip.write(profile.getConfigFile(context, false).toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+                    count++
+                } catch (ignored: Exception) {
+                }
+            }
+        }
+        return count
     }
 
     private fun rebuildChips() {
@@ -125,11 +326,12 @@ class ConfigsFragment : ListFragment() {
         val categories = mutableListOf<String?>(null)
         categories.addAll(CategoryStore.getCategories(context))
         for (category in categories) {
-            val label = category ?: getString(R.string.minab_all_categories)
+            // v0.5: the first tab reads just "all", like Home.
+            val label = category ?: getString(R.string.minab_all_tab)
             val selected = category == selectedCategory
             val chip = TextView(context)
             chip.text = label
-            chip.textSize = 13f
+            chip.textSize = 11f
             chip.setTextColor(
                 resources.getColor(
                     if (selected) R.color.minab_teal_dark else R.color.minab_chip_text,
@@ -141,12 +343,12 @@ class ConfigsFragment : ListFragment() {
                 if (selected) R.drawable.minab_chip_bg_selected
                 else R.drawable.minab_chip_bg
             )
-            chip.setPadding(dp(14), dp(7), dp(14), dp(7))
+            chip.setPadding(dp(10), dp(5), dp(10), dp(5))
             val params = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            params.marginEnd = dp(8)
+            params.marginEnd = dp(6)
             chip.layoutParams = params
             chip.setOnClickListener {
                 selectedCategory = category
@@ -156,17 +358,26 @@ class ConfigsFragment : ListFragment() {
         }
         val add = TextView(context)
         add.text = "+ " + getString(R.string.minab_new_group)
-        add.textSize = 13f
+        add.textSize = 11f
         add.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
         add.setBackgroundResource(R.drawable.minab_chip_bg)
-        add.setPadding(dp(14), dp(7), dp(14), dp(7))
+        add.setPadding(dp(10), dp(5), dp(10), dp(5))
         add.setOnClickListener { showNewCategoryDialog { refreshList() } }
         container.addView(add)
+        // Trailing peek spacer (see Home): the fade shows the bar scrolls.
+        val peek = View(context)
+        peek.layoutParams = LinearLayout.LayoutParams(dp(20), dp(1))
+        container.addView(peek)
     }
 
     override fun onListItemClick(l: ListView, v: View, position: Int, id: Long) {
         val profile = mArrayadapter?.getItem(position) ?: return
-        showConfigActionsDialog(profile)
+        if (selectedUuids.isNotEmpty()) {
+            // Selection mode: tapping toggles instead of opening the dialog.
+            toggleSelection(profile)
+        } else {
+            showConfigActionsDialog(profile)
+        }
     }
 
     private fun showConfigActionsDialog(profile: VpnProfile) {
@@ -175,6 +386,7 @@ class ConfigsFragment : ListFragment() {
             getString(R.string.minab_change_credentials),
             getString(R.string.minab_assign_category),
             getString(R.string.minab_ping_one),
+            getString(R.string.minab_share_config),
             getString(R.string.minab_delete_config)
         )
         AlertDialog.Builder(requireContext())
@@ -185,7 +397,8 @@ class ConfigsFragment : ListFragment() {
                     1 -> showProfileCredentialsDialog(profile)
                     2 -> showAssignCategoryDialog(profile)
                     3 -> pingOne(profile)
-                    4 -> showDeleteDialog(profile)
+                    4 -> shareProfiles(listOf(profile))
+                    5 -> showDeleteDialog(profile)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -369,20 +582,7 @@ class ConfigsFragment : ListFragment() {
             try {
                 val profiles = ProfileManager.getInstance(context).getProfiles().toList()
                 context.contentResolver.openOutputStream(uri)?.use { out ->
-                    ZipOutputStream(out).use { zip ->
-                        for (profile in profiles) {
-                            try {
-                                val name = profile.mName
-                                    .replace(Regex("[^A-Za-z0-9._-]"), "_")
-                                    .ifEmpty { "config" } + ".ovpn"
-                                zip.putNextEntry(ZipEntry(name))
-                                zip.write(profile.getConfigFile(context, false).toByteArray(Charsets.UTF_8))
-                                zip.closeEntry()
-                                count++
-                            } catch (ignored: Exception) {
-                            }
-                        }
-                    }
+                    count = writeProfilesZip(context, profiles, out)
                 }
                 ok = count > 0
             } catch (ignored: Exception) {
