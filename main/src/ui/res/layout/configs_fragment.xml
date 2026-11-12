@@ -131,6 +131,99 @@
             android:textSize="12sp" />
     </LinearLayout>
 
+    <!-- Minab Beta v0.6 — the two server tests, so the user can
+         choose: Test ping is fast but only checks the server
+         answers; Real test actually connects each server and opens
+         Telegram Web through it, so it proves the server really
+         bypasses filtering (and waits up to 20 s per server). -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_configs_test_title"
+        android:textColor="@color/minab_text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_configs_test_explained"
+        android:textColor="@color/minab_text_secondary"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/minab_configs_test_ping"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_test_ping"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/minab_configs_test_real"
+            style="@style/Minab.PrimaryButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_real_test"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Minab Beta v0.6 — test progress (either test): bar +
+         status line + Cancel. Mirrors Home's progress row. -->
+    <LinearLayout
+        android:id="@+id/minab_configs_test_progress_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/minab_configs_test_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressBackgroundTint="@color/minab_divider"
+            android:progressTint="@color/minab_teal" />
+
+        <TextView
+            android:id="@+id/minab_configs_test_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_secondary" />
+
+        <Button
+            android:id="@+id/minab_configs_test_cancel_btn"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="36dp"
+            android:text="@string/minab_cancel_short"
+            android:textAllCaps="false"
+            android:textColor="@color/minab_teal" />
+    </LinearLayout>
+
     <!-- Minab Beta v0.5 — selection actions: shown only while one
          or more configs are ticked. -->
     <LinearLayout
