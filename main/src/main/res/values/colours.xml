@@ -5,29 +5,48 @@
   -->
 
 <resources>
-    <!-- Minab Beta v0.2 — light minimal palette (teal on white).
-         The stock indigo/orange colours are replaced by teal so the
-         whole app matches the light minimal design the user picked.
-         The old indigo #3F51B5 / orange #FFA726 are gone on purpose. -->
-    <color name="primary">#0F766E</color>      <!-- teal 700 -->
-    <color name="primary_dark">#0B5E57</color> <!-- teal 800 -->
-    <color name="accent">#0F766E</color>       <!-- teal 700 -->
+    <!-- Minab Beta v0.3 — Namaki-style palette, rebuilt natively.
+         Seed #5B5BD6 (Namaki app.dart: ColorScheme.fromSeed), light
+         background #F5F5FA, dark #111218 (see values-night).
+         The old v0.2 teal (#0F766E) is gone on purpose. The resource
+         names minab_teal* are kept so existing code keeps working —
+         their values are now the Namaki indigo. -->
+    <color name="primary">#5B5BD6</color>
+    <color name="primary_dark">#4648B8</color>
+    <color name="accent">#5B5BD6</color>
     <color name="gelb">#ffff00</color>
     <color name="rot">#ff0000</color>
 
-    <!-- Minab light minimal UI -->
-    <color name="minab_teal">#0F766E</color>
-    <color name="minab_teal_dark">#0B5E57</color>
-    <color name="minab_teal_tint">#D9EFEC</color>
-    <color name="minab_bg">#FFFFFF</color>
-    <color name="minab_surface">#F7F8F8</color>
-    <color name="minab_text_primary">#1F2937</color>
-    <color name="minab_text_secondary">#6B7280</color>
+    <!-- Minab Namaki-style UI -->
+    <color name="minab_indigo">#5B5BD6</color>
+    <color name="minab_indigo_light">#8B8DF0</color>
+    <color name="minab_teal">#5B5BD6</color>
+    <color name="minab_teal_dark">#4648B8</color>
+    <color name="minab_teal_tint">#E4E5FB</color>
+    <color name="minab_bg">#F5F5FA</color>
+    <color name="minab_surface">#FFFFFF</color>
+    <color name="minab_text_primary">#151A35</color>
+    <color name="minab_text_secondary">#646C92</color>
     <color name="minab_divider">#E5E7EB</color>
-    <color name="minab_chip_bg">#EEF2F2</color>
+    <color name="minab_chip_bg">#ECECF4</color>
     <color name="minab_chip_text">#374151</color>
-    <color name="minab_ping_slow">#B45309</color>
-    <color name="minab_ping_fail">#9CA3AF</color>
+    <color name="minab_card_border">#33202A66</color>
+    <color name="minab_gradient_top">#E9EEFF</color>
+    <color name="minab_gradient_bottom">#F9FAFF</color>
+    <!-- Namaki home palette (day): connected green, busy amber. -->
+    <color name="minab_connected">#0DB37C</color>
+    <color name="minab_connected_light">#4ED2A5</color>
+    <color name="minab_busy">#F08C00</color>
+    <!-- Ping pill colours (Namaki StatusColors: good #22A06B,
+         busy amber, idle grey). Fast uses the home connected green. -->
+    <color name="minab_ping_fast">#0DB37C</color>
+    <color name="minab_ping_slow">#F08C00</color>
+    <color name="minab_ping_fail">#8B8D98</color>
+    <!-- PowerOrb (Namaki overview page): glow = accent at ~20%,
+         ring = accent at ~45%, disc edge = white at 40%. -->
+    <color name="minab_orb_glow">#335B5BD6</color>
+    <color name="minab_orb_ring">#735B5BD6</color>
+    <color name="minab_orb_disc_edge">#66FFFFFF</color>
 
     <color name="switchbar">@android:color/darker_gray</color>
 
