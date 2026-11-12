@@ -43,7 +43,11 @@ class MainActivity : BaseActivity() {
         }
         if (!minimalUi) {
 
-            mPagerAdapter.addTab(R.string.vpn_list_title, VPNProfileList::class.java)
+            // Minab Beta v0.4: the first tab is HOME (was "Profiles")
+            // and CONFIGS is the dedicated config-management tab
+            // between Home and Graph.
+            mPagerAdapter.addTab(R.string.minab_home_tab, VPNProfileList::class.java)
+            mPagerAdapter.addTab(R.string.minab_configs_tab, ConfigsFragment::class.java)
             mPagerAdapter.addTab(R.string.graph, GraphFragment::class.java)
             mPagerAdapter.addTab(R.string.generalsettings, GeneralSettings::class.java)
             mPagerAdapter.addTab(R.string.faq, FaqFragment::class.java)
@@ -82,7 +86,9 @@ class MainActivity : BaseActivity() {
             }
             val page = intent.getStringExtra("PAGE")
             if ("graph" == page) {
-                mPager.currentItem = 1
+                // Minab v0.4: Graph moved to index 2 (Home 0,
+                // Configs 1, Graph 2) when the Configs tab was added.
+                mPager.currentItem = 2
             }
             setIntent(null)
         }
