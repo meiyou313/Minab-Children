@@ -78,24 +78,26 @@
     </style>
 
     <!-- Small pill badge that shows a profile's last ping ("24 ms",
-         "Timeout", "Failed") next to its name in the list. -->
+         "Timeout", "Failed") next to its name in the list. v0.5:
+         smaller, to match the minimal rows. -->
     <style name="Minab.PingBadge">
         <item name="android:fontFamily">@font/vazirmatn</item>
-        <item name="android:textSize">12sp</item>
+        <item name="android:textSize">10sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@android:color/white</item>
-        <item name="android:paddingStart">8dp</item>
-        <item name="android:paddingEnd">8dp</item>
-        <item name="android:paddingTop">4dp</item>
-        <item name="android:paddingBottom">4dp</item>
+        <item name="android:paddingStart">6dp</item>
+        <item name="android:paddingEnd">6dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
         <item name="android:gravity">center</item>
-        <item name="android:minWidth">52dp</item>
+        <item name="android:minWidth">44dp</item>
     </style>
 
     <!-- Minab Beta v0.4 — small non-caps labels for the bottom tab
-         bar (see main_activity.xml). -->
+         bar (see main_activity.xml). v0.5: 10sp so all five tabs fit
+         without scrolling. -->
     <style name="Minab.TabText" parent="TextAppearance.Design.Tab">
-        <item name="android:textSize">11sp</item>
+        <item name="android:textSize">10sp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:fontFamily">@font/vazirmatn</item>
     </style>
