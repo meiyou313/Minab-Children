@@ -446,15 +446,22 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         rebuildCategoryChips()
         // Minab v0.5: the list is part of the page's single scroll,
         // so size the ListView to its content (no inner scroll).
-        listView?.post { expandListView() }
+        // v0.5.1 HOTFIX: populateVpnList() also runs from onCreate()
+        // (via setListAdapter), where the fragment has no view yet —
+        // ListFragment.listView THROWS there ("Content view not yet
+        // created"), which crashed the app on every launch. Fragment
+        // .view returns null instead of throwing, so post on that.
+        view?.post { expandListView() }
     }
 
     /** Minab v0.5 — size the (non-scrolling) ListView to the total
         height of its rows, so the whole Home page scrolls as one.
-        Called after the layout pass, when the width is known. */
+        Called after the layout pass, when the width is known.
+        v0.5.1: bail out when the view is gone, and never let one
+        bad row kill the whole app at startup. */
     private fun expandListView() {
-        if (!isAdded) return
-        val list = listView ?: return
+        if (!isAdded || view == null) return
+        val list = try { listView } catch (e: IllegalStateException) { return }
         val adapter = mArrayadapter ?: return
         if (adapter.count == 0) {
             list.layoutParams.height = 0
@@ -467,9 +474,15 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         var totalHeight = 0
         for (i in 0 until adapter.count) {
-            val item = adapter.getView(i, null, list)
-            item.measure(widthSpec, heightSpec)
-            totalHeight += item.measuredHeight
+            try {
+                val item = adapter.getView(i, null, list)
+                item.measure(widthSpec, heightSpec)
+                totalHeight += item.measuredHeight
+            } catch (e: Exception) {
+                // One bad row must not crash the app at startup;
+                // assume the standard 48dp row height for it.
+                totalHeight += dp(48)
+            }
         }
         totalHeight += list.dividerHeight * (adapter.count - 1)
         val params = list.layoutParams
