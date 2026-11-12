@@ -1,10 +1,24 @@
-# PUSH.md — publish Minab Beta v0.3
+# PUSH.md — publish Minab Beta v0.4
 
-Local repo is ready at `~/workspace/minab/` on branch `minab-beta-0.1`,
-based on ics-openvpn master `660901ce`. Nothing has been pushed yet:
-on the machine this was prepared on there is **no Java / Android SDK**
-and **`gh` is not logged in**, so the push and the first build must be
-done from a logged-in machine (or the GitHub web UI + a local clone).
+Local repo is on branch `minab-beta-0.4`, based on the published
+v0.3 tree (`minab-beta-0.3`, HEAD `9204713`). On the machine this was
+prepared on there is **no Java / Android SDK**, so the build must be
+done by GitHub Actions (see §3), and the push needs a logged-in
+machine (or the GitHub web UI + a local clone).
+
+## 0. Signing secrets (do this BEFORE pushing)
+
+v0.4 is signed with one permanent keystore (RSA 2048, valid to 2056,
+alias `minab`) that lives OUTSIDE the repo at
+`~/workspace/minab-keystore/minab-release.p12`. The workflow FAILS
+LOUDLY if the secrets are missing, so set all four in the repo
+Settings > Secrets and variables > Actions first:
+
+- `MINAB_KEYSTORE_BASE64` — the whole contents of
+  `~/workspace/minab-keystore/minab-release.p12.b64`
+- `MINAB_KEYSTORE_PASSWORD` — from `~/workspace/minab-keystore/passwords.txt`
+- `MINAB_KEY_ALIAS` — `minab`
+- `MINAB_KEY_PASSWORD` — from `~/workspace/minab-keystore/passwords.txt`
 
 ## 1. Create the PUBLIC repo (do not make it private)
 
@@ -33,82 +47,101 @@ From `~/workspace/minab/`:
 
 ```sh
 cd ~/workspace/minab
-git remote add origin https://github.com/meiyou313/minab.git
-git push -u origin minab-beta-0.1
+git push minab minab-beta-0.4
 ```
 
-Then either rename the branch to `master` on GitHub, or keep
-`minab-beta-0.1` as the default branch for the beta — the CI workflow
-triggers on pushes to `minab-beta-0.1`, `master` and `main`, so either
-works. (Upstream ics-openvpn uses `master`.)
+The CI workflow triggers on pushes to `minab-beta-0.4` (and the
+older beta branches, `master` and `main`), so pushing the branch is
+enough. (Upstream ics-openvpn uses `master`.)
 
 ## 3. Trigger the beta build
 
 Pushing the branch already runs `.github/workflows/build-android.yml`
-("Minab Android (Beta v0.3)"): checkout with submodules, JDK 17
+("Minab Android (Beta v0.4)"): checkout with submodules, JDK 17
 Temurin, Android SDK, `./gradlew assembleUiOvpn23Debug`.
 
 Watch it at: https://github.com/meiyou313/minab/actions
 
 - Green → download the APK from the run's artifacts
-  (`minab-beta-v0.3-debug-apk`).
+  (`minab-beta-v0.4-debug-apk`).
 - Red → open the failed step, read the exact error, and fix it in
-  `~/workspace/minab/` (most likely suspects, in order: the
-  `assembleUiOvpn23Debug` task name, the JDK version — upstream used
-  JDK 25, this workflow uses 17 per the brief; if Gradle/AGP
-  complains about the JDK, bump `java-version` to 21 in
+  `~/workspace/minab/` (most likely suspects, in order: missing
+  signing secrets (see §0 — the workflow fails loudly on purpose),
+  the `assembleUiOvpn23Debug` task name, the JDK version — upstream
+  used JDK 25, this workflow uses 17; if Gradle/AGP complains about
+  the JDK, bump `java-version` to 21 in
   `.github/workflows/build-android.yml` — or the NDK download).
 
 The upstream workflow (`.github/workflows/build.yaml`) also runs on
 every push; it is expected to run too and is not the Minab release
 path. Do not "fix" it by deleting it without a reason.
 
-## 4. Publish the release (tag v0.3)
+## 4. Publish the release (tag v0.4)
 
 Only after the branch build is green:
 
 ```sh
 cd ~/workspace/minab
-git tag -a v0.3 -m "Minab Beta v0.3"
-git push origin v0.3
+git tag -a v0.4 -m "Minab Beta v0.4"
+git push minab v0.4
 ```
 
 The same workflow then publishes the GitHub Release
-**"Minab Beta v0.3"** (marked pre-release) with the debug APK
-attached: https://github.com/meiyou313/minab/releases/tag/v0.3
+**"Minab Beta v0.4"** (marked pre-release) with the debug APK
+attached: https://github.com/meiyou313/minab/releases/tag/v0.4
 
 ## 5. What to verify on the phone (before calling it done)
 
 The APK was **not** built or tested locally — no SDK here. Verify on
 a real Android phone, in this order:
 
-1. Installs (debug-signed; it will NOT install over any other app
-   with the same package — there is none, package is new). NOTE: it
-   installs over the v0.1 beta (same package, same debug key) — that
-   is expected; profiles are kept.
-2. App opens, shows the (empty) profile list with the two visible
-   buttons (**Bulk import**, **Test ping**) and the category chips
-   (All + Manage).
-3. Bulk import: tap the **Bulk import** button → pick 3+ `.ovpn`
+1. **ONE-TIME UNINSTALL:** v0.4 cannot install over v0.1–v0.3
+   (new permanent signing key) — uninstall the old beta once,
+   then install v0.4. From v0.4 onward versions install over each
+   other. Profiles in the old app are lost on uninstall; keep the
+   `.ovpn` files to re-import.
+2. App opens, Home shows the smaller PowerOrb, the two visible
+   buttons (**Bulk import**, **Test ping**) fully on screen with
+   standard icons, and the group tabs (All + one per group + "+")
+   with a small ping icon next to each group name. No huge
+   notification banner: the permission is asked at first launch,
+   and if declined only a minimal one-line banner shows.
+3. Tap a group's ping icon → only that group's profiles are pinged.
+4. Tap the connect button → the log page does NOT open; the app
+   stays on Home while connecting.
+5. The tab bar is at the BOTTOM (Home, Configs, Graph, Settings,
+   FAQ, About), smaller and minimal.
+6. CONFIGS tab: tap a config → rename / credentials / category /
+   ping / delete all work; "Credentials for this group" and
+   "Credentials for all" apply a username/password; "Back up
+   configs" exports a zip.
+7. Settings: "Show speed in notification" is ON by default; after
+   connecting, the notification shows download/upload speed.
+   "Check for updates" works; Home and About show the update
+   notice when a newer release exists (or "up to date").
+8. Bulk import: tap the **Bulk import** button → pick 3+ `.ovpn`
    files at once → summary shows `Imported: 3…`; pick the same files
    again → `duplicates skipped: 3`.
-4. One username/password + "Apply to all": import a profile that
+9. One username/password + "Apply to all": import a profile that
    needs auth-user-pass, then connect — it must not ask for the
    password again per profile.
-5. Long-press a profile → Assign category → pick/create one; tapping
-   that category's chip shows only that category; the **Manage** chip
-   opens rename/delete.
-6. Tap **Test ping** → the progress row shows "Pinging N profiles…
-   X done" with a working **Cancel**; each tested row gets a coloured
-   pill badge (`42 ms` / `Timeout` / `Failed`), list re-sorts
-   fastest-first when done.
-7. Connect one profile (stock flow) → VPN connects and disconnects
-   normally. This is the regression check for the stock flow.
+10. Long-press a profile → Assign category → pick/create one; tapping
+    that group's tab shows only that group; the **Manage** chip
+    opens rename/delete.
+11. Tap **Test ping** → the progress row shows "Pinging N profiles…
+    X done" with a working **Cancel**; each tested row gets a coloured
+    pill badge (`42 ms` / `Timeout` / `Failed`), list re-sorts
+    fastest-first when done.
+12. Connect one profile (stock flow) → VPN connects and disconnects
+    normally. This is the regression check for the stock flow.
 
-## 6. Before the first non-beta (1.0.0) — signing
+## 6. Signing (v0.4+)
 
-Create a **new, permanent** release keystore for Minab only (do not
-reuse Namaki's or any other app's), store it as GitHub secrets, and
-wire it into the release build. Installing 1.0.0 over this debug
-beta will need a one-time uninstall — that is expected and must be
-told to users in the 1.0.0 release notes.
+v0.4+ are all signed with the ONE permanent keystore created for
+v0.4 (RSA 2048, valid to 2056, alias `minab`), stored OUTSIDE the
+repo at `~/workspace/minab-keystore/` (`.p12` + backup copy +
+`.p12.b64` + `passwords.txt`). It is wired into the CI build via
+the four secrets in §0. Never commit the keystore, its base64, or
+the passwords, and do NOT reuse Namaki's or any other app's keystore
+for Minab. The first non-beta (1.0.0) will use this same keystore,
+so it will install over the v0.4+ betas without an uninstall.

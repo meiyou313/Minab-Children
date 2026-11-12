@@ -1,4 +1,4 @@
-# Minab — Minab Beta v0.3
+# Minab — Minab Beta v0.4
 
 Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
 Android by Arne Schwabe, GPLv2). This repository is **public on
@@ -11,8 +11,9 @@ it to publish their source (see the upstream note below).
   is Java-serialised and its class name must not change, or profiles
   saved by older versions would stop loading)
 - Repo: `https://github.com/meiyou313/minab` (public)
-- Version: **Minab Beta v0.3** — `versionName = "0.3-beta"`, `versionCode = 3`, tag `v0.3`
-  (v0.2: tag `v0.2`, `versionName = "0.2-beta"`, `versionCode = 2`;
+- Version: **Minab Beta v0.4** — `versionName = "0.4-beta"`, `versionCode = 4`, tag `v0.4`
+  (v0.3: tag `v0.3`, `versionName = "0.3-beta"`, `versionCode = 3`;
+  v0.2: tag `v0.2`, `versionName = "0.2-beta"`, `versionCode = 2`;
   v0.1: tag `v0.1`, `versionName = "0.1-beta"`, `versionCode = 1`)
 - Platform: **Android only** (minSdk 23). No Windows / Linux build.
 - Base commit: `schwabe/ics-openvpn` master `660901ce320539aec476bd04bd1999c396d5e778`
@@ -20,6 +21,38 @@ it to publish their source (see the upstream note below).
   code, no Namaki signing key, no shared repo. (v0.3 only takes its
   *look* — indigo seed, Vazirmatn font, PowerOrb home, grouped server
   card — rebuilt natively in Android XML/Java.)
+
+## What changed in v0.4
+
+- **Notification permission:** asked at first launch. If declined,
+  only a minimal one-line banner is shown (tap to re-ask, or open
+  the app settings when the system dialog is blocked). The huge
+  stock banner is gone.
+- **Action buttons:** Bulk import / Test ping are full-size (48dp
+  height, 24dp icons) and no longer cut off at the bottom edge.
+  Below them, group tabs: one tab per country group (assigned
+  automatically on import), a "+" tab to create a group, and a small
+  ping icon next to each group name that pings just that group.
+- **Smaller connect button:** the PowerOrb shrank ~20% (200/149/
+  118dp instead of 250/186/148dp).
+- **Stay on Home while connecting:** tapping connect no longer
+  auto-opens the log page.
+- **New CONFIGS tab** (between Home and Graph): delete configs,
+  change username/password for one group or for all at once, rename
+  configs, and back up all configs to a zip.
+- **Speed in notification:** new setting (on by default) shows
+  download/upload speed in the VPN notification after connecting.
+- **Bottom tab bar:** the main tabs moved to the bottom, smaller
+  and more minimal. The first tab is now HOME (was PROFILES).
+- **Update notice:** Minab checks GitHub releases on launch
+  (cached 24 h) and shows a small banner on Home when a newer
+  version exists; Settings and About have a manual check too.
+- **One permanent signing key:** v0.4+ are all signed with the same
+  key, so they install over each other. v0.4 itself needs a
+  ONE-TIME uninstall of v0.1–v0.3 (different key — see "Signing").
+- **Minab's own words:** the home subtitle, About page and FAQ now
+  describe Minab (bulk import, groups, bulk ping) instead of
+  generic OpenVPN wording.
 
 ## What changed in v0.3
 
@@ -163,19 +196,37 @@ APK is built by CI:
 - Workflow: `.github/workflows/build-android.yml` —
   `ubuntu-24.04`, JDK 17 (Temurin), Android SDK, then
   `./gradlew assembleUiOvpn23Debug`, APK uploaded as an artifact.
-- Pushing tag `v0.3` publishes the GitHub Release **"Minab Beta v0.3"**
-  (pre-release) with the debug APK attached. (v0.2 used tag `v0.2`.)
+- Pushing tag `v0.4` publishes the GitHub Release **"Minab Beta v0.4"**
+  (pre-release) with the debug APK attached. (v0.3 used tag `v0.3`.)
 - The upstream workflow (`.github/workflows/build.yaml`) is kept
   untouched and still runs.
 
-## Signing — read before 1.0.0
+## Signing
 
-**v0.1 is a debug-signed beta on purpose.** A permanent release
-keystore must be created before the first non-beta (1.0.0), and 1.0.0
-must be signed with it; installing 1.0.0 over this beta will then
-need a **one-time uninstall** (different signing key), after which
-later versions install over each other normally. Do NOT reuse any
-other app's keystore (in particular not Namaki's) for Minab.
+**v0.4+ are all signed with ONE permanent keystore** (RSA 2048,
+self-signed, valid to November 2056, alias `minab`), so every version
+from v0.4 onward installs over the previous one. The keystore lives
+OUTSIDE the repo at `~/workspace/minab-keystore/minab-release.p12`
+(with a backup copy `minab-release-backup.p12`, its base64
+`minab-release.p12.b64`, and the passwords in `passwords.txt` in the
+same directory). **Never commit the keystore, its base64, or the
+passwords.**
+
+CI needs four repository secrets (Settings > Secrets and variables >
+Actions): `MINAB_KEYSTORE_BASE64` (the whole `.p12.b64` file),
+`MINAB_KEYSTORE_PASSWORD`, `MINAB_KEY_ALIAS` (`minab`), and
+`MINAB_KEY_PASSWORD`. The workflow FAILS LOUDLY if any of them is
+missing, instead of silently building with a fresh debug key — a
+fresh key per build was why v0.1–v0.3 could not install over each
+other. `main/build.gradle.kts` signs the debug build with the
+keystore whenever the `MINAB_KEYSTORE_BASE64` env var is present;
+without it (a local dev build) the stock debug key is used.
+
+**v0.4 needs a ONE-TIME uninstall of v0.1–v0.3**: its key differs
+from the old per-build debug keys, so Android refuses to install it
+over them. Profiles stored in the old app are lost on uninstall, so
+keep the `.ovpn` files to re-import. Do NOT reuse any other app's
+keystore (in particular not Namaki's) for Minab.
 
 ## Attribution & licence
 
