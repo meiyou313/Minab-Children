@@ -191,6 +191,13 @@ public class VpnProfile implements Serializable, Cloneable {
     public long mLastPingTime = 0;
     // Human-readable last result: "42 ms", "Timeout" or "Failed".
     public String mLastPingResult = "";
+    // Last real test (v0.6): the VPN was actually connected and
+    // https://web.telegram.org/ was fetched through the tunnel.
+    // ms, or -1 when never tested / blocked / failed.
+    public long mLastRealMs = -1;
+    public long mLastRealTime = 0;
+    // Human-readable last result: "Real: 850 ms" or "Blocked".
+    public String mLastRealResult = "";
 
 
     static class ChangeLogEntry implements Serializable {
@@ -434,6 +441,8 @@ public class VpnProfile implements Serializable, Cloneable {
             mCategory = "Uncategorized";
         if (mLastPingResult == null)
             mLastPingResult = "";
+        if (mLastRealResult == null)
+            mLastRealResult = "";
 
         mProfileVersion = CURRENT_PROFILE_VERSION;
         if (changesLog == null) {
