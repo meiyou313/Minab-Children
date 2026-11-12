@@ -541,6 +541,23 @@
     <string name="minab_ping_while_vpn">Note: a VPN is currently connected, so these pings go through the tunnel and may not reflect the direct latency.</string>
     <string name="minab_no_profiles_in_category">No profiles in this category.</string>
     <string name="minab_sort_by_ping">Sorted by ping (fastest first)</string>
+    <!-- Minab Beta v0.6: Real test — actually connect each server and fetch web.telegram.org through the tunnel -->
+    <string name="minab_real_test">Real test</string>
+    <string name="minab_real_running">Real test %1$d/%2$d — %3$s (%4$d working)</string>
+    <string name="minab_real_ms">Real: %1$d ms</string>
+    <string name="minab_real_blocked">Blocked</string>
+    <string name="minab_real_disconnects_vpn">Real test disconnects the current VPN first.</string>
+    <string name="minab_real_cancelled">Real test cancelled.</string>
+    <string name="minab_real_done">Real test finished. Working servers first.</string>
+    <string name="minab_sort_by_real">Sorted by real test (fastest first)</string>
+    <!-- Minab Beta v0.6 (revised): the two tests, explained in the
+         UI — ping is fast but cannot prove the VPN works; the real
+         test can. The Configs tab has both tests too, with a
+         longer wait per server (20 s vs 12 s on Home). -->
+    <string name="minab_tests_explained">Ping test checks whether the server answers — fast, but it does not prove the VPN works. Real test actually connects and opens Telegram Web — slower, but it proves the server really bypasses filtering.</string>
+    <string name="minab_configs_test_title">Test servers</string>
+    <string name="minab_configs_test_explained">Test ping is fast: it only checks whether the server answers. Real test actually connects each server and opens Telegram Web through it — slower, but it proves the server really bypasses filtering.</string>
+    <string name="minab_real_already_running">A real test is already running.</string>
     <!-- Minab Beta v0.2: short labels for the visible main-screen buttons -->
     <string name="minab_bulk_import_short">Bulk import</string>
     <string name="minab_test_ping">Test ping</string>
