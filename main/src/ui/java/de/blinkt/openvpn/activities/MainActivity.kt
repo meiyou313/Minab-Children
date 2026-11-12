@@ -9,11 +9,14 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import de.blinkt.openvpn.R
+import de.blinkt.openvpn.activities.BulkImportActivity
 import de.blinkt.openvpn.core.GlobalPreferences
 import de.blinkt.openvpn.fragments.*
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
@@ -46,11 +49,12 @@ class MainActivity : BaseActivity() {
             // Minab Beta v0.4: the first tab is HOME (was "Profiles")
             // and CONFIGS is the dedicated config-management tab
             // between Home and Graph.
+            // Minab Beta v0.5: the FAQ tab left the bottom bar — FAQ
+            // now lives at the end of Settings (see showFaq()).
             mPagerAdapter.addTab(R.string.minab_home_tab, VPNProfileList::class.java)
             mPagerAdapter.addTab(R.string.minab_configs_tab, ConfigsFragment::class.java)
             mPagerAdapter.addTab(R.string.graph, GraphFragment::class.java)
             mPagerAdapter.addTab(R.string.generalsettings, GeneralSettings::class.java)
-            mPagerAdapter.addTab(R.string.faq, FaqFragment::class.java)
             if (SendDumpFragment.getLatestDump(this) != null) {
                 mPagerAdapter.addTab(R.string.crashdump, SendDumpFragment::class.java)
             }
@@ -68,7 +72,47 @@ class MainActivity : BaseActivity() {
 
         setUpEdgeEdgeInsetsListener(view, R.id.root_linear_layout)
         setContentView(view)
+
+        // Minab Beta v0.5 — the FAQ overlay (see main_activity.xml):
+        // the close button hides it, and so does the system back
+        // button while it is open.
+        view.findViewById<View>(R.id.minab_faq_close)?.setOnClickListener { hideFaq() }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (!hideFaq()) {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
+
+    /** Minab Beta v0.5 — show the FAQ full-screen over the tabs.
+        Called from the FAQ row at the end of Settings. */
+    fun showFaq() {
+        val container = findViewById<View>(R.id.minab_faq_container) ?: return
+        if (container.visibility == View.VISIBLE) return
+        if (supportFragmentManager.findFragmentById(R.id.minab_faq_content) == null) {
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.minab_faq_content, FaqFragment())
+                .commit()
+        }
+        container.visibility = View.VISIBLE
+    }
+
+    /** Hide the FAQ overlay. Returns true when it was open. */
+    fun hideFaq(): Boolean {
+        val container = findViewById<View>(R.id.minab_faq_container) ?: return false
+        if (container.visibility != View.VISIBLE) return false
+        container.visibility = View.GONE
+        return true
+    }
+
+    /** Index of the Settings tab (Home 0, Configs 1, Graph 2,
+        Settings 3 — unless the crash-dump tab is present, which is
+        why this is looked up instead of hard-coded). */
+    private fun settingsTabIndex(): Int =
+        mPagerAdapter.indexOfFragment(GeneralSettings::class.java)
 
 
     private fun disableToolbarElevation() {
@@ -125,6 +169,28 @@ class MainActivity : BaseActivity() {
         if (item.itemId == R.id.show_log) {
             val showLog = Intent(this, LogWindow::class.java)
             startActivity(showLog)
+            return true
+        }
+        // Minab Beta v0.5 — the top-bar actions are constant on
+        // every tab (they live in the activity menu). Add opens the
+        // single-config dialog on Home; bulk import opens the bulk
+        // importer; the gear jumps to the Settings tab.
+        if (item.itemId == R.id.minab_top_add) {
+            mPager.currentItem = 0
+            mPager.post {
+                val home = supportFragmentManager.findFragmentByTag("f0") as? VPNProfileList
+                home?.openAddProfile()
+            }
+            return true
+        }
+        if (item.itemId == R.id.minab_top_bulk_import) {
+            startActivity(Intent(this, BulkImportActivity::class.java))
+            return true
+        }
+        if (item.itemId == R.id.minab_top_settings) {
+            val index = settingsTabIndex()
+            if (index >= 0) mPager.currentItem = index
+            return true
         }
         return super.onOptionsItemSelected(item)
     }
