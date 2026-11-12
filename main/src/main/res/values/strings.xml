@@ -546,7 +546,7 @@
     <string name="minab_test_ping">Test ping</string>
     <string name="minab_cancel_short">Cancel</string>
     <!-- Minab Beta v0.3: Namaki-style home (PowerOrb) + bug fixes -->
-    <string name="minab_app_subtitle">OpenVPN client</string>
+    <string name="minab_app_subtitle">Bulk import · Groups · Bulk ping</string>
     <string name="minab_tap_to_connect">Tap to connect</string>
     <string name="minab_tap_to_connect_hint">Tap the power button to connect the selected profile, or tap a profile below.</string>
     <string name="minab_status_connected">Connected</string>
@@ -560,5 +560,49 @@
     <string name="minab_credentials_empty">Enter a username and password first.</string>
     <string name="minab_credentials_applied">Applied to %1$d profile(s). New imports will use these credentials too.</string>
     <string name="minab_credentials_none_applied">No profile needs a username/password, so nothing was changed. The credentials are still saved for future imports.</string>
+    <!-- Minab Beta v0.4: minimal notification banner, group tabs with
+         per-group ping, CONFIGS tab, speed in notification, update
+         notice, bottom tab bar, permanent signing key. -->
+    <string name="minab_home_tab">Home</string>
+    <string name="minab_configs_tab">Configs</string>
+    <string name="minab_notification_off">Notifications off — tap to enable</string>
+    <string name="minab_notification_open_settings">Notifications are blocked. Open Settings to enable them?</string>
+    <string name="minab_ping_group">Ping this group</string>
+    <string name="minab_new_group">New group</string>
+    <string name="minab_group_name_hint">Group name, e.g. Germany</string>
+    <string name="minab_update_available">New version %1$s is available — tap to download</string>
+    <string name="minab_update_checking">Checking for updates…</string>
+    <string name="minab_update_none">You are up to date (%1$s).</string>
+    <string name="minab_update_available_short">Update available: %1$s</string>
+    <string name="minab_update_failed">Could not check for updates. Try again later.</string>
+    <string name="minab_check_update">Check for updates</string>
+    <string name="minab_check_update_summary">Check GitHub for a newer Minab release</string>
+    <string name="minab_show_speed_notification">Show speed in notification</string>
+    <string name="minab_show_speed_notification_summary">After connecting, show download / upload speed in the VPN notification</string>
+    <string name="minab_about_text">Minab is an Android OpenVPN client. Import many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test the ping of all configs — or one group — at once. Tap a config to connect; the big round button connects the last-used one.</string>
+    <string name="minab_configs_title">Configs</string>
+    <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping or delete. Long-press works too.</string>
+    <string name="minab_credentials_for_group">Credentials for this group</string>
+    <string name="minab_credentials_for_all">Credentials for all</string>
+    <string name="minab_backup_configs">Back up configs</string>
+    <string name="minab_backup_done">Backed up %1$d config(s).</string>
+    <string name="minab_backup_none">No configs to back up yet.</string>
+    <string name="minab_backup_failed">Backup failed.</string>
+    <string name="minab_config_deleted">Config deleted.</string>
+    <string name="minab_config_renamed">Config renamed.</string>
+    <string name="minab_rename_config">Rename config</string>
+    <string name="minab_delete_config">Delete config</string>
+    <string name="minab_delete_config_confirm">Delete “%1$s”?</string>
+    <string name="minab_change_credentials">Change username / password</string>
+    <string name="minab_credentials_group_applied">Applied to %1$d profile(s) in this group.</string>
+    <string name="minab_config_actions">Config: %1$s</string>
+    <string name="minab_faq_bulk_title">How do I import many configs at once?</string>
+    <string name="minab_faq_bulk">On the Home tab tap “Bulk import”, pick many .ovpn or .conf files at once (or one .zip with them inside), and enter one username and password to apply to all of them. Tap “Apply to all profiles” and the credentials are also written onto configs you already imported.</string>
+    <string name="minab_faq_groups_title">How are configs grouped by country?</string>
+    <string name="minab_faq_groups">Minab guesses the country from the config name or server address when importing (for example “de-01…” → Germany) and puts the config in that group. You can also create your own groups and move configs between them: long-press a config, or use the Configs tab. The small ping icon next to a group name tests the ping of just that group.</string>
+    <string name="minab_faq_ping_title">What does the bulk ping test do?</string>
+    <string name="minab_faq_ping">“Test ping” on Home tests every config shown (or one group, via its ping icon) and shows a coloured badge next to each one — green under 100 ms, amber under 300 ms, grey above that. When it finishes, the list is sorted fastest first. The numbers go through the VPN tunnel while a VPN is connected, so test with the VPN off for direct latency.</string>
+    <string name="minab_faq_update_title">How do I get a new version?</string>
+    <string name="minab_faq_update">Minab checks GitHub for a newer release when it starts and shows a small banner on Home when one is available. You can also check by hand in Settings (“Check for updates”) or on the About tab. Versions from v0.4 onward install over the previous version; v0.4 itself needs a one-time uninstall of the older beta first, because the signing key changed.</string>
 
 </resources>
