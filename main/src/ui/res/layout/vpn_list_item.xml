@@ -18,6 +18,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@color/minab_bg"
     android:focusable="false"
     android:gravity="center_vertical"
     android:minHeight="?android:attr/listPreferredItemHeight">
@@ -46,6 +47,7 @@
                 android:fadingEdge="horizontal"
                 android:singleLine="true"
                 android:textAppearance="?android:attr/textAppearanceMedium"
+                android:textColor="@color/minab_text_primary"
                 tools:text="Vpn Name" />
 
             <TextView
@@ -56,10 +58,26 @@
                 android:fadingEdge="horizontal"
                 android:singleLine="true"
                 android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="@color/minab_text_secondary"
                 tools:text="Not connected!" />
         </LinearLayout>
 
     </LinearLayout>
+
+    <!-- Minab Children (v0.2): visible ping badge. In v0.1 the ping
+         result was only small secondary text under the name; now each
+         tested profile shows a coloured pill ("24 ms", "Timeout",
+         "Failed") here. Set in VPNProfileList.VPNArrayAdapter.getView. -->
+    <TextView
+        android:id="@+id/minab_ping_badge"
+        style="@style/Minab.PingBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/minab_ping_badge_fast"
+        android:visibility="gone"
+        tools:text="24 ms"
+        tools:visibility="visible" />
 
     <View
         android:layout_width="2dip"

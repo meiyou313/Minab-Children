@@ -4,11 +4,16 @@
   ~ Bulk import screen: pick many .ovpn files or one .zip, one shared
   ~ username/password for all, a category for the batch, and an
   ~ opt-in auto-detect-country checkbox.
+  ~
+  ~ Minab Beta v0.2 — light minimal redesign: white background, teal
+  ~ primary button, outlined second button, soft rounded text fields.
+  ~ All view ids are unchanged, so BulkImportActivity needs no changes.
   -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:background="@color/minab_bg"
+    android:padding="20dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -19,20 +24,27 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/minab_bulk_import_hint"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_secondary" />
 
         <Button
             android:id="@+id/minab_bulk_pick"
+            style="@style/Minab.PrimaryButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
+            android:drawableStart="@drawable/ic_minab_import"
+            android:drawableTint="@android:color/white"
             android:text="@string/minab_pick_files" />
 
         <Button
             android:id="@+id/minab_bulk_pick_zip"
+            style="@style/Minab.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:drawableStart="@drawable/ic_baseline_archive_24"
+            android:drawableTint="@color/minab_teal"
             android:text="@string/minab_pick_zip" />
 
         <TextView
@@ -40,62 +52,77 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/minab_username"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_secondary" />
 
         <EditText
             android:id="@+id/minab_bulk_username"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textNoSuggestions" />
+            android:layout_marginTop="4dp"
+            android:background="@drawable/minab_input_bg"
+            android:inputType="textNoSuggestions"
+            android:padding="12dp"
+            android:textColor="@color/minab_text_primary" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:text="@string/minab_password"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_secondary" />
 
         <EditText
             android:id="@+id/minab_bulk_password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/minab_input_bg"
             android:hint="@string/pw_query_hint"
-            android:inputType="textPassword" />
+            android:inputType="textPassword"
+            android:padding="12dp"
+            android:textColor="@color/minab_text_primary" />
 
         <CheckBox
             android:id="@+id/minab_bulk_apply_all"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:checked="true"
-            android:text="@string/minab_apply_to_all" />
+            android:text="@string/minab_apply_to_all"
+            android:textColor="@color/minab_text_primary" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="20dp"
             android:text="@string/minab_import_category"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_secondary" />
 
         <Spinner
             android:id="@+id/minab_bulk_category"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp" />
 
         <CheckBox
             android:id="@+id/minab_bulk_auto_category"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="12dp"
             android:checked="true"
-            android:text="@string/minab_auto_category" />
+            android:text="@string/minab_auto_category"
+            android:textColor="@color/minab_text_primary" />
 
         <TextView
             android:id="@+id/minab_bulk_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:textAppearance="?android:attr/textAppearanceSmall" />
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_secondary" />
 
     </LinearLayout>
 </ScrollView>
