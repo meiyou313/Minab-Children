@@ -96,6 +96,21 @@
         tools:text="24 ms"
         tools:visibility="visible" />
 
+    <!-- Minab Beta v0.6: real-test badge next to the ping badge
+         ("Real: 850 ms" when the server really bypasses filtering,
+         "Blocked" when it does not). Set in
+         VPNProfileList.VPNArrayAdapter.getView. -->
+    <TextView
+        android:id="@+id/minab_real_badge"
+        style="@style/Minab.PingBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/minab_ping_badge_fast"
+        android:visibility="gone"
+        tools:text="Real: 850 ms"
+        tools:visibility="visible" />
+
     <View
         android:layout_width="1dip"
         android:layout_height="match_parent"
