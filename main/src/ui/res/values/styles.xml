@@ -46,7 +46,9 @@
     <!-- Minab Beta v0.2 — light minimal UI.
          Plain AppCompat buttons (not MaterialButton, which needs a
          MaterialComponents theme this app does not use) with rounded
-         drawable backgrounds, so they work with the stock theme. -->
+         drawable backgrounds, so they work with the stock theme.
+         Base style exists so the dotted Minab.* names resolve in AAPT. -->
+    <style name="Minab" />
     <style name="Minab.PrimaryButton" parent="Widget.AppCompat.Button">
         <item name="android:background">@drawable/minab_btn_primary</item>
         <item name="android:textColor">@android:color/white</item>
