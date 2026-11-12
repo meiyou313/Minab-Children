@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.3 — night palette, Namaki's dark values:
+  ~ background #111218, card #1A1B23, home gradient Midnight
+  ~ top #141B3D / bottom #070A18, muted text #9AA3C7.
+  ~ Only the surface/text colours are overridden here; the indigo
+  ~ seed and the accent colours stay the same as in daylight.
+  -->
+<resources>
+    <color name="minab_bg">#111218</color>
+    <color name="minab_surface">#1A1B23</color>
+    <color name="minab_text_primary">#FFFFFF</color>
+    <color name="minab_text_secondary">#9AA3C7</color>
+    <color name="minab_divider">#262A3D</color>
+    <color name="minab_chip_bg">#262A3D</color>
+    <color name="minab_chip_text">#E8EAF6</color>
+    <color name="minab_teal_tint">#2A2C5E</color>
+    <color name="minab_card_border">#29FFFFFF</color>
+    <color name="minab_gradient_top">#141B3D</color>
+    <color name="minab_gradient_bottom">#070A18</color>
+</resources>
