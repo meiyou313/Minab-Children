@@ -58,6 +58,16 @@ class ScreenSlidePagerAdapter(fm: FragmentManager, lc: Lifecycle, c: Context) :
         return mTabs[position].mName
     }
 
+    /** Minab Beta v0.5 — index of the tab hosting this fragment
+        class, or -1 when it is not a tab (used to jump to Settings
+        from the top-bar gear without hard-coding the index). */
+    fun indexOfFragment(fragmentClass: Class<out Fragment>): Int {
+        for (i in mTabs.indices) {
+            if (mTabs[i].fragmentClass == fragmentClass) return i
+        }
+        return -1
+    }
+
     override fun getItemCount(): Int {
         return mTabs.size
     }
