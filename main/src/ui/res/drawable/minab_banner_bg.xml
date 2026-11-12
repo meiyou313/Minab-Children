@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.4 — background for the minimal one-line banners on
+  ~ the home screen (notification permission, update notice). Small
+  ~ rounded box, neutral chip colour; the update banner tints it
+  ~ indigo via android:backgroundTint.
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="12dp" />
+    <solid android:color="@color/minab_chip_bg" />
+</shape>
