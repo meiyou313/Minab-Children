@@ -41,7 +41,10 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
-        // Minab Beta v0.5.1 (beta numbering; first non-beta will be 1.0.0).
+        // Minab Beta v0.6 (beta numbering; first non-beta will be 1.0.0).
+        // v0.6: Real test — connect each server in turn and fetch
+        // web.telegram.org through the tunnel (ping phase first when
+        // needed, ranked order, stops after 3 working servers).
         // v0.5.1 HOTFIX: v0.5 crashed on every launch — populateVpnList()
         // runs from onCreate() too, where the fragment has no view yet,
         // and ListFragment.listView THROWS there; the single-scroll
@@ -64,8 +67,8 @@ android {
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 6
-        versionName = "0.5.1-beta"
+        versionCode = 7
+        versionName = "0.6-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
