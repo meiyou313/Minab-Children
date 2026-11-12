@@ -3,6 +3,12 @@
   ~ configs. Group filter tabs on top, action buttons (credentials
   ~ for this group / for all, backup), then the config list. Tap a
   ~ config for rename, credentials, category, ping or delete.
+  ~
+  ~ Minab Beta v0.5 — minimal and self-explanatory: the credentials
+  ~ buttons sit under a "VPN username & password" heading with an
+  ~ explanation of what they do; the rows are minimal (checkbox,
+  ~ flag, small name) like Home; ticking boxes reveals Delete
+  ~ selected / Share as zip; the group bar fades at the right edge.
   -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -19,7 +25,7 @@
         android:fontFamily="@font/vazirmatn"
         android:text="@string/minab_configs_title"
         android:textColor="@color/minab_text_primary"
-        android:textSize="22sp"
+        android:textSize="18sp"
         android:textStyle="bold" />
 
     <TextView
@@ -28,12 +34,16 @@
         android:fontFamily="@font/vazirmatn"
         android:text="@string/minab_configs_hint"
         android:textColor="@color/minab_text_secondary"
-        android:textSize="13sp" />
+        android:textSize="12sp" />
 
     <HorizontalScrollView
+        android:id="@+id/minab_configs_chips_scroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
+        android:fadingEdge="horizontal"
+        android:fadingEdgeLength="24dp"
+        android:requiresFadingEdge="horizontal"
         android:scrollbars="none">
 
         <LinearLayout
@@ -43,37 +53,115 @@
             android:orientation="horizontal" />
     </HorizontalScrollView>
 
+    <!-- Minab Beta v0.5 — the credentials section, with a plain
+         explanation: these buttons set the VPN username/password
+         the configs use to log in. -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_credentials_title"
+        android:textColor="@color/minab_text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_credentials_explained"
+        android:textColor="@color/minab_text_secondary"
+        android:textSize="12sp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/minab_configs_credentials_group"
             style="@style/Minab.PrimaryButton"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="@string/minab_credentials_for_group" />
+            android:minHeight="36dp"
+            android:text="@string/minab_credentials_for_group"
+            android:textSize="12sp" />
 
         <Button
             android:id="@+id/minab_configs_credentials_all"
             style="@style/Minab.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_marginEnd="8dp"
+            android:layout_height="36dp"
             android:layout_weight="1"
-            android:text="@string/minab_credentials_for_all" />
+            android:minHeight="36dp"
+            android:text="@string/minab_credentials_for_all"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/minab_configs_backup"
             style="@style/Minab.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
-            android:text="@string/minab_backup_configs" />
+            android:minHeight="36dp"
+            android:text="@string/minab_backup_configs"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/minab_configs_share"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_share_zip"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Minab Beta v0.5 — selection actions: shown only while one
+         or more configs are ticked. -->
+    <LinearLayout
+        android:id="@+id/minab_configs_selection_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/minab_configs_delete_selected"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_delete_selected"
+            android:textColor="@color/minab_busy"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/minab_configs_share_selected"
+            style="@style/Minab.PrimaryButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_share_zip"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <ListView
@@ -81,7 +169,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginBottom="8dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
         android:layout_weight="1"
         android:background="@drawable/minab_card_bg"
         android:divider="@color/minab_divider"

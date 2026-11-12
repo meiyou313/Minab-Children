@@ -14,6 +14,15 @@
   ~ separated by divider lines) with a coloured ping pill per row.
   ~ Bulk import, Test ping, category chips and ping badges all stay
   ~ visible on this screen — nothing lives only in the overflow menu.
+  ~
+  ~ Minab Beta v0.5 — the header subtitle ("Bulk import · Groups ·
+  ~ Bulk ping") is gone; next to the Minab title sits the memorial
+  ~ line in very small type. The action buttons and group tabs are
+  ~ smaller and more minimal; the group bar fades at the right edge
+  ~ so it is clear it scrolls. The config list is merged into this
+  ~ page's own scroll (one NestedScrollView; the ListView is sized
+  ~ to its content in code, VPNProfileList.expandListView), so the
+  ~ list no longer looks like a separate window.
   -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -21,9 +30,14 @@
     android:layout_height="match_parent"
     android:background="@drawable/minab_home_gradient">
 
-    <LinearLayout
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingLeft="16dp"
         android:paddingRight="16dp"
@@ -72,13 +86,14 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
-        <!-- Namaki-style header: app name + subtitle, like the
-             overview page's top row (logo + title). -->
+        <!-- Minab Beta v0.5 — header: app name, and the memorial
+             line in very small type right next to it. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -90,12 +105,16 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
                 android:fontFamily="@font/vazirmatn"
-                android:text="@string/minab_app_subtitle"
+                android:maxLines="2"
+                android:text="@string/minab_memorial"
                 android:textColor="@color/minab_text_secondary"
-                android:textSize="13sp" />
+                android:textSize="8sp" />
         </LinearLayout>
 
         <!-- Namaki PowerOrb: glow (200dp) + ring (149dp) + disc
@@ -157,9 +176,8 @@
         <!-- Minab Children: visible action buttons (v0.2). In v0.1 these
              were text-only items in the overflow menu, so users could
              not find them. The overflow items are kept as well.
-             v0.4: fixed 48dp height (standard touch target) with the
-             24dp vector icons, so the buttons are easy to tap and no
-             longer cut off at the bottom edge. -->
+             v0.5: 36dp high, 12sp text, 18dp icons — much smaller and
+             more minimal than the 48dp v0.4 buttons. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -170,22 +188,26 @@
                 android:id="@+id/minab_btn_bulk_import"
                 style="@style/Minab.PrimaryButton"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="36dp"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:drawableStart="@drawable/ic_minab_import"
+                android:drawableStart="@drawable/ic_minab_import_small"
                 android:drawableTint="@android:color/white"
-                android:text="@string/minab_bulk_import_short" />
+                android:minHeight="36dp"
+                android:text="@string/minab_bulk_import_short"
+                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/minab_btn_ping"
                 style="@style/Minab.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="48dp"
+                android:layout_height="36dp"
                 android:layout_weight="1"
-                android:drawableStart="@drawable/ic_minab_ping"
+                android:drawableStart="@drawable/ic_minab_ping_small"
                 android:drawableTint="@color/minab_teal"
-                android:text="@string/minab_test_ping" />
+                android:minHeight="36dp"
+                android:text="@string/minab_test_ping"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <!-- Minab Children: group tabs (v0.4). One tab per group
@@ -193,12 +215,17 @@
              AutoCategory; the user can also create groups by hand).
              Each tab has a small ping icon that tests just that
              group. Built in code (VPNProfileList.rebuildCategoryChips):
-             All + one tab per group + a "+" tab to create a group. -->
+             all + one tab per group + Manage + a "+" tab at the end.
+             v0.5: the bar fades at the right edge (fadingEdge) and the
+             last tab peeks in, so it is clear the bar scrolls right. -->
         <HorizontalScrollView
             android:id="@+id/minab_category_chips_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
+            android:fadingEdge="horizontal"
+            android:fadingEdgeLength="24dp"
+            android:requiresFadingEdge="horizontal"
             android:scrollbars="none">
 
             <LinearLayout
@@ -216,7 +243,7 @@
             android:id="@+id/minab_ping_progress_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:visibility="gone">
@@ -254,23 +281,26 @@
         <!-- Namaki servers page: the server list is ONE grouped card
              (shadowless, 16dp corners, thin border) with rows
              separated by divider lines. The ListView itself carries
-             the card background; its divider is the row separator. -->
+             the card background; its divider is the row separator.
+             v0.5: the list is part of this page's single scroll —
+             the ListView does not scroll on its own (its height is
+             set to its content in code) and the rows are minimal. -->
         <ListView
             android:id="@android:id/list"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="10dp"
             android:layout_marginBottom="8dp"
-            android:layout_weight="1"
             android:background="@drawable/minab_card_bg"
             android:descendantFocusability="afterDescendants"
             android:divider="@color/minab_divider"
-            android:dividerHeight="1dp" />
+            android:dividerHeight="1dp"
+            android:nestedScrollingEnabled="false" />
 
         <LinearLayout
             android:id="@android:id/empty"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="vertical">
 
@@ -319,6 +349,7 @@
         </LinearLayout>
 
     </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <!-- <include layout="@layout/profile_list_fabs" /> -->
 

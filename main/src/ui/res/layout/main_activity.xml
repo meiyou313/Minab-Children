@@ -3,9 +3,13 @@
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   ~
   ~ Minab Beta v0.4 — the main tab bar (Home, Configs, Graph,
-  ~ Settings, FAQ, About) lives at the BOTTOM of the screen now,
+  ~ Settings, About) lives at the BOTTOM of the screen now,
   ~ smaller and more minimal than the old top bar: light surface
   ~ background, small non-caps labels, 2dp indigo indicator.
+  ~ Minab Beta v0.5 — the FAQ tab moved into Settings, so the bar
+  ~ has 5 tabs and uses fixed mode (no horizontal scrolling);
+  ~ each tab has a faint frame (minab_tab_bg) so the tabs read as
+  ~ separate little cards.
   -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -31,17 +35,63 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:background="@color/minab_surface"
-                app:tabBackground="@android:color/transparent"
+                app:tabBackground="@drawable/minab_tab_bg"
                 app:tabIndicatorColor="@color/minab_teal"
                 app:tabIndicatorHeight="2dp"
                 app:tabMaxWidth="0dp"
-                app:tabMode="scrollable"
+                app:tabMinWidth="0dp"
+                app:tabMode="fixed"
+                app:tabPaddingEnd="2dp"
+                app:tabPaddingStart="2dp"
                 app:tabSelectedTextColor="@color/minab_teal"
                 app:tabTextAppearance="@style/Minab.TabText"
                 app:tabTextColor="@color/minab_text_secondary" />
 
     </LinearLayout>
 
+    <!-- Minab Beta v0.5 — full-screen FAQ overlay (the FAQ tab left
+         the bottom bar and lives at the end of Settings now). The
+         FaqFragment is placed in minab_faq_content; the close button
+         and the system back button hide the overlay again. -->
+    <LinearLayout
+        android:id="@+id/minab_faq_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/minab_surface"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <ImageButton
+                android:id="@+id/minab_faq_close"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@android:string/cancel"
+                android:src="@android:drawable/ic_menu_close_clear_cancel" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/vazirmatn"
+                android:text="@string/faq"
+                android:textColor="@color/minab_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/minab_faq_content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
 
     <View
             android:id="@+id/statusbar_background"

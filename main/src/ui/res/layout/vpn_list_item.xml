@@ -12,6 +12,10 @@
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
      limitations under the License.
+
+     Minab Beta v0.5 — minimal rows: 48dp, 14sp name, 11sp subtitle,
+     a small country flag before the name (set in
+     VPNProfileList.VPNArrayAdapter.getView), smaller ping pill.
 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -21,7 +25,18 @@
     android:background="@android:color/transparent"
     android:focusable="false"
     android:gravity="center_vertical"
-    android:minHeight="?android:attr/listPreferredItemHeight">
+    android:minHeight="48dp">
+
+    <!-- Minab Beta v0.5 — country flag (24x18dp) before the name.
+         Hidden when the country has no bundled flag. -->
+    <ImageView
+        android:id="@+id/minab_flag"
+        android:layout_width="24dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="8dp"
+        android:contentDescription="@string/minab_flag_description"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/vpn_list_item_left"
@@ -47,8 +62,8 @@
                 android:fadingEdge="horizontal"
                 android:fontFamily="@font/vazirmatn"
                 android:singleLine="true"
-                android:textAppearance="?android:attr/textAppearanceMedium"
                 android:textColor="@color/minab_text_primary"
+                android:textSize="14sp"
                 tools:text="Vpn Name" />
 
             <TextView
@@ -59,8 +74,8 @@
                 android:fadingEdge="horizontal"
                 android:fontFamily="@font/vazirmatn"
                 android:singleLine="true"
-                android:textAppearance="?android:attr/textAppearanceSmall"
                 android:textColor="@color/minab_text_secondary"
+                android:textSize="11sp"
                 tools:text="Not connected!" />
         </LinearLayout>
 
@@ -75,17 +90,17 @@
         style="@style/Minab.PingBadge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="6dp"
         android:background="@drawable/minab_ping_badge_fast"
         android:visibility="gone"
         tools:text="24 ms"
         tools:visibility="visible" />
 
     <View
-        android:layout_width="2dip"
+        android:layout_width="1dip"
         android:layout_height="match_parent"
-        android:layout_marginBottom="5dip"
-        android:layout_marginTop="5dip"
+        android:layout_marginBottom="8dip"
+        android:layout_marginTop="8dip"
         android:background="@android:drawable/divider_horizontal_dark"
         android:focusable="false" />
 
@@ -97,10 +112,10 @@
         android:background="?android:attr/selectableItemBackground"
         android:contentDescription="@string/configure_the_vpn"
         android:focusable="true"
-        android:paddingEnd="?android:attr/scrollbarSize"
-        android:paddingLeft="15dip"
-        android:paddingRight="?android:attr/scrollbarSize"
-        android:paddingStart="15dip"
+        android:paddingEnd="8dip"
+        android:paddingLeft="8dip"
+        android:paddingRight="8dip"
+        android:paddingStart="8dip"
         android:src="@drawable/ic_edit" />
 
 </LinearLayout>

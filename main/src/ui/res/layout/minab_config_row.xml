@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.5 — minimal config row for the Configs tab:
+  ~ checkbox (selection), small country flag, 14sp name, 11sp
+  ~ subtitle. Matches the minimal Home rows.
+  -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <CheckBox
+        android:id="@+id/minab_config_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:buttonTint="@color/minab_teal"
+        android:focusable="false" />
+
+    <ImageView
+        android:id="@+id/minab_config_flag"
+        android:layout_width="22dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="8dp"
+        android:contentDescription="@string/minab_flag_description"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/minab_config_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/vazirmatn"
+            android:maxLines="1"
+            android:textColor="@color/minab_text_primary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/minab_config_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/vazirmatn"
+            android:maxLines="1"
+            android:textColor="@color/minab_text_secondary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+</LinearLayout>
