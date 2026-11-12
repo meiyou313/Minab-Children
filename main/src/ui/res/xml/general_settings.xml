@@ -40,11 +40,29 @@
 
         <CheckBoxPreference
                 android:defaultValue="true"
-
                 android:key="preferencryption"
                 android:singleLineTitle="false"
                 android:summary="@string/encrypt_profiles_summary"
                 android:title="@string/encrypt_profiles" />
+
+        <!-- Minab Beta v0.4: show download/upload speed in the VPN
+             notification after connecting. Default on; the user can
+             turn it off here. -->
+        <CheckBoxPreference
+                android:defaultValue="true"
+                android:key="minab_show_speed_notification"
+                android:singleLineTitle="false"
+                android:summary="@string/minab_show_speed_notification_summary"
+                android:title="@string/minab_show_speed_notification" />
+
+        <!-- Minab Beta v0.4: manual update check (Home and About
+             check automatically, cached for 24 h). -->
+        <Preference
+                android:key="minab_check_update"
+                android:persistent="false"
+                android:singleLineTitle="false"
+                android:summary="@string/minab_check_update_summary"
+                android:title="@string/minab_check_update" />
 
         <CheckBoxPreference android:key="local_network"
                 android:persistent="false"
