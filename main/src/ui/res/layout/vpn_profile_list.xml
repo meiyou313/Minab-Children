@@ -2,17 +2,24 @@
   ~ Copyright (c) 2012-2016 Arne Schwabe
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   ~
-  ~ Minab Beta v0.2 — light minimal redesign. The v0.1 features are all
-  ~ still here, but their entry points are now visible on this screen
-  ~ instead of hidden in the overflow menu: a "Bulk import" button and
-  ~ a "Test ping" button at the top, tappable category chips under
-  ~ them, and a ping progress row with a Cancel button.
+  ~ Minab Beta v0.3 — Namaki-style home, rebuilt natively in XML.
+  ~ Modelled on Namaki's Flutter overview page (not copied: Minab is
+  ~ native Android, so the look is rebuilt with drawables and views):
+  ~ gradient background (#E9EEFF -> #F9FAFF, night: Midnight
+  ~ #141B3D -> #070A18), a large circular connect button with three
+  ~ concentric rings (glow 250dp, ring 186dp, disc 148dp — the
+  ~ PowerOrb), the state under it, then the visible action buttons,
+  ~ category chips, ping progress, and the server list as ONE
+  ~ grouped card (shadowless, 16dp corners, thin border, rows
+  ~ separated by divider lines) with a coloured ping pill per row.
+  ~ Bulk import, Test ping, category chips and ping badges all stay
+  ~ visible on this screen — nothing lives only in the overflow menu.
   -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/minab_bg">
+    android:background="@drawable/minab_home_gradient">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -33,13 +40,92 @@
             android:visibility="gone"
             android:text="@string/missing_notification_permission" />
 
+        <!-- Namaki-style header: app name + subtitle, like the
+             overview page's top row (logo + title). -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/vazirmatn"
+                android:text="@string/app"
+                android:textColor="@color/minab_text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/vazirmatn"
+                android:text="@string/minab_app_subtitle"
+                android:textColor="@color/minab_text_secondary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Namaki PowerOrb: glow (250dp) + ring (186dp) + disc
+             (148dp). Tapping the disc connects the selected / last
+             used profile, or disconnects while connected. -->
+        <FrameLayout
+            android:layout_width="250dp"
+            android:layout_height="250dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp">
+
+            <View
+                android:layout_width="250dp"
+                android:layout_height="250dp"
+                android:layout_gravity="center"
+                android:background="@drawable/minab_orb_glow" />
+
+            <View
+                android:layout_width="186dp"
+                android:layout_height="186dp"
+                android:layout_gravity="center"
+                android:background="@drawable/minab_orb_ring" />
+
+            <ImageButton
+                android:id="@+id/minab_power_orb"
+                android:layout_width="148dp"
+                android:layout_height="148dp"
+                android:layout_gravity="center"
+                android:background="@drawable/minab_orb_disc"
+                android:contentDescription="@string/minab_tap_to_connect"
+                android:scaleType="center"
+                android:src="@drawable/ic_minab_power" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/minab_home_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/vazirmatn"
+            android:gravity="center"
+            android:text="@string/minab_tap_to_connect"
+            android:textColor="@color/minab_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/vazirmatn"
+            android:gravity="center"
+            android:text="@string/minab_tap_to_connect_hint"
+            android:textColor="@color/minab_text_secondary"
+            android:textSize="13sp" />
+
         <!-- Minab Children: visible action buttons (v0.2). In v0.1 these
              were text-only items in the overflow menu, so users could
              not find them. The overflow items are kept as well. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:orientation="horizontal">
 
             <Button
@@ -125,11 +211,18 @@
                 android:textColor="@color/minab_teal" />
         </LinearLayout>
 
+        <!-- Namaki servers page: the server list is ONE grouped card
+             (shadowless, 16dp corners, thin border) with rows
+             separated by divider lines. The ListView itself carries
+             the card background; its divider is the row separator. -->
         <ListView
             android:id="@android:id/list"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:background="@color/minab_bg"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/minab_card_bg"
             android:descendantFocusability="afterDescendants"
             android:divider="@color/minab_divider"
             android:dividerHeight="1dp" />
