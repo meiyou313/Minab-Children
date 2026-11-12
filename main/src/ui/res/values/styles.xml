@@ -92,6 +92,14 @@
         <item name="android:minWidth">52dp</item>
     </style>
 
+    <!-- Minab Beta v0.4 — small non-caps labels for the bottom tab
+         bar (see main_activity.xml). -->
+    <style name="Minab.TabText" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">@font/vazirmatn</item>
+    </style>
+
     <style name="item">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
