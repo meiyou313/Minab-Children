@@ -546,7 +546,6 @@
     <string name="minab_test_ping">Test ping</string>
     <string name="minab_cancel_short">Cancel</string>
     <!-- Minab Beta v0.3: Namaki-style home (PowerOrb) + bug fixes -->
-    <string name="minab_app_subtitle">Bulk import · Groups · Bulk ping</string>
     <string name="minab_tap_to_connect">Tap to connect</string>
     <string name="minab_tap_to_connect_hint">Tap the power button to connect the selected profile, or tap a profile below.</string>
     <string name="minab_status_connected">Connected</string>
@@ -555,7 +554,7 @@
     <string name="minab_import_progress">Imported %1$d of %2$d…</string>
     <string name="minab_import_categorising">Detecting countries… %1$d of %2$d</string>
     <string name="minab_last_import">Last import: %1$s</string>
-    <string name="minab_shared_credentials_hint">Shared username/password for all profiles. Tap Apply to save them for every profile — including ones already imported — and for profiles imported later.</string>
+    <string name="minab_shared_credentials_hint">These are the VPN username and password your configs use to log in. They are saved and applied to the configs you choose — and to configs you import later.</string>
     <string name="minab_apply_credentials">Apply to all profiles</string>
     <string name="minab_credentials_empty">Enter a username and password first.</string>
     <string name="minab_credentials_applied">Applied to %1$d profile(s). New imports will use these credentials too.</string>
@@ -581,9 +580,9 @@
     <string name="minab_show_speed_notification_summary">After connecting, show download / upload speed in the VPN notification</string>
     <string name="minab_about_text">Minab is an Android OpenVPN client. Import many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test the ping of all configs — or one group — at once. Tap a config to connect; the big round button connects the last-used one.</string>
     <string name="minab_configs_title">Configs</string>
-    <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping or delete. Long-press works too.</string>
-    <string name="minab_credentials_for_group">Credentials for this group</string>
-    <string name="minab_credentials_for_all">Credentials for all</string>
+    <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping, share or delete. Tick the boxes to select configs, then delete or share them as a zip.</string>
+    <string name="minab_credentials_for_group">Set for this group</string>
+    <string name="minab_credentials_for_all">Set for all configs</string>
     <string name="minab_backup_configs">Back up configs</string>
     <string name="minab_backup_done">Backed up %1$d config(s).</string>
     <string name="minab_backup_none">No configs to back up yet.</string>
@@ -596,6 +595,24 @@
     <string name="minab_change_credentials">Change username / password</string>
     <string name="minab_credentials_group_applied">Applied to %1$d profile(s) in this group.</string>
     <string name="minab_config_actions">Config: %1$s</string>
+    <!-- Minab Beta v0.5: memorial line, minimal rows, flags,
+         selection (delete/share), FAQ moved to Settings. -->
+    <string name="minab_memorial">In memory of the 168 innocent children of Minab Elementary School, who took flight to heaven far too soon.</string>
+    <string name="minab_all_tab">all</string>
+    <string name="minab_faq_settings_summary">Questions about bulk import, groups, ping and updates</string>
+    <string name="minab_credentials_title">VPN username &amp; password</string>
+    <string name="minab_credentials_explained">The login your configs use to connect. Set one username and password for this group, or for all configs — the same login is also used for configs you import later.</string>
+    <string name="minab_delete_selected">Delete selected</string>
+    <string name="minab_share_zip">Share as zip</string>
+    <string name="minab_share_selected">Share selected (%1$d)</string>
+    <string name="minab_share_group">Share this group</string>
+    <string name="minab_share_all">Share all configs</string>
+    <string name="minab_delete_selected_confirm">Delete %1$d selected config(s)?</string>
+    <string name="minab_configs_deleted">%1$d config(s) deleted.</string>
+    <string name="minab_share_creating">Creating zip…</string>
+    <string name="minab_share_failed">Could not create the zip file.</string>
+    <string name="minab_share_config">Share config</string>
+    <string name="minab_flag_description">Country flag</string>
     <string name="minab_faq_bulk_title">How do I import many configs at once?</string>
     <string name="minab_faq_bulk">On the Home tab tap “Bulk import”, pick many .ovpn or .conf files at once (or one .zip with them inside), and enter one username and password to apply to all of them. Tap “Apply to all profiles” and the credentials are also written onto configs you already imported.</string>
     <string name="minab_faq_groups_title">How are configs grouped by country?</string>

@@ -31,6 +31,8 @@
     <color name="minab_chip_bg">#ECECF4</color>
     <color name="minab_chip_text">#374151</color>
     <color name="minab_card_border">#33202A66</color>
+    <!-- Minab Beta v0.5 — faint frame around each bottom tab. -->
+    <color name="minab_tab_frame">#24151A35</color>
     <color name="minab_gradient_top">#E9EEFF</color>
     <color name="minab_gradient_bottom">#F9FAFF</color>
     <!-- Namaki home palette (day): connected green, busy amber. -->
