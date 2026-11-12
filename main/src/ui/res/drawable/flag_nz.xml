@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.5 — simplified flag of New Zealand (4:3). Hand-drawn
+  ~ geometric approximation, kept tiny on purpose: the whole flag set
+  ~ is only a few dozen KB.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="18dp"
+    android:viewportWidth="24"
+    android:viewportHeight="18">
+    <path android:fillColor="#00247D" android:pathData="M0,0h24v18h-24z"/>
+    <path android:fillColor="#CC142B" android:pathData="M16,4a1,1 0 1,0 2,0a1,1 0 1,0 -2,0z"/>
+    <path android:fillColor="#CC142B" android:pathData="M19,8a1,1 0 1,0 2,0a1,1 0 1,0 -2,0z"/>
+    <path android:fillColor="#CC142B" android:pathData="M15,11a1,1 0 1,0 2,0a1,1 0 1,0 -2,0z"/>
+    <path android:fillColor="#CC142B" android:pathData="M18,13a1,1 0 1,0 2,0a1,1 0 1,0 -2,0z"/>
+</vector>

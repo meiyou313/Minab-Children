@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.5 — simplified flag of Ukraine (4:3). Hand-drawn
+  ~ geometric approximation, kept tiny on purpose: the whole flag set
+  ~ is only a few dozen KB.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="18dp"
+    android:viewportWidth="24"
+    android:viewportHeight="18">
+    <path android:fillColor="#005BBB" android:pathData="M0,0.0h24v9.0h-24z"/>
+    <path android:fillColor="#FFD500" android:pathData="M0,9.0h24v9.0h-24z"/>
+</vector>

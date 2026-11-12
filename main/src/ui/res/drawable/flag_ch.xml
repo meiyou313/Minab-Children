@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.5 — simplified flag of Switzerland (4:3). Hand-drawn
+  ~ geometric approximation, kept tiny on purpose: the whole flag set
+  ~ is only a few dozen KB.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="18dp"
+    android:viewportWidth="24"
+    android:viewportHeight="18">
+    <path android:fillColor="#DA291C" android:pathData="M0,0h24v18h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M11,5h2v8h-2z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M8,8h8v2h-8z"/>
+</vector>

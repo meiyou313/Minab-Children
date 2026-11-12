@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.5 — simplified flag of the United States (4:3). Hand-drawn
+  ~ geometric approximation, kept tiny on purpose: the whole flag set
+  ~ is only a few dozen KB.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="18dp"
+    android:viewportWidth="24"
+    android:viewportHeight="18">
+    <path android:fillColor="#B22234" android:pathData="M0,0.0h24v1.38h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,1.38h24v1.38h-24z"/>
+    <path android:fillColor="#B22234" android:pathData="M0,2.77h24v1.38h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,4.15h24v1.38h-24z"/>
+    <path android:fillColor="#B22234" android:pathData="M0,5.54h24v1.38h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,6.92h24v1.38h-24z"/>
+    <path android:fillColor="#B22234" android:pathData="M0,8.31h24v1.38h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,9.69h24v1.38h-24z"/>
+    <path android:fillColor="#B22234" android:pathData="M0,11.08h24v1.38h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,12.46h24v1.38h-24z"/>
+    <path android:fillColor="#B22234" android:pathData="M0,13.85h24v1.38h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,15.23h24v1.38h-24z"/>
+    <path android:fillColor="#B22234" android:pathData="M0,16.62h24v1.38h-24z"/>
+    <path android:fillColor="#3C3B6E" android:pathData="M0,0h9.6v9.69h-9.6z"/>
+</vector>

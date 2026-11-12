@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.5 — simplified flag of Norway (4:3). Hand-drawn
+  ~ geometric approximation, kept tiny on purpose: the whole flag set
+  ~ is only a few dozen KB.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="18dp"
+    android:viewportWidth="24"
+    android:viewportHeight="18">
+    <path android:fillColor="#BA0C2F" android:pathData="M0,0h24v18h-24z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M7,0h4v18h-4z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M0,7h24v4h-24z"/>
+    <path android:fillColor="#00205B" android:pathData="M8,0h2v18h-2z"/>
+    <path android:fillColor="#00205B" android:pathData="M0,8h24v2h-24z"/>
+</vector>
