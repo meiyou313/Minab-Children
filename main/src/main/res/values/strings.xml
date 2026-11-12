@@ -538,9 +538,12 @@
     <string name="minab_ping_running">Pinging %1$d profiles… %2$d done</string>
     <string name="minab_ping_done">Ping test finished. Fastest first.</string>
     <string name="minab_ping_cancelled">Ping test cancelled.</string>
-    <string name="minab_ping_cancel">Cancel ping test</string>
     <string name="minab_ping_while_vpn">Note: a VPN is currently connected, so these pings go through the tunnel and may not reflect the direct latency.</string>
     <string name="minab_no_profiles_in_category">No profiles in this category.</string>
     <string name="minab_sort_by_ping">Sorted by ping (fastest first)</string>
+    <!-- Minab Beta v0.2: short labels for the visible main-screen buttons -->
+    <string name="minab_bulk_import_short">Bulk import</string>
+    <string name="minab_test_ping">Test ping</string>
+    <string name="minab_cancel_short">Cancel</string>
 
 </resources>

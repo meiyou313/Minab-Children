@@ -5,13 +5,29 @@
   -->
 
 <resources>
-    <!-- Indigo -->
-    <!-- OpenVPN colours #203155, #C66D0D -->
-    <color name="primary">#3F51B5</color>      <!--500-->
-    <color name="primary_dark">#303F9F</color> <!--700-->
-    <color name="accent">#FFA726</color>       <!-- Orange 400 -->
+    <!-- Minab Beta v0.2 — light minimal palette (teal on white).
+         The stock indigo/orange colours are replaced by teal so the
+         whole app matches the light minimal design the user picked.
+         The old indigo #3F51B5 / orange #FFA726 are gone on purpose. -->
+    <color name="primary">#0F766E</color>      <!-- teal 700 -->
+    <color name="primary_dark">#0B5E57</color> <!-- teal 800 -->
+    <color name="accent">#0F766E</color>       <!-- teal 700 -->
     <color name="gelb">#ffff00</color>
     <color name="rot">#ff0000</color>
+
+    <!-- Minab light minimal UI -->
+    <color name="minab_teal">#0F766E</color>
+    <color name="minab_teal_dark">#0B5E57</color>
+    <color name="minab_teal_tint">#D9EFEC</color>
+    <color name="minab_bg">#FFFFFF</color>
+    <color name="minab_surface">#F7F8F8</color>
+    <color name="minab_text_primary">#1F2937</color>
+    <color name="minab_text_secondary">#6B7280</color>
+    <color name="minab_divider">#E5E7EB</color>
+    <color name="minab_chip_bg">#EEF2F2</color>
+    <color name="minab_chip_text">#374151</color>
+    <color name="minab_ping_slow">#B45309</color>
+    <color name="minab_ping_fail">#9CA3AF</color>
 
     <color name="switchbar">@android:color/darker_gray</color>
 
