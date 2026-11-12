@@ -1,4 +1,4 @@
-# Minab Children — Minab Beta v0.1
+# Minab Children — Minab Beta v0.2
 
 Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
 Android by Arne Schwabe, GPLv2). This repository is **public on
@@ -11,11 +11,33 @@ it to publish their source (see the upstream note below).
   is Java-serialised and its class name must not change, or profiles
   saved by older versions would stop loading)
 - Repo: `https://github.com/meiyou313/minab` (public)
-- Version: **Minab Beta v0.1** — `versionName = "0.1-beta"`, `versionCode = 1`, tag `v0.1`
+- Version: **Minab Beta v0.2** — `versionName = "0.2-beta"`, `versionCode = 2`, tag `v0.2`
+  (v0.1: tag `v0.1`, `versionName = "0.1-beta"`, `versionCode = 1`)
 - Platform: **Android only** (minSdk 23). No Windows / Linux build.
 - Base commit: `schwabe/ics-openvpn` master `660901ce320539aec476bd04bd1999c396d5e778`
 - Completely separate from the Namaki / Mozilla-VPN project: no Namaki
   code, no Namaki signing key, no shared repo.
+
+## What changed in v0.2
+
+v0.1 already contained the three features below, but their entry
+points were hidden (text-only items in the ⋮ overflow menu, a small
+"All categories" text line, ping results as small grey text under a
+profile name) and users could not find them. v0.2 makes them visible
+and restyles the screens light and minimal (white, teal accent):
+
+- **Bulk import** now has a big teal **"Bulk import"** button at the
+  top of the main screen (the overflow-menu item is kept too).
+- **Ping test** now has a **"Test ping"** button at the top of the
+  main screen, a visible progress row with a Cancel button while it
+  runs, and a coloured pill badge ("24 ms" / "Timeout" / "Failed")
+  next to each tested profile name; the list still re-sorts
+  fastest-first when the test finishes.
+- **Categories** now show as tappable chips at the top of the list
+  (All + one chip per category + a Manage chip for
+  create/rename/delete), instead of the single "All categories" line.
+  Long-press → Assign category still works.
+
 
 ## What Minab adds on top of stock ics-openvpn
 
@@ -24,7 +46,9 @@ ping. Minab adds three features, without changing the stock
 connect / disconnect flow:
 
 ### 1. Bulk import — many configs at once, one username/password for all
-- Menu: **Bulk import (.ovpn / .zip)** → pick many `.ovpn` / `.conf`
+- Main screen, big teal **"Bulk import"** button at the top (since
+  v0.2; the overflow-menu item **Bulk import (.ovpn / .zip)** still
+  exists too) → pick many `.ovpn` / `.conf`
   files at once (`ACTION_OPEN_DOCUMENT` + `EXTRA_ALLOW_MULTIPLE`) or
   one `.zip` containing them (up to 200 files, 2 MB each).
 - One username field + one password field + **"Apply to all"**
@@ -50,8 +74,9 @@ connect / disconnect flow:
   (Basic settings); or the filter bar → **Manage categories**
   (create / rename / delete; deleting a category moves its profiles
   back to Uncategorized).
-- Filter: tap the category bar at the top of the profile list, or menu
-  → **Filter by category** (All + each category).
+- Filter: tap a category chip at the top of the profile list (since
+  v0.2; the chips are All + one per category + Manage), or menu →
+  **Filter by category** (All + each category).
 - Automatic (best effort, never blocks an import): on bulk import the
   app guesses the country from the remote host —
   1. offline heuristic: a 2-letter country code in the profile/file
@@ -65,16 +90,21 @@ connect / disconnect flow:
   anycast IP whose country is not the country in its name.
 
 ### 3. Bulk ping — test all profiles, or one category, at once
-- Menu: **Test ping: all profiles** / **Test ping: this category**,
+- Main screen, **"Test ping"** button at the top (since v0.2; tests
+  the profiles currently shown — all, or the selected category), or
+  menu: **Test ping: all profiles** / **Test ping: this category**,
   or long-press one profile → **Test ping**.
 - 8 threads in parallel. Per host: first ICMP via
   `/system/bin/ping -c 1 -W 2`, falling back to TCP-connect timing
   to the profile's remote host:port (3 s timeout) when ICMP gives no
   answer. Overall budget ~3 s per host.
-- Each row shows live `42 ms` / `Timeout` / `Failed`; when finished
-  the list is sorted fastest-first and the result (`mLastPingMs`,
-  `mLastPingTime`, `mLastPingResult`) is saved on the profile and shown
-  under its name. **Cancel** is available (tap the ping status bar).
+- Each tested row shows a coloured pill badge next to its name
+  (`42 ms` teal/amber/grey, `Timeout` / `Failed` grey); while the
+  test runs a progress bar shows "Pinging N profiles… X done" with a
+  **Cancel** button. When finished the list is sorted fastest-first
+  and the result (`mLastPingMs`, `mLastPingTime`, `mLastPingResult`)
+  is saved on the profile. The category stays as small text under
+  the profile name.
 - What the numbers mean: ICMP time is a real ping; the TCP fallback
   is a connect time, not an ICMP ping — it answers "is this server
   reachable and how fast does it answer", not a true round-trip.
@@ -93,8 +123,8 @@ APK is built by CI:
 - Workflow: `.github/workflows/build-android.yml` —
   `ubuntu-24.04`, JDK 17 (Temurin), Android SDK, then
   `./gradlew assembleUiOvpn23Debug`, APK uploaded as an artifact.
-- Pushing tag `v0.1` publishes the GitHub Release **"Minab Beta v0.1"**
-  (pre-release) with the debug APK attached.
+- Pushing tag `v0.2` publishes the GitHub Release **"Minab Beta v0.2"**
+  (pre-release) with the debug APK attached. (v0.1 used tag `v0.1`.)
 - The upstream workflow (`.github/workflows/build.yaml`) is kept
   untouched and still runs.
 
