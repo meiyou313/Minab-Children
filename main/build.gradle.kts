@@ -41,7 +41,14 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
-        // Minab Beta v0.4 (beta numbering; first non-beta will be 1.0.0).
+        // Minab Beta v0.5 (beta numbering; first non-beta will be 1.0.0).
+        // v0.5: FAQ moved to the end of Settings, faint frames
+        // between bottom tabs, memorial line in the home header,
+        // smaller action/group tabs with "all" first and "+" last,
+        // minimal config rows with country flags (36 bundled),
+        // single-scroll Home, selective delete + share-as-zip in
+        // Configs, top-bar add / bulk-import / settings icons on
+        // every tab, and versioned release names.
         // v0.4: minimal notification banner, group tabs with per-group
         // ping, CONFIGS tab, speed in notification, update notice,
         // bottom tab bar, and ONE permanent signing key (see below) —
@@ -53,8 +60,8 @@ android {
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 4
-        versionName = "0.4-beta"
+        versionCode = 5
+        versionName = "0.5-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
