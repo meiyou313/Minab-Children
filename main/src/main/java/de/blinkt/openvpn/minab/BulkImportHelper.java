@@ -31,8 +31,9 @@
  * Auto-categorisation is intentionally NOT done here: it needs network
  * and must never block the import. The caller (BulkImportActivity)
  * runs AutoCategory.guessCategory() afterwards, on a background thread,
- * one profile at a time, and saves the category only when a country
- * was actually found.
+ * in batches (offline heuristic for all profiles at once, then the
+ * online lookup in chunks of 8 in parallel, no per-profile delay),
+ * and saves the category only when a country was actually found.
  */
 
 package de.blinkt.openvpn.minab;
@@ -79,6 +80,15 @@ public final class BulkImportHelper {
         public boolean applyCredentialsToAll;
         /** Category to assign to every imported profile (null = leave default). */
         public String category;
+    }
+
+    /**
+     * Live import progress (v0.3 bug fix 1). Called on the worker
+     * thread after every zip entry is processed, with the number of
+     * entries handled so far. The caller posts to the UI thread.
+     */
+    public interface ProgressListener {
+        void onProgress(int processed);
     }
 
     private BulkImportHelper() {
@@ -134,6 +144,12 @@ public final class BulkImportHelper {
 
     /** Import every .ovpn/.conf entry of a zip stream. */
     public static ImportResult importZip(Context context, InputStream in, ImportOptions options) {
+        return importZip(context, in, options, null);
+    }
+
+    /** Import every .ovpn/.conf entry of a zip stream, reporting live progress. */
+    public static ImportResult importZip(Context context, InputStream in, ImportOptions options,
+                                         ProgressListener listener) {
         ImportResult result = new ImportResult();
         try (ZipInputStream zip = new ZipInputStream(in)) {
             ZipEntry entry;
@@ -145,15 +161,18 @@ public final class BulkImportHelper {
                 if (++seen > MAX_FILES_PER_IMPORT) {
                     result.failed++;
                     result.failedNames.add(name + " (limit of " + MAX_FILES_PER_IMPORT + " files)");
+                    if (listener != null) listener.onProgress(seen);
                     continue;
                 }
                 byte[] bytes = readCapped(zip, MAX_ENTRY_BYTES);
                 if (bytes == null) {
                     result.failed++;
                     result.failedNames.add(name + " (too large)");
+                    if (listener != null) listener.onProgress(seen);
                     continue;
                 }
                 importOne(context, new ByteArrayInputStream(bytes), fileNameOf(name), options, result);
+                if (listener != null) listener.onProgress(seen);
             }
             if (seen == 0) {
                 result.failed++;
