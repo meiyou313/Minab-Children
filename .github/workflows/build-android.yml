@@ -1,4 +1,4 @@
-# Minab — Android CI for Minab Beta v0.5.1
+# Minab — Android CI for Minab Beta v0.6
 #
 # Builds the debug APK with GitHub Actions (no local SDK needed) and,
 # when a v* tag is pushed, publishes it as the "Minab debug Beta
@@ -6,7 +6,7 @@
 # name, so hotfix tags need no workflow change). The upstream
 # ics-openvpn workflow (.github/workflows/build.yaml)
 # is kept untouched and still runs; this workflow is the Minab one.
-# (v0.5 used the same flow with tag v0.5 / "Minab debug Beta v0.5".)
+# (v0.5.1 used the same flow with tag v0.5.1 / "Minab debug Beta v0.5.1".)
 #
 # Signing: v0.4+ are all signed with ONE permanent keystore (RSA 2048,
 # valid to 2056, alias "minab"), so they install over each other.
@@ -19,21 +19,21 @@
 # v0.1–v0.3 could not install over each other. v0.4 itself needs a
 # ONE-TIME uninstall of older betas, because its key differs from
 # the old per-build debug keys. See README.md ("Signing").
-name: Minab Android (Beta v0.5.1)
+name: Minab Android (Beta v0.6)
 
 permissions:
   contents: write
 
 on:
   push:
-    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, master, main]
-    tags: ["v0.5", "v0.5.1"]
+    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, master, main]
+    tags: ["v0.5", "v0.5.1", "v0.6"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    name: "Build Minab Beta v0.5.1 (debug APK)"
+    name: "Build Minab Beta v0.6 (debug APK)"
     runs-on: ubuntu-24.04
     env:
       MINAB_KEYSTORE_BASE64_1: ${{ secrets.MINAB_KEYSTORE_BASE64_1 }}
@@ -85,26 +85,26 @@ jobs:
       - name: List built APKs
         run: find main/build/outputs/apk -name '*.apk' -print
 
-      # Minab Beta v0.5.1 — the release asset carries its version in
-      # its name (Minab-debug-Beta-v0.5.1.apk), so releases are easy
+      # Minab Beta v0.6 — the release asset carries its version in
+      # its name (Minab-debug-Beta-v0.6.apk), so releases are easy
       # to tell apart. The built file is copied, not moved, so the
       # stock name stays available too.
       - name: Rename APK with version
         run: |
           APK=$(find main/build/outputs/apk -name 'main-ui-ovpn23-debug.apk' | head -n 1)
-          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.5.1.apk"
+          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.6.apk"
           ls -l "$(dirname "$APK")"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: minab-beta-v0.5.1-debug-apk
-          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.5.1.apk
+          name: minab-beta-v0.6-debug-apk
+          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.6.apk
           if-no-files-found: error
 
       # The release step is tag-driven: tag_name and the release
-      # name come from the pushed tag (v0.5.1 -> "Minab debug Beta
-      # v0.5.1"), so a hotfix tag needs no workflow change.
+      # name come from the pushed tag (v0.6 -> "Minab debug Beta
+      # v0.6"), so a hotfix tag needs no workflow change.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -113,15 +113,24 @@ jobs:
           name: Minab debug Beta ${{ github.ref_name }}
           draft: false
           prerelease: true
-          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.5.1.apk
+          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.6.apk
           body: |
-            Minab debug Beta v0.5.1 — Android only, debug build signed with the permanent Minab key.
+            Minab debug Beta v0.6 — Android only, debug build signed with the permanent Minab key.
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
             and password for all, profile groups (manual + automatic
             by country), and bulk ping test of all profiles or one
             group.
+
+            New in v0.6: Real test — the "Real test" button on Home
+            actually connects each server in turn and fetches the
+            Telegram web client (web.telegram.org) through the tunnel,
+            so the result proves the server really bypasses filtering
+            (a plain ping cannot prove that). It pings first when
+            needed, tests fastest servers first, and stops as soon as
+            3 servers have passed. Working servers show a "Real:
+            <ms>" badge and sort first.
 
             v0.5.1 HOTFIX: v0.5 crashed on every launch (white screen,
             then the app closed). Cause: the new single-scroll Home
@@ -135,7 +144,7 @@ jobs:
               (github.com/meiyou313/Minab-Children); the app is still
               just "Minab".
             - Releases carry their version in the title and the APK
-              file name ("Minab debug Beta v0.5.1").
+              file name ("Minab debug Beta v0.6").
             - FAQ moved out of the bottom tab bar to the end of
               Settings; the tab bar is smaller and each tab has a
               faint frame, so all five tabs fit without scrolling.
@@ -160,4 +169,4 @@ jobs:
               every tab, not only on Home.
 
             Install: download the APK below and install it on Android.
-            It installs over v0.5 and v0.4 normally (same permanent key).
+            It installs over v0.5.1 and v0.4 normally (same permanent key).
