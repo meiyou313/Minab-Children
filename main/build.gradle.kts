@@ -104,7 +104,15 @@ android {
             if (!keystoreB64.isNullOrBlank()) {
                 val ksFile = layout.buildDirectory.file("minab-release.p12").get().asFile
                 ksFile.parentFile?.mkdirs()
-                ksFile.writeBytes(Base64.getDecoder().decode(keystoreB64))
+                // The secret must be one clean base64 string (3520 chars).
+                // Strip any whitespace the secret form may have added,
+                // then fail with a clear message if it is still not
+                // valid base64 instead of a cryptic decoder error.
+                val cleanB64 = keystoreB64.filter { !it.isWhitespace() }
+                require(cleanB64.length % 4 == 0) {
+                    "MINAB_KEYSTORE_BASE64 has length ${cleanB64.length} (not a multiple of 4) — the GitHub secret value is corrupted; re-enter it from minab-release.p12.b64"
+                }
+                ksFile.writeBytes(Base64.getDecoder().decode(cleanB64))
                 storeFile = ksFile
                 storePassword = System.getenv("MINAB_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("MINAB_KEY_ALIAS") ?: "minab"
