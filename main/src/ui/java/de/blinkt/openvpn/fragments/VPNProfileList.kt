@@ -88,6 +88,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     private var pingProgressBar: ProgressBar? = null
     private var pingCancelButton: Button? = null
     private var categoryChipsContainer: LinearLayout? = null
+    // --- Minab v0.3: Namaki-style PowerOrb (home connect button) ---
+    private var orbButton: android.widget.ImageButton? = null
+    private var orbStatusView: TextView? = null
 
     override fun updateState(
         state: String?,
@@ -100,6 +103,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             mLastStatusMessage = VpnStatus.getLastCleanLogMessage(getActivity())
             mLastIntent = intent
             mArrayadapter!!.notifyDataSetChanged()
+            updateOrbState()
             showUserRequestDialogIfNeeded(level, intent)
         })
     }
@@ -252,6 +256,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     override fun onResume() {
         super.onResume()
         setListAdapter()
+        updateOrbState()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
             updateDynamicShortcuts()
         }
@@ -316,6 +321,14 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         pingStatusView = v.findViewById<View?>(R.id.minab_ping_status) as TextView?
         pingCancelButton = v.findViewById<View?>(R.id.minab_ping_cancel_btn) as Button?
         pingCancelButton?.setOnClickListener { cancelPingTest() }
+        // Minab v0.3: Namaki-style PowerOrb — the big circular
+        // connect button at the top of the home screen. Tapping it
+        // connects the selected / last-used profile, or disconnects
+        // while a VPN is active (same flow as tapping a profile row).
+        orbButton = v.findViewById<View?>(R.id.minab_power_orb) as android.widget.ImageButton?
+        orbStatusView = v.findViewById<View?>(R.id.minab_home_status) as TextView?
+        orbButton?.setOnClickListener { toggleOrbConnection() }
+        updateOrbState()
         rebuildCategoryChips()
         registerForContextMenu(v.findViewById(android.R.id.list))
 
@@ -544,6 +557,58 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    // --- Minab v0.3: PowerOrb (Namaki-style home connect button) ---
+
+    /** The profile the orb connects: the connected one while a VPN
+        is active, else the most recently used, else the first. */
+    private fun orbTargetProfile(): VpnProfile? {
+        val all = pM.getProfiles().toList()
+        if (all.isEmpty()) return null
+        if (VpnStatus.isVPNActive()) {
+            val connected = VpnStatus.getLastConnectedVPNProfile()
+            all.firstOrNull { it.getUUIDString() == connected }?.let { return it }
+        }
+        return all.maxByOrNull { it.mLastUsed } ?: all.firstOrNull()
+    }
+
+    private fun toggleOrbConnection() {
+        val target = orbTargetProfile()
+        if (target == null) {
+            Toast.makeText(requireContext(), R.string.minab_no_profiles_yet, Toast.LENGTH_LONG).show()
+            startActivity(Intent(requireContext(), BulkImportActivity::class.java))
+            return
+        }
+        startOrStopVPN(target)
+        updateOrbState()
+    }
+
+    /** Disc colour + state line under the orb, like Namaki's home:
+        green disc + "Connected — <name>" while connected, indigo
+        disc + "Tap to connect" otherwise. Safe to call before the
+        view exists (onResume / state updates). */
+    private fun updateOrbState() {
+        val button = orbButton ?: return
+        val status = orbStatusView ?: return
+        if (!isAdded) return
+        val active = VpnStatus.isVPNActive()
+        button.setBackgroundResource(
+            if (active) R.drawable.minab_orb_disc_connected
+            else R.drawable.minab_orb_disc)
+        if (active) {
+            val uuid = VpnStatus.getLastConnectedVPNProfile()
+            val name = uuid?.let { ProfileManager.get(requireContext(), it)?.mName }
+            status.text = if (name.isNullOrEmpty()) {
+                getString(R.string.minab_status_connected)
+            } else {
+                getString(R.string.minab_status_connected) + " — " + name
+            }
+            status.setTextColor(resources.getColor(R.color.minab_connected, requireContext().theme))
+        } else {
+            status.text = getString(R.string.minab_tap_to_connect)
+            status.setTextColor(resources.getColor(R.color.minab_text_primary, requireContext().theme))
+        }
     }
 
     // --- Minab Children: bulk ping ---
@@ -993,8 +1058,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             }
 
             // Minab Children (v0.2): visible ping badge next to the name.
-            // Teal < 100 ms, amber 100–299 ms, grey >= 300 ms / Timeout /
-            // Failed. Hidden until a profile has a ping result.
+            // v0.3 colours follow Namaki: green < 100 ms, amber
+            // 100–299 ms, grey >= 300 ms / Timeout / Failed. Hidden
+            // until a profile has a ping result.
             val badge = v.findViewById<TextView>(R.id.minab_ping_badge)
             if (profile.mLastPingMs >= 0) {
                 badge.visibility = View.VISIBLE
