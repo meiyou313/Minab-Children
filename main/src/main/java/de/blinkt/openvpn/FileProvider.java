@@ -112,7 +112,12 @@ implements PipeDataWriter<InputStream> {
 
 		// I think this already random enough, no need for magic secure cookies
 		// 1f9563a4-a1f5-2165-255f2219-111823ef.dmp
-		if (!path.matches("^[0-9a-z-.]*(dmp|dmp.log)$"))
+		// Minab Beta v0.5: also serve the config-share zips
+		// (minab-share-<timestamp>.zip) that ConfigsFragment writes
+		// to the cache dir for the Android share sheet. The name is
+		// still restricted to safe characters and one of the three
+		// known suffixes.
+		if (!path.matches("^[0-9a-z-.]*(dmp|dmp.log|zip)$"))
 			throw new FileNotFoundException("url not in expect format " + uri);
 		File cachedir = getContext().getCacheDir();
         return new File(cachedir,path);
