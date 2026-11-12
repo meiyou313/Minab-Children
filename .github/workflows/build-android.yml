@@ -1,36 +1,59 @@
-# Minab — Android CI for Minab Beta v0.3
+# Minab — Android CI for Minab Beta v0.4
 #
 # Builds the debug APK with GitHub Actions (no local SDK needed) and,
-# when the v0.3 tag is pushed, publishes it as the "Minab Beta v0.3"
+# when the v0.4 tag is pushed, publishes it as the "Minab Beta v0.4"
 # release. The upstream ics-openvpn workflow (.github/workflows/build.yaml)
 # is kept untouched and still runs; this workflow is the Minab one.
-# (v0.2 used the same flow with tag v0.2 / "Minab Beta v0.2".)
+# (v0.3 used the same flow with tag v0.3 / "Minab Beta v0.3".)
 #
-# Signing: 0.3 is a BETA and is debug-signed on purpose. A permanent
-# release keystore must be created before the first non-beta (1.0.0),
-# otherwise installing 1.0.0 over this beta will require an uninstall.
-# See README.md ("Signing") and PUSH.md.
-name: Minab Android (Beta v0.3)
+# Signing: v0.4+ are all signed with ONE permanent keystore (RSA 2048,
+# valid to 2056, alias "minab"), so they install over each other.
+# The keystore itself lives OUTSIDE the repo; CI decodes it from the
+# MINAB_KEYSTORE_BASE64 secret (its base64 is in
+# ~/workspace/minab-keystore/minab-release.p12.b64). If any signing
+# secret is missing the build FAILS LOUDLY below instead of silently
+# falling back to a fresh debug key — a fresh key per build was why
+# v0.1–v0.3 could not install over each other. v0.4 itself needs a
+# ONE-TIME uninstall of older betas, because its key differs from
+# the old per-build debug keys. See README.md ("Signing").
+name: Minab Android (Beta v0.4)
 
 permissions:
   contents: write
 
 on:
   push:
-    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, master, main]
-    tags: ["v0.3"]
+    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, master, main]
+    tags: ["v0.4"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    name: "Build Minab Beta v0.3 (debug APK)"
+    name: "Build Minab Beta v0.4 (debug APK)"
     runs-on: ubuntu-24.04
+    env:
+      MINAB_KEYSTORE_BASE64: ${{ secrets.MINAB_KEYSTORE_BASE64 }}
+      MINAB_KEYSTORE_PASSWORD: ${{ secrets.MINAB_KEYSTORE_PASSWORD }}
+      MINAB_KEY_ALIAS: ${{ secrets.MINAB_KEY_ALIAS }}
+      MINAB_KEY_PASSWORD: ${{ secrets.MINAB_KEY_PASSWORD }}
     steps:
       - name: Checkout the code
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Check Minab release keystore secrets
+        run: |
+          missing=""
+          for v in MINAB_KEYSTORE_BASE64 MINAB_KEYSTORE_PASSWORD MINAB_KEY_ALIAS MINAB_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then missing="$missing $v"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing Minab signing secrets:$missing — set them in the repo Settings > Secrets and variables > Actions (see README.md 'Signing'). Refusing to build with a fresh debug key, because that key would not install over previous versions."
+            exit 1
+          fi
+          echo "All Minab signing secrets are present."
 
       - name: Set up JDK 17 (Temurin)
         uses: actions/setup-java@v4
@@ -54,48 +77,58 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: minab-beta-v0.3-debug-apk
+          name: minab-beta-v0.4-debug-apk
           path: main/build/outputs/apk/**/debug/*.apk
           if-no-files-found: error
 
-      - name: Publish GitHub Release "Minab Beta v0.3"
-        if: startsWith(github.ref, 'refs/tags/v0.3')
+      - name: Publish GitHub Release "Minab Beta v0.4"
+        if: startsWith(github.ref, 'refs/tags/v0.4')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.3
-          name: Minab Beta v0.3
+          tag_name: v0.4
+          name: Minab Beta v0.4
           draft: false
           prerelease: true
           files: main/build/outputs/apk/**/debug/*.apk
           body: |
-            Minab Beta v0.3 — Android only, debug-signed beta.
+            Minab Beta v0.4 — Android only, debug build signed with the permanent Minab key.
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
-            and password for all, profile categories (manual + automatic
+            and password for all, profile groups (manual + automatic
             by country), and bulk ping test of all profiles or one
-            category.
+            group.
 
-            New in v0.3:
-            - App name is now just "Minab" (package com.minab.children
-              unchanged, so this installs over v0.2 without uninstall).
-            - Namaki-style home, rebuilt natively: indigo seed #5B5BD6,
-              Vazirmatn font, gradient background, a large circular
-              connect button with three concentric rings, and the
-              server list as one grouped card with a coloured ping
-              pill per profile.
-            - Bulk import now shows live progress ("Imported X of N…"
-              + progress bar), categorises in batches with no 1 s
-              pause per profile, and keeps the last import summary
-              (selected / imported / duplicates / failed) on the
-              screen when you come back.
-            - Shared username/password now has a real Apply button:
-              it saves the credentials and applies them to ALL
-              profiles that need them — already-imported ones
-              included — and profiles imported later get them
-              automatically, so connecting no longer asks per profile.
+            New in v0.4:
+            - Notification permission is asked at first launch; if
+              declined, only a minimal one-line banner is shown.
+            - Bulk import / Test ping buttons are full-size (48dp)
+              with standard 24dp icons, no longer cut off.
+            - Group tabs under the buttons: one tab per country group
+              (automatic), a "+" tab to create a group, and a small
+              ping icon next to each group name that pings just that
+              group.
+            - The connect button is ~20% smaller; the home screen
+              stays minimal.
+            - Tapping connect no longer auto-opens the log page — you
+              stay on Home while connecting.
+            - New CONFIGS tab (between Home and Graph): delete configs,
+              change username/password for one group or for all,
+              rename configs, and back up all configs to a zip.
+            - New setting (on by default): show download/upload speed
+              in the VPN notification after connecting.
+            - The main tab bar moved to the bottom, smaller and more
+              minimal. The first tab is now HOME.
+            - New-version notice on Home, in Settings and in About
+              (checks GitHub releases, cached 24 h).
+            - One permanent signing key: from v0.4 onward every version
+              installs over the previous one.
+            - Home subtitle, About and FAQ now describe Minab.
 
             Install: download the APK below and install it on Android.
-            This beta is debug-signed; the first non-beta (1.0.0) will
-            use a permanent release keystore, so installing it over
-            this beta will need a one-time uninstall. See README.md.
+            ONE-TIME UNINSTALL NEEDED: v0.4 uses a new permanent
+            signing key, so it cannot install over v0.1–v0.3 — uninstall
+            the old beta once (profiles stored in the app will be lost,
+            so keep your .ovpn files to re-import with Bulk import),
+            then install v0.4. Later versions will install over v0.4
+            normally.
