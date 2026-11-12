@@ -40,16 +40,20 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
-        // Minab Beta v0.3 (beta numbering; first non-beta will be 1.0.0
-        // and must use a permanent release keystore — see README.md).
+        // Minab Beta v0.4 (beta numbering; first non-beta will be 1.0.0).
+        // v0.4: minimal notification banner, group tabs with per-group
+        // ping, CONFIGS tab, speed in notification, update notice,
+        // bottom tab bar, and ONE permanent signing key (see below) —
+        // v0.4 needs a ONE-TIME uninstall of older betas (key change),
+        // after which all versions install over each other.
         // v0.3: Namaki-style UI (indigo seed, Vazirmatn, PowerOrb home,
         // grouped server card) + bulk-import live progress and
         // persistent summary + shared-credentials Apply button.
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 3
-        versionName = "0.3-beta"
+        versionCode = 4
+        versionName = "0.4-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
@@ -82,6 +86,33 @@ android {
     }
 
     signingConfigs {
+        // Minab Beta v0.4 — ONE permanent signing key for every
+        // version (RSA 2048, valid to 2056, alias "minab"). The
+        // keystore lives OUTSIDE the repo at
+        // ~/workspace/minab-keystore/minab-release.p12 (with a backup
+        // copy and its base64 next to it); it is NEVER committed.
+        // CI decodes it from the MINAB_KEYSTORE_BASE64 secret. When
+        // the env vars below are present, the debug build is signed
+        // with that key, so v0.4+ all install over each other. Without
+        // them (a local dev build) the stock debug key is used; the
+        // workflow fails loudly instead of silently doing that — see
+        // .github/workflows/build-android.yml. Do NOT reuse any other
+        // app's keystore for Minab.
+        getByName("debug") {
+            val keystoreB64 = System.getenv("MINAB_KEYSTORE_BASE64")
+            if (!keystoreB64.isNullOrBlank()) {
+                val ksFile = layout.buildDirectory.file("minab-release.p12").get().asFile
+                ksFile.parentFile?.mkdirs()
+                ksFile.writeBytes(java.util.Base64.getDecoder().decode(keystoreB64))
+                storeFile = ksFile
+                storePassword = System.getenv("MINAB_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MINAB_KEY_ALIAS") ?: "minab"
+                keyPassword = System.getenv("MINAB_KEY_PASSWORD")
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
+
         create("release") {
             // ~/.gradle/gradle.properties
             val keystoreFile: String? = project.findProperty("keystoreFile")?.toString()
