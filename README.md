@@ -1,4 +1,4 @@
-# Minab — Minab Beta v0.4
+# Minab — Minab Beta v0.6
 
 Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
 Android by Arne Schwabe, GPLv2). This repository is **public on
@@ -11,8 +11,10 @@ it to publish their source (see the upstream note below).
   is Java-serialised and its class name must not change, or profiles
   saved by older versions would stop loading)
 - Repo: `https://github.com/meiyou313/Minab-Children` (public)
-- Version: **Minab debug Beta v0.5** — `versionName = "0.5-beta"`, `versionCode = 5`, tag `v0.5`
-  (v0.4: tag `v0.4`, `versionName = "0.4-beta"`, `versionCode = 4`;
+- Version: **Minab debug Beta v0.6** — `versionName = "0.6-beta"`, `versionCode = 7`, tag `v0.6`
+  (v0.5.1: tag `v0.5.1`, `versionName = "0.5.1-beta"`, `versionCode = 6`;
+  v0.5: tag `v0.5`, `versionName = "0.5-beta"`, `versionCode = 5`;
+  v0.4: tag `v0.4`, `versionName = "0.4-beta"`, `versionCode = 4`;
   v0.3: tag `v0.3`, `versionName = "0.3-beta"`, `versionCode = 3`;
   v0.2: tag `v0.2`, `versionName = "0.2-beta"`, `versionCode = 2`;
   v0.1: tag `v0.1`, `versionName = "0.1-beta"`, `versionCode = 1`)
