@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.3 — Namaki-style home gradient (day palette from
+  ~ Namaki's overview page: top #E9EEFF to bottom #F9FAFF).
+  ~ The colours come from @color so the night palette can override
+  ~ them (values-night: Midnight top #141B3D / bottom #070A18).
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="@color/minab_gradient_bottom"
+        android:startColor="@color/minab_gradient_top"
+        android:type="linear" />
+</shape>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Minab Children — light minimal UI: ping badge, slow (>= 300 ms),
-     Timeout or Failed. -->
+<!-- Minab Beta v0.3 — ping badge, very slow (>= 300 ms),
+     Timeout or Failed: Namaki idle grey #8B8D98. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <corners android:radius="12dp" />

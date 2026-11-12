@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.3 — Namaki-style shadowless card: white surface,
+  ~ 16dp corners, thin border (Namaki CardTheme: elevation 0,
+  ~ radius 16, outlineVariant border). Used for the grouped server
+  ~ list and the bulk-import card.
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="16dp" />
+    <solid android:color="@color/minab_surface" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/minab_card_border" />
+</shape>

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Minab Children — light minimal UI: ping badge, fast (< 100 ms). -->
+<!-- Minab Beta v0.3 — ping badge, fast (< 100 ms): Namaki
+     connected green #0DB37C. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <corners android:radius="12dp" />
-    <solid android:color="@color/minab_teal" />
+    <solid android:color="@color/minab_ping_fast" />
 </shape>

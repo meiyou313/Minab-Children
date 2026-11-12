@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Minab Beta v0.3 — PowerOrb outer glow (Namaki overview page):
+  ~ a radial wash of the accent colour fading to transparent.
+  -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:centerX="0.5"
+        android:centerY="0.5"
+        android:endColor="@android:color/transparent"
+        android:gradientRadius="125dp"
+        android:startColor="@color/minab_orb_glow"
+        android:type="radial" />
+</shape>
