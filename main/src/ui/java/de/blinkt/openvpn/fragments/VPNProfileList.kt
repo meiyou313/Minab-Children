@@ -20,6 +20,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PersistableBundle
+import android.provider.Settings
 import android.text.Html
 import android.text.SpannableString
 import android.view.LayoutInflater
@@ -58,6 +59,7 @@ import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.core.VpnStatus.StateListener
 import de.blinkt.openvpn.minab.CategoryStore
+import de.blinkt.openvpn.minab.MinabUpdateChecker
 import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
 import de.blinkt.openvpn.fragments.Utils.alwaysUseOldFileChooser
@@ -91,6 +93,8 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     // --- Minab v0.3: Namaki-style PowerOrb (home connect button) ---
     private var orbButton: android.widget.ImageButton? = null
     private var orbStatusView: TextView? = null
+    // --- Minab v0.4: update notice banner ---
+    private var updateBanner: TextView? = null
 
     override fun updateState(
         state: String?,
@@ -147,7 +151,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     private fun registerPermissionReceiver() {
         mPermReceiver = registerForActivityResult<String, Boolean>(
             RequestPermission(),
-            ActivityResultCallback { result: Boolean? -> checkForNotificationPermission(requireView()) })
+            ActivityResultCallback { result: Boolean? -> updateNotifBanner() })
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N_MR1)
@@ -332,6 +336,12 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         rebuildCategoryChips()
         registerForContextMenu(v.findViewById(android.R.id.list))
 
+        // Minab v0.4: update notice banner (hidden unless a newer
+        // release exists on GitHub) and the notification permission
+        // flow: ask at first launch, minimal banner only if declined.
+        updateBanner = v.findViewById<View?>(R.id.minab_update_banner) as TextView?
+        checkForUpdates()
+
         // TV builds show the minimal UI that already have the notification
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !((activity as BaseActivity).isAndroidTV))
             checkForNotificationPermission(v)
@@ -339,16 +349,67 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         return v
     }
 
+    /** Minab v0.4 — ask for the notification permission at first
+        launch. If the user declines, only the minimal one-line
+        banner (see the layout) is shown; tapping it re-asks, or
+        opens the app settings when the system will no longer show
+        the dialog. */
     private fun checkForNotificationPermission(v: View) {
         mPermissionView = v.findViewById<View>(R.id.notification_permission)
-        val permissionGranted =
-            (requireActivity().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
-        mPermissionView.setVisibility(if (permissionGranted) View.GONE else View.VISIBLE)
+        if (requireActivity().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            mPermissionView.visibility = View.GONE
+            return
+        }
+        val prefs = requireContext().getSharedPreferences("MinabPrefs", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("notif_perm_requested", false)) {
+            prefs.edit().putBoolean("notif_perm_requested", true).apply()
+            mPermReceiver.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        updateNotifBanner()
+    }
 
-        mPermissionView.setOnClickListener { view: View? ->
-            mPermReceiver.launch(
-                Manifest.permission.POST_NOTIFICATIONS
-            )
+    private fun updateNotifBanner() {
+        if (!isAdded || !::mPermissionView.isInitialized) return
+        val granted =
+            (requireActivity().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+        mPermissionView.visibility = if (granted) View.GONE else View.VISIBLE
+        if (granted) return
+        mPermissionView.setOnClickListener {
+            if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                mPermReceiver.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                // Permanently declined (or "don't ask again"): offer
+                // the app settings instead of a dead system dialog.
+                AlertDialog.Builder(requireContext())
+                    .setMessage(R.string.minab_notification_open_settings)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        val intent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:" + requireContext().packageName)
+                        )
+                        startActivity(intent)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+        }
+    }
+
+    /** Minab v0.4 — update notice on Home. The check is cached for
+        24 h inside MinabUpdateChecker, so this is cheap on launch. */
+    private fun checkForUpdates() {
+        val banner = updateBanner ?: return
+        MinabUpdateChecker.check(requireContext(), false) { latestTag, available ->
+            if (!isAdded) return@check
+            if (available && latestTag != null) {
+                banner.text = getString(R.string.minab_update_available, latestTag)
+                banner.visibility = View.VISIBLE
+                banner.setOnClickListener { MinabUpdateChecker.openReleases(requireContext()) }
+            } else {
+                banner.visibility = View.GONE
+            }
         }
     }
 
@@ -389,48 +450,36 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
 
-    /** Rebuilds the visible category chips (v0.2): All + one chip per
-        category + a Manage chip that opens the rename/delete dialog.
-        The selected chip is tinted teal; tapping a chip filters the
-        list. Replaces the single small "All categories" text line of
-        v0.1, which users did not recognise as a filter. */
+    /** Rebuilds the group tabs (v0.4): All + one tab per group +
+        a "+" tab to create a group by hand + a Manage tab. Groups
+        are the categories: countries are assigned automatically on
+        import by AutoCategory, and the user can create or rename
+        groups. Each tab carries a small ping icon that tests just
+        that group (All tests every profile). Tapping the label
+        filters the list. Replaces the plain v0.2 chips. */
     private fun rebuildCategoryChips() {
         val container = categoryChipsContainer ?: return
         container.removeAllViews()
         val context = requireContext()
-        val categories = mutableListOf<String?>(null) // null = All
-        categories.addAll(CategoryStore.getCategories(context))
-        for (category in categories) {
-            val label = category ?: getString(R.string.minab_all_categories)
-            val selected = category == selectedCategory
-            val chip = TextView(context)
-            chip.text = label
-            chip.textSize = 13f
-            chip.setTextColor(
-                resources.getColor(
-                    if (selected) R.color.minab_teal_dark else R.color.minab_chip_text,
-                    context.theme
-                )
-            )
-            chip.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
-            chip.setBackgroundResource(
-                if (selected) R.drawable.minab_chip_bg_selected
-                else R.drawable.minab_chip_bg
-            )
-            chip.setPadding(dp(14), dp(7), dp(14), dp(7))
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.marginEnd = dp(8)
-            chip.layoutParams = params
-            chip.setOnClickListener {
-                selectedCategory = category
-                sortByPing = false
-                populateVpnList()
-            }
-            container.addView(chip)
+        addGroupTab(container, null, pM.getProfiles().toList())
+        for (category in CategoryStore.getCategories(context)) {
+            val inGroup = pM.getProfiles().toList().filter { it.getCategory() == category }
+            addGroupTab(container, category, inGroup)
         }
+        val add = TextView(context)
+        add.text = "+ " + getString(R.string.minab_new_group)
+        add.textSize = 13f
+        add.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
+        add.setBackgroundResource(R.drawable.minab_chip_bg)
+        add.setPadding(dp(14), dp(7), dp(14), dp(7))
+        val addParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        addParams.marginEnd = dp(8)
+        add.layoutParams = addParams
+        add.setOnClickListener { showNewCategoryDialog { populateVpnList() } }
+        container.addView(add)
         val manage = TextView(context)
         manage.text = getString(R.string.minab_manage_categories)
         manage.textSize = 13f
@@ -445,6 +494,61 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         manage.layoutParams = manageParams
         manage.setOnClickListener { showManageCategoriesDialog() }
         container.addView(manage)
+    }
+
+    /** One group tab: label (tap = filter) + small ping icon
+        (tap = ping just this group). category == null is "All". */
+    private fun addGroupTab(
+        container: LinearLayout,
+        category: String?,
+        profiles: List<VpnProfile>
+    ) {
+        val context = requireContext()
+        val selected = category == selectedCategory
+        val tab = LinearLayout(context)
+        tab.orientation = LinearLayout.HORIZONTAL
+        tab.gravity = android.view.Gravity.CENTER_VERTICAL
+        tab.setBackgroundResource(
+            if (selected) R.drawable.minab_chip_bg_selected
+            else R.drawable.minab_chip_bg
+        )
+        tab.setPadding(dp(14), dp(7), dp(10), dp(7))
+        val tabParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        tabParams.marginEnd = dp(8)
+        tab.layoutParams = tabParams
+        val label = TextView(context)
+        label.text = category ?: getString(R.string.minab_all_categories)
+        label.textSize = 13f
+        label.setTextColor(
+            resources.getColor(
+                if (selected) R.color.minab_teal_dark else R.color.minab_chip_text,
+                context.theme
+            )
+        )
+        label.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+        label.setOnClickListener {
+            selectedCategory = category
+            sortByPing = false
+            populateVpnList()
+        }
+        tab.addView(label)
+        val pingIcon = android.widget.ImageView(context)
+        pingIcon.setImageResource(R.drawable.ic_minab_ping)
+        pingIcon.setColorFilter(
+            resources.getColor(R.color.minab_teal, context.theme),
+            android.graphics.PorterDuff.Mode.SRC_IN
+        )
+        pingIcon.contentDescription = getString(R.string.minab_ping_group)
+        pingIcon.setPadding(dp(6), dp(6), dp(2), dp(6))
+        val iconParams = LinearLayout.LayoutParams(dp(24), dp(24))
+        iconParams.marginStart = dp(4)
+        pingIcon.layoutParams = iconParams
+        pingIcon.setOnClickListener { startPingTest(profiles) }
+        tab.addView(pingIcon)
+        container.addView(tab)
     }
 
     private fun showCategoryFilterDialog() {
@@ -967,6 +1071,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val intent = Intent(getActivity(), LaunchVPN::class.java)
         intent.putExtra(LaunchVPN.EXTRA_KEY, profile.getUUID().toString())
         intent.putExtra(OpenVPNService.EXTRA_START_REASON, "main profile list")
+        // Minab v0.4: stay on the home screen while connecting —
+        // do not auto-open the log window (the user asked for this).
+        intent.putExtra(LaunchVPN.EXTRA_HIDELOG, true)
         intent.setAction(Intent.ACTION_MAIN)
         startActivity(intent)
     }

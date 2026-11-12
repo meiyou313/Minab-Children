@@ -23,6 +23,7 @@ import androidx.preference.*
 import de.blinkt.openvpn.BuildConfig
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.activities.OpenSSLSpeed
+import de.blinkt.openvpn.minab.MinabUpdateChecker
 import de.blinkt.openvpn.api.ConfirmDialog.ANONYMOUS_PACKAGE
 import de.blinkt.openvpn.api.ExternalAppDatabase
 import de.blinkt.openvpn.core.ProfileManager
@@ -33,6 +34,8 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
     private lateinit var mPermReceiver: ActivityResultLauncher<String>
     private lateinit var mExtapp: ExternalAppDatabase
     private lateinit var mAlwaysOnVPN: ListPreference
+    // Minab v0.4: latest release tag found by the last update check.
+    private var minabLatestTag: String? = null
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         // Load the preferences from an XML resource
@@ -59,6 +62,11 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
         val clearapi = findPreference<Preference>("clearapi") as Preference
         clearapi.onPreferenceClickListener = this
         findPreference<Preference>("osslspeed")!!.onPreferenceClickListener = this
+        // Minab v0.4: manual update check. Tapping it again while an
+        // update is known opens the releases page.
+        val checkUpdate = findPreference<Preference>("minab_check_update")!!
+        checkUpdate.onPreferenceClickListener = this
+        refreshUpdateSummary(checkUpdate, false)
         if (devHacks.preferenceCount == 0) preferenceScreen.removePreference(devHacks)
         if (!BuildConfig.openvpn3) {
             val appBehaviour = findPreference<Preference>("app_behaviour") as PreferenceCategory
@@ -217,8 +225,31 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
             builder.show()
         } else if (preference.key == "osslspeed") {
             startActivity(Intent(activity, OpenSSLSpeed::class.java))
+        } else if (preference.key == "minab_check_update") {
+            if (minabLatestTag != null &&
+                MinabUpdateChecker.isNewer(BuildConfig.VERSION_NAME, minabLatestTag!!)
+            ) {
+                MinabUpdateChecker.openReleases(requireContext())
+            } else {
+                preference.summary = getString(R.string.minab_update_checking)
+                refreshUpdateSummary(preference, true)
+            }
         }
         return true
+    }
+
+    /** Minab v0.4: fill the update-check row's summary from the
+        (cached or fresh) release check. */
+    private fun refreshUpdateSummary(preference: Preference, force: Boolean) {
+        MinabUpdateChecker.check(requireContext(), force) { latest, available ->
+            if (!isAdded) return@check
+            minabLatestTag = latest
+            preference.summary = when {
+                latest == null -> getString(R.string.minab_update_failed)
+                available -> getString(R.string.minab_update_available_short, latest)
+                else -> getString(R.string.minab_update_none, BuildConfig.VERSION_NAME)
+            }
+        }
     }
 
     override fun onClick(dialog: DialogInterface, which: Int) {

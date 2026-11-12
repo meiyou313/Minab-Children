@@ -114,6 +114,17 @@ public class FaqFragment extends Fragment {
 
     private static FAQEntry[] faqitemsVersionSpecific = {
 
+            // Minab Beta v0.4 — Minab's own questions first, so the
+            // FAQ describes this app (bulk import, groups, bulk
+            // ping, updates) instead of only generic OpenVPN topics.
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_bulk_title, R.string.minab_faq_bulk),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_groups_title, R.string.minab_faq_groups),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_ping_title, R.string.minab_faq_ping),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_update_title, R.string.minab_faq_update),
+
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_howto_title, R.string.faq_howto),
 
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_title_ncp, R.string.faq_ncp ),

@@ -49,6 +49,7 @@ import java.util.Vector;
 
 import de.blinkt.openvpn.R;
 import de.blinkt.openvpn.core.VpnStatus;
+import de.blinkt.openvpn.minab.MinabUpdateChecker;
 import kotlin.text.Charsets;
 
 public class AboutFragment extends Fragment implements View.OnClickListener {
@@ -84,6 +85,25 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
         }
 
         ver.setText(getString(R.string.version_info, name, version));
+
+        // Minab Beta v0.4 — update notice on About. The check is
+        // cached for 24 h inside MinabUpdateChecker.
+        TextView updateStatus = v.findViewById(R.id.minab_update_status);
+        final String installedVersion = version;
+        MinabUpdateChecker.check(getActivity(), false, (latestTag, available) -> {
+            if (getActivity() == null || updateStatus == null) return;
+            if (latestTag == null) {
+                updateStatus.setVisibility(View.GONE);
+            } else if (available) {
+                updateStatus.setText(getString(R.string.minab_update_available_short, latestTag));
+                updateStatus.setVisibility(View.VISIBLE);
+                updateStatus.setOnClickListener(view -> MinabUpdateChecker.openReleases(getActivity()));
+            } else {
+                updateStatus.setText(getString(R.string.minab_update_none, installedVersion));
+                updateStatus.setVisibility(View.VISIBLE);
+                updateStatus.setOnClickListener(null);
+            }
+        });
 
         TextView verO2 = v.findViewById(R.id.version_ovpn2);
         TextView verO3 = v.findViewById(R.id.version_ovpn3);
