@@ -1,4 +1,4 @@
-# PUSH.md — publish Minab Beta v0.2
+# PUSH.md — publish Minab Beta v0.3
 
 Local repo is ready at `~/workspace/minab/` on branch `minab-beta-0.1`,
 based on ics-openvpn master `660901ce`. Nothing has been pushed yet:
@@ -45,13 +45,13 @@ works. (Upstream ics-openvpn uses `master`.)
 ## 3. Trigger the beta build
 
 Pushing the branch already runs `.github/workflows/build-android.yml`
-("Minab Android (Beta v0.2)"): checkout with submodules, JDK 17
+("Minab Android (Beta v0.3)"): checkout with submodules, JDK 17
 Temurin, Android SDK, `./gradlew assembleUiOvpn23Debug`.
 
 Watch it at: https://github.com/meiyou313/minab/actions
 
 - Green → download the APK from the run's artifacts
-  (`minab-beta-v0.2-debug-apk`).
+  (`minab-beta-v0.3-debug-apk`).
 - Red → open the failed step, read the exact error, and fix it in
   `~/workspace/minab/` (most likely suspects, in order: the
   `assembleUiOvpn23Debug` task name, the JDK version — upstream used
@@ -63,19 +63,19 @@ The upstream workflow (`.github/workflows/build.yaml`) also runs on
 every push; it is expected to run too and is not the Minab release
 path. Do not "fix" it by deleting it without a reason.
 
-## 4. Publish the release (tag v0.2)
+## 4. Publish the release (tag v0.3)
 
 Only after the branch build is green:
 
 ```sh
 cd ~/workspace/minab
-git tag -a v0.2 -m "Minab Beta v0.2"
-git push origin v0.2
+git tag -a v0.3 -m "Minab Beta v0.3"
+git push origin v0.3
 ```
 
 The same workflow then publishes the GitHub Release
-**"Minab Beta v0.2"** (marked pre-release) with the debug APK
-attached: https://github.com/meiyou313/minab/releases/tag/v0.2
+**"Minab Beta v0.3"** (marked pre-release) with the debug APK
+attached: https://github.com/meiyou313/minab/releases/tag/v0.3
 
 ## 5. What to verify on the phone (before calling it done)
 
