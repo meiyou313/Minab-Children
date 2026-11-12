@@ -1,22 +1,56 @@
-# Minab Children — Minab Beta v0.2
+# Minab — Minab Beta v0.3
 
 Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
 Android by Arne Schwabe, GPLv2). This repository is **public on
 purpose**: the base is GPLv2 and its author requires anyone building on
 it to publish their source (see the upstream note below).
 
-- App name: **Minab Children**
+- App name: **Minab**
 - Package (applicationId): `com.minab.children`
   (the internal Java package stays `de.blinkt.openvpn` — `VpnProfile`
   is Java-serialised and its class name must not change, or profiles
   saved by older versions would stop loading)
 - Repo: `https://github.com/meiyou313/minab` (public)
-- Version: **Minab Beta v0.2** — `versionName = "0.2-beta"`, `versionCode = 2`, tag `v0.2`
-  (v0.1: tag `v0.1`, `versionName = "0.1-beta"`, `versionCode = 1`)
+- Version: **Minab Beta v0.3** — `versionName = "0.3-beta"`, `versionCode = 3`, tag `v0.3`
+  (v0.2: tag `v0.2`, `versionName = "0.2-beta"`, `versionCode = 2`;
+  v0.1: tag `v0.1`, `versionName = "0.1-beta"`, `versionCode = 1`)
 - Platform: **Android only** (minSdk 23). No Windows / Linux build.
 - Base commit: `schwabe/ics-openvpn` master `660901ce320539aec476bd04bd1999c396d5e778`
 - Completely separate from the Namaki / Mozilla-VPN project: no Namaki
-  code, no Namaki signing key, no shared repo.
+  code, no Namaki signing key, no shared repo. (v0.3 only takes its
+  *look* — indigo seed, Vazirmatn font, PowerOrb home, grouped server
+  card — rebuilt natively in Android XML/Java.)
+
+## What changed in v0.3
+
+- **Name:** the visible app name is now just **Minab**. The package
+  (`com.minab.children`) and the internal Java package are unchanged,
+  so v0.3 installs over v0.2 without an uninstall.
+- **Namaki-style home, rebuilt natively:** indigo seed `#5B5BD6`,
+  Vazirmatn font, gradient background (`#E9EEFF` → `#F9FAFF`, night:
+  Midnight `#141B3D` → `#070A18`), a large circular connect button
+  with three concentric rings (the PowerOrb — tap it to connect the
+  selected / last-used profile, or disconnect while connected), and
+  the server list as one grouped card (shadowless, 16dp corners,
+  thin border, rows separated by divider lines) with a coloured ping
+  pill per profile (green < 100 ms, amber 100–299 ms, grey slower /
+  Timeout / Failed). Bulk import, Test ping, category chips and ping
+  badges stay visible on the home screen.
+- **Bulk import, bug fix 1:** live progress — a progress bar plus
+  "Imported X of N…" while the import runs (was one static
+  "Importing…" line); auto-categorisation now runs in batches with
+  no ~1 s pause per profile (offline heuristic for all profiles at
+  once, then the online lookup in chunks of 8 in parallel); and the
+  last import summary (selected / imported / duplicates skipped /
+  failed, with failed names) is stored and shown again when the user
+  comes back to the screen (was only a transient Toast).
+- **Shared credentials, bug fix 2:** the bulk-import screen now has
+  a real **Apply** button. It saves the username/password
+  (EncryptedSharedPreferences, Android Keystore) and writes them
+  into **all** profiles that need a username/password — already
+  imported ones included — so connecting no longer asks per profile.
+  Profiles imported later get the saved credentials automatically.
+  The fields are pre-filled from the saved values.
 
 ## What changed in v0.2
 
@@ -52,13 +86,18 @@ connect / disconnect flow:
   files at once (`ACTION_OPEN_DOCUMENT` + `EXTRA_ALLOW_MULTIPLE`) or
   one `.zip` containing them (up to 200 files, 2 MB each).
 - One username field + one password field + **"Apply to all"**
-  checkbox. When checked, the values are written into
-  `VpnProfile.mUsername` / `mPassword` of every imported profile that
-  uses `auth-user-pass` — exactly the fields the profile editor
-  (`Settings_Basic`) writes, persisted by `ProfileManager` into the
-  profile file (encrypted when upstream profile encryption is
-  enabled). No password is stored in SharedPreferences or in any extra
-  file, and the dialog clears the password field when it finishes.
+  checkbox, and since v0.3 a real **"Apply to all profiles"** button.
+  Apply saves the credentials (EncryptedSharedPreferences, Android
+  Keystore — see `SharedCredentials`) and writes them into
+  `VpnProfile.mUsername` / `mPassword` of **every** imported profile
+  that uses `auth-user-pass` — already-imported ones included, not
+  just the batch being imported — exactly the fields the profile
+  editor (`Settings_Basic`) writes, persisted by `ProfileManager`
+  into the profile file (encrypted when upstream profile encryption
+  is enabled). Profiles imported later get the saved credentials
+  automatically, without re-typing. No password is stored in plain
+  SharedPreferences or in any extra file, and the dialog clears the
+  password field when it finishes.
 - Duplicates are skipped, never overwritten: same profile **name +
   primary remote host:port** as an existing profile counts as a
   duplicate. The summary shows `Imported: X, duplicates skipped: Y,
@@ -85,7 +124,8 @@ connect / disconnect flow:
      (3 s timeout, result cached 30 days).
   Any failure leaves the manual category untouched. Honest limits:
   the free ip-api.com tier is rate-limited (~45 req/min per IP), so
-  lookups run one at a time with a 1 s gap; offline or DNS failure
+  since v0.3 lookups run in chunks of 8 in parallel with no
+  artificial delay (v0.2 paused 1 s per profile); offline or DNS failure
   means only the heuristic runs; a hostname can point at a CDN /
   anycast IP whose country is not the country in its name.
 
@@ -99,7 +139,7 @@ connect / disconnect flow:
   to the profile's remote host:port (3 s timeout) when ICMP gives no
   answer. Overall budget ~3 s per host.
 - Each tested row shows a coloured pill badge next to its name
-  (`42 ms` teal/amber/grey, `Timeout` / `Failed` grey); while the
+  (`42 ms` green/amber/grey, `Timeout` / `Failed` grey); while the
   test runs a progress bar shows "Pinging N profiles… X done" with a
   **Cancel** button. When finished the list is sorted fastest-first
   and the result (`mLastPingMs`, `mLastPingTime`, `mLastPingResult`)
@@ -123,8 +163,8 @@ APK is built by CI:
 - Workflow: `.github/workflows/build-android.yml` —
   `ubuntu-24.04`, JDK 17 (Temurin), Android SDK, then
   `./gradlew assembleUiOvpn23Debug`, APK uploaded as an artifact.
-- Pushing tag `v0.2` publishes the GitHub Release **"Minab Beta v0.2"**
-  (pre-release) with the debug APK attached. (v0.1 used tag `v0.1`.)
+- Pushing tag `v0.3` publishes the GitHub Release **"Minab Beta v0.3"**
+  (pre-release) with the debug APK attached. (v0.2 used tag `v0.2`.)
 - The upstream workflow (`.github/workflows/build.yaml`) is kept
   untouched and still runs.
 
