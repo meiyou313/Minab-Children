@@ -128,4 +128,13 @@
                 android:title="Use internal file browser" />
     </PreferenceCategory>
 
+    <!-- Minab Beta v0.5 — FAQ moved out of the bottom tab bar and
+         to the end of Settings. Tapping it opens the FAQ full-screen
+         (see GeneralSettings.onPreferenceClick). -->
+    <Preference
+            android:key="minab_faq"
+            android:persistent="false"
+            android:summary="@string/minab_faq_settings_summary"
+            android:title="@string/faq" />
+
 </PreferenceScreen>
