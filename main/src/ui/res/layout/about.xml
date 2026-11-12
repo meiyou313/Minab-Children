@@ -25,6 +25,32 @@
                 tools:ignore="SelectableText"
                 tools:text="OpenVPN for Android 1.2.3" />
 
+        <!-- Minab Beta v0.4 — what Minab is, in Minab's own words,
+             and the update notice (tap to open the releases page
+             when a newer version exists). -->
+        <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/vazirmatn"
+                android:text="@string/minab_about_text"
+                android:textColor="@color/minab_text_secondary"
+                android:textSize="13sp" />
+
+        <TextView
+                android:id="@+id/minab_update_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/minab_banner_bg"
+                android:backgroundTint="@color/minab_teal_tint"
+                android:fontFamily="@font/vazirmatn"
+                android:padding="10dp"
+                android:textColor="@color/minab_teal_dark"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
 
         <TextView
                 android:layout_width="match_parent"

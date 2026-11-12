@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright (c) 2012-2016 Arne Schwabe
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
+  ~
+  ~ Minab Beta v0.4 — the main tab bar (Home, Configs, Graph,
+  ~ Settings, FAQ, About) lives at the BOTTOM of the screen now,
+  ~ smaller and more minimal than the old top bar: light surface
+  ~ background, small non-caps labels, 2dp indigo indicator.
   -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -13,21 +18,27 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
+        <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/pager"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="3" />
 
         <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tab_layout"
                 style="@style/blinkt.tabLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="top"
+                android:layout_gravity="bottom"
+                android:background="@color/minab_surface"
+                app:tabBackground="@android:color/transparent"
+                app:tabIndicatorColor="@color/minab_teal"
+                app:tabIndicatorHeight="2dp"
                 app:tabMaxWidth="0dp"
-                app:tabMode="scrollable" />
-
-        <androidx.viewpager2.widget.ViewPager2
-                android:id="@+id/pager"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="3" />
+                app:tabMode="scrollable"
+                app:tabSelectedTextColor="@color/minab_teal"
+                app:tabTextAppearance="@style/Minab.TabText"
+                app:tabTextColor="@color/minab_text_secondary" />
 
     </LinearLayout>
 

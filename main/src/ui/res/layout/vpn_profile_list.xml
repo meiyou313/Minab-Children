@@ -6,11 +6,11 @@
   ~ Modelled on Namaki's Flutter overview page (not copied: Minab is
   ~ native Android, so the look is rebuilt with drawables and views):
   ~ gradient background (#E9EEFF -> #F9FAFF, night: Midnight
-  ~ #141B3D -> #070A18), a large circular connect button with three
-  ~ concentric rings (glow 250dp, ring 186dp, disc 148dp — the
-  ~ PowerOrb), the state under it, then the visible action buttons,
-  ~ category chips, ping progress, and the server list as ONE
-  ~ grouped card (shadowless, 16dp corners, thin border, rows
+  ~ #141B3D -> #070A18), a circular connect button with three
+  ~ concentric rings (glow 200dp, ring 149dp, disc 118dp — the
+  ~ PowerOrb, shrunk ~20% in v0.4), the state under it, then the
+  ~ visible action buttons, group tabs with a per-group ping icon,
+  ~ ping progress, and the server list as ONE grouped card (shadowless, 16dp corners, thin border, rows
   ~ separated by divider lines) with a coloured ping pill per row.
   ~ Bulk import, Test ping, category chips and ping badges all stay
   ~ visible on this screen — nothing lives only in the overflow menu.
@@ -29,16 +29,48 @@
         android:paddingRight="16dp"
         android:paddingTop="8dp">
 
+        <!-- Minab Beta v0.4 — minimal one-line notification banner.
+             v0.3 showed the long stock text here and it filled half
+             the screen. Now the permission is requested at first
+             launch; only if the user declines does this small box
+             appear (one line, tap to re-request or open settings). -->
         <TextView
             android:id="@+id/notification_permission"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="@dimen/stdpadding"
+            android:background="@drawable/minab_banner_bg"
             android:drawableStart="@drawable/notifications"
-            android:drawablePadding="@dimen/stdpadding"
-            tools:visibility="visible"
-            android:visibility="gone"
-            android:text="@string/missing_notification_permission" />
+            android:drawablePadding="8dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/vazirmatn"
+            android:maxLines="1"
+            android:padding="8dp"
+            android:singleLine="true"
+            android:text="@string/minab_notification_off"
+            android:textColor="@color/minab_text_secondary"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <!-- Minab Beta v0.4 — update notice. Hidden until the
+             update check finds a newer release on GitHub; tap opens
+             the releases page. -->
+        <TextView
+            android:id="@+id/minab_update_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/minab_banner_bg"
+            android:backgroundTint="@color/minab_teal_tint"
+            android:drawablePadding="8dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/vazirmatn"
+            android:maxLines="1"
+            android:padding="10dp"
+            android:singleLine="true"
+            android:textColor="@color/minab_teal_dark"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <!-- Namaki-style header: app name + subtitle, like the
              overview page's top row (logo + title). -->
@@ -66,31 +98,34 @@
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- Namaki PowerOrb: glow (250dp) + ring (186dp) + disc
-             (148dp). Tapping the disc connects the selected / last
-             used profile, or disconnects while connected. -->
+        <!-- Namaki PowerOrb: glow (200dp) + ring (149dp) + disc
+             (118dp). v0.4 shrank it ~20% from v0.3 (250/186/148) so
+             the home screen is more minimal and the action buttons
+             below are not pushed off the bottom edge. Tapping the
+             disc connects the selected / last used profile, or
+             disconnects while connected. -->
         <FrameLayout
-            android:layout_width="250dp"
-            android:layout_height="250dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="8dp">
 
             <View
-                android:layout_width="250dp"
-                android:layout_height="250dp"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
                 android:layout_gravity="center"
                 android:background="@drawable/minab_orb_glow" />
 
             <View
-                android:layout_width="186dp"
-                android:layout_height="186dp"
+                android:layout_width="149dp"
+                android:layout_height="149dp"
                 android:layout_gravity="center"
                 android:background="@drawable/minab_orb_ring" />
 
             <ImageButton
                 android:id="@+id/minab_power_orb"
-                android:layout_width="148dp"
-                android:layout_height="148dp"
+                android:layout_width="118dp"
+                android:layout_height="118dp"
                 android:layout_gravity="center"
                 android:background="@drawable/minab_orb_disc"
                 android:contentDescription="@string/minab_tap_to_connect"
@@ -121,18 +156,21 @@
 
         <!-- Minab Children: visible action buttons (v0.2). In v0.1 these
              were text-only items in the overflow menu, so users could
-             not find them. The overflow items are kept as well. -->
+             not find them. The overflow items are kept as well.
+             v0.4: fixed 48dp height (standard touch target) with the
+             24dp vector icons, so the buttons are easy to tap and no
+             longer cut off at the bottom edge. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/minab_btn_bulk_import"
                 style="@style/Minab.PrimaryButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
                 android:drawableStart="@drawable/ic_minab_import"
@@ -143,22 +181,24 @@
                 android:id="@+id/minab_btn_ping"
                 style="@style/Minab.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:drawableStart="@drawable/ic_minab_ping"
                 android:drawableTint="@color/minab_teal"
                 android:text="@string/minab_test_ping" />
         </LinearLayout>
 
-        <!-- Minab Children: category chips (v0.2). Replaces the single
-             small "All categories" text line of v0.1. Chips are built
-             in code (VPNProfileList.rebuildCategoryChips): All + one
-             chip per category + a Manage chip. -->
+        <!-- Minab Children: group tabs (v0.4). One tab per group
+             (country groups are assigned automatically on import by
+             AutoCategory; the user can also create groups by hand).
+             Each tab has a small ping icon that tests just that
+             group. Built in code (VPNProfileList.rebuildCategoryChips):
+             All + one tab per group + a "+" tab to create a group. -->
         <HorizontalScrollView
             android:id="@+id/minab_category_chips_scroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:scrollbars="none">
 
             <LinearLayout

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Minab Beta v0.4 — the CONFIGS tab: a dedicated place to manage
+  ~ configs. Group filter tabs on top, action buttons (credentials
+  ~ for this group / for all, backup), then the config list. Tap a
+  ~ config for rename, credentials, category, ping or delete.
+  -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/minab_home_gradient"
+    android:orientation="vertical"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingTop="8dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_configs_title"
+        android:textColor="@color/minab_text_primary"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_configs_hint"
+        android:textColor="@color/minab_text_secondary"
+        android:textSize="13sp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/minab_configs_chips"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/minab_configs_credentials_group"
+            style="@style/Minab.PrimaryButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/minab_credentials_for_group" />
+
+        <Button
+            android:id="@+id/minab_configs_credentials_all"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/minab_credentials_for_all" />
+
+        <Button
+            android:id="@+id/minab_configs_backup"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="@string/minab_backup_configs" />
+    </LinearLayout>
+
+    <ListView
+        android:id="@android:id/list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"
+        android:background="@drawable/minab_card_bg"
+        android:divider="@color/minab_divider"
+        android:dividerHeight="1dp" />
+
+    <TextView
+        android:id="@android:id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:fontFamily="@font/vazirmatn"
+        android:gravity="center"
+        android:text="@string/minab_no_profiles_yet"
+        android:textColor="@color/minab_text_secondary"
+        android:textSize="14sp" />
+
+</LinearLayout>
