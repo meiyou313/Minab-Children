@@ -10,7 +10,7 @@
  * launch check does not hit the network every time; a manual check
  * (force=true) always goes to the network. Nothing is uploaded and
  * no personal data is sent — the request only reads the latest
- * public release tag of meiyou313/minab.
+ * public release tag of meiyou313/Minab-Children.
  *
  * Version comparison is numeric on the dotted parts ("0.4" vs
  * "0.10"); a "-beta" suffix is ignored for the comparison, so
@@ -37,8 +37,8 @@ import de.blinkt.openvpn.BuildConfig;
 
 public final class MinabUpdateChecker {
     /** Where the user downloads a newer version. */
-    public static final String RELEASES_URL = "https://github.com/meiyou313/minab/releases";
-    private static final String API_URL = "https://api.github.com/repos/meiyou313/minab/releases/latest";
+    public static final String RELEASES_URL = "https://github.com/meiyou313/Minab-Children/releases";
+    private static final String API_URL = "https://api.github.com/repos/meiyou313/Minab-Children/releases/latest";
 
     private static final String PREFS_NAME = "MinabUpdateCheck";
     private static final String KEY_LATEST_TAG = "latest_tag";
