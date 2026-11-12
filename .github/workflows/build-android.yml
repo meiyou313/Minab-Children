@@ -54,6 +54,10 @@ jobs:
             exit 1
           fi
           echo "All Minab signing secrets are present."
+          # Only the LENGTH is printed (never the value): the correct
+          # base64 is 3520 chars. If this number differs, the secret
+          # was pasted wrong and must be re-entered.
+          echo "MINAB_KEYSTORE_BASE64 length: ${#MINAB_KEYSTORE_BASE64} (expected 3520)"
 
       - name: Set up JDK 17 (Temurin)
         uses: actions/setup-java@v4
