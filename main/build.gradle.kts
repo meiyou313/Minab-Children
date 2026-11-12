@@ -41,7 +41,11 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
-        // Minab Beta v0.5 (beta numbering; first non-beta will be 1.0.0).
+        // Minab Beta v0.5.1 (beta numbering; first non-beta will be 1.0.0).
+        // v0.5.1 HOTFIX: v0.5 crashed on every launch — populateVpnList()
+        // runs from onCreate() too, where the fragment has no view yet,
+        // and ListFragment.listView THROWS there; the single-scroll
+        // expand is now posted on Fragment.view (null-safe) instead.
         // v0.5: FAQ moved to the end of Settings, faint frames
         // between bottom tabs, memorial line in the home header,
         // smaller action/group tabs with "all" first and "+" last,
@@ -60,8 +64,8 @@ android {
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 5
-        versionName = "0.5-beta"
+        versionCode = 6
+        versionName = "0.5.1-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
