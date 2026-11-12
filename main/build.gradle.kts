@@ -100,7 +100,21 @@ android {
         // .github/workflows/build-android.yml. Do NOT reuse any other
         // app's keystore for Minab.
         getByName("debug") {
-            val keystoreB64 = System.getenv("MINAB_KEYSTORE_BASE64")
+            // The keystore base64 is stored as THREE GitHub secrets
+            // (MINAB_KEYSTORE_BASE64_1/2/3, 1173+1173+1174 chars):
+            // a single 3520-char paste through the web UI arrived
+            // truncated (2322 chars) and broke the build twice, so
+            // the value is split and joined here. The single
+            // MINAB_KEYSTORE_BASE64 secret is kept only as a fallback.
+            val keystoreB64 = run {
+                val parts = listOf(
+                    "MINAB_KEYSTORE_BASE64_1",
+                    "MINAB_KEYSTORE_BASE64_2",
+                    "MINAB_KEYSTORE_BASE64_3"
+                ).mapNotNull { System.getenv(it)?.takeIf(String::isNotBlank) }
+                if (parts.size == 3) parts.joinToString("")
+                else System.getenv("MINAB_KEYSTORE_BASE64")
+            }
             if (!keystoreB64.isNullOrBlank()) {
                 val ksFile = layout.buildDirectory.file("minab-release.p12").get().asFile
                 ksFile.parentFile?.mkdirs()
@@ -110,7 +124,7 @@ android {
                 // valid base64 instead of a cryptic decoder error.
                 val cleanB64 = keystoreB64.filter { !it.isWhitespace() }
                 require(cleanB64.length % 4 == 0) {
-                    "MINAB_KEYSTORE_BASE64 has length ${cleanB64.length} (not a multiple of 4) — the GitHub secret value is corrupted; re-enter it from minab-release.p12.b64"
+                    "MINAB_KEYSTORE_BASE64 has length ${cleanB64.length} (not a multiple of 4) — the GitHub secret value is corrupted; re-enter the three MINAB_KEYSTORE_BASE64_1/2/3 parts from minab-release.p12.b64"
                 }
                 ksFile.writeBytes(Base64.getDecoder().decode(cleanB64))
                 storeFile = ksFile
