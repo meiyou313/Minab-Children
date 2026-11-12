@@ -3,7 +3,7 @@
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   -->
 <resources>
-    <string name="app">Minab Children</string>
+    <string name="app">Minab</string>
     <string name="address">Server Address:</string>
     <string name="port">Server Port:</string>
     <string name="location">Location</string>
@@ -545,5 +545,20 @@
     <string name="minab_bulk_import_short">Bulk import</string>
     <string name="minab_test_ping">Test ping</string>
     <string name="minab_cancel_short">Cancel</string>
+    <!-- Minab Beta v0.3: Namaki-style home (PowerOrb) + bug fixes -->
+    <string name="minab_app_subtitle">OpenVPN client</string>
+    <string name="minab_tap_to_connect">Tap to connect</string>
+    <string name="minab_tap_to_connect_hint">Tap the power button to connect the selected profile, or tap a profile below.</string>
+    <string name="minab_status_connected">Connected</string>
+    <string name="minab_status_connecting">Connecting…</string>
+    <string name="minab_no_profiles_yet">No profiles yet — import some configs first.</string>
+    <string name="minab_import_progress">Imported %1$d of %2$d…</string>
+    <string name="minab_import_categorising">Detecting countries… %1$d of %2$d</string>
+    <string name="minab_last_import">Last import: %1$s</string>
+    <string name="minab_shared_credentials_hint">Shared username/password for all profiles. Tap Apply to save them for every profile — including ones already imported — and for profiles imported later.</string>
+    <string name="minab_apply_credentials">Apply to all profiles</string>
+    <string name="minab_credentials_empty">Enter a username and password first.</string>
+    <string name="minab_credentials_applied">Applied to %1$d profile(s). New imports will use these credentials too.</string>
+    <string name="minab_credentials_none_applied">No profile needs a username/password, so nothing was changed. The credentials are still saved for future imports.</string>
 
 </resources>
