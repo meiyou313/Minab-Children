@@ -1377,6 +1377,12 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     @Override
     public void updateByteCount(long in, long out, long diffIn, long diffOut) {
         if (mDisplayBytecount) {
+            // Minab v0.4: user setting (default on) for showing the
+            // download/upload speed in the VPN notification. When off,
+            // the notification keeps the last status text instead.
+            boolean showSpeed = Preferences.getDefaultSharedPreferences(this)
+                    .getBoolean("minab_show_speed_notification", true);
+            if (!showSpeed) return;
             String netstat = String.format(getString(R.string.statusline_bytecount),
                     humanReadableByteCount(in, false, getResources()),
                     humanReadableByteCount(diffIn / OpenVPNManagement.mBytecountInterval, true, getResources()),
