@@ -515,7 +515,7 @@
     <!-- Minab Children additions -->
     <string name="minab_bulk_import">Bulk import (.ovpn / .zip)</string>
     <string name="minab_bulk_import_title">Bulk import configs</string>
-    <string name="minab_bulk_import_hint">Pick many .ovpn/.conf files at once, or one .zip containing them. One username and password below can be applied to all imported profiles that need a username/password.</string>
+    <string name="minab_bulk_import_hint">Import many VPN configs at once. Pick .ovpn files — or one .zip with .ovpn files inside — and they are all imported together. Enter one username and password below and it is used for every imported config that needs a login.</string>
     <string name="minab_pick_files">Pick files</string>
     <string name="minab_pick_zip">Pick a .zip file</string>
     <string name="minab_username">Username (for all)</string>
@@ -609,7 +609,7 @@
          projects it is built on at the very end. The links are
          plain text; about.xml sets autoLink="web" so they are
          tappable. -->
-    <string name="minab_about_text">Minab OpenVPN is an Android OpenVPN client by meiyou313.\n\nGitHub: https://github.com/meiyou313\nSource code: https://github.com/meiyou313/Minab-Children-OpenVPN\n\nImport many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test them — a fast ping test, or a real test that actually connects each server and opens Telegram Web through it, so you know it really bypasses filtering. The Graph tab shows your real measured data usage, daily, weekly and monthly. Tap a config to connect; the big round button connects the last-used one.\n\nThanks: Minab is built on ics-openvpn — OpenVPN for Android by Arne Schwabe (GPLv2) — and the OpenVPN core. Without their work, this project would never have reached here.</string>
+    <string name="minab_about_text">Minab OpenVPN %1$s\nAn Android OpenVPN client by meiyou313.\n\nGitHub: https://github.com/meiyou313\nSource code: https://github.com/meiyou313/Minab-Children-OpenVPN\n\nMore than stock OpenVPN: bulk import · country groups · ping test · real test · data used · copy / move · best-server connect · auto-failover · IP check · search &amp; favorites · home widget · per-app VPN · import from link · full backup.\n\nThanks to ics-openvpn (Arne Schwabe, GPLv2) — without it, Minab would not exist.\n\nMinab OpenVPN %1$s</string>
     <string name="minab_configs_title">Configs</string>
     <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping, share or delete. Tick the boxes to select configs, then delete, share, copy or move them.</string>
     <string name="minab_credentials_for_group">Set for this group</string>
@@ -639,7 +639,7 @@
          selection (delete/share), FAQ moved to Settings. -->
     <string name="minab_memorial">In memory of the 168 innocent children of Minab Elementary School, who took flight to heaven far too soon.</string>
     <string name="minab_all_tab">all</string>
-    <string name="minab_faq_settings_summary">Questions about import, groups, ping, real test, data used and updates</string>
+    <string name="minab_faq_settings_summary">Questions about import, groups, ping, real test, data used, updates, best server, failover, widget and backup</string>
     <string name="minab_credentials_title">VPN username &amp; password</string>
     <string name="minab_credentials_explained">The login your configs use to connect. Set one username and password for this group, or for all configs — the same login is also used for configs you import later.</string>
     <string name="minab_delete_selected">Delete selected</string>
@@ -675,5 +675,63 @@
     <string name="minab_copy_move_title">Copy or move to group</string>
     <string name="minab_copied">Copied %1$d config(s) to “%2$s”.</string>
     <string name="minab_moved">Moved %1$d config(s) to “%2$s”.</string>
+
+    <!-- Minab Beta v0.9 — new strings. -->
+    <string name="minab_update_channel_name">Minab updates</string>
+    <string name="minab_update_notification_title">New Minab version available</string>
+    <string name="minab_best_server">Connect to best server</string>
+    <string name="minab_best_none">No tested server yet — run a ping test or a real test first.</string>
+    <string name="minab_search_hint">Search servers by name or country…</string>
+    <string name="minab_favorite_desc">Favorite</string>
+    <string name="minab_failover">Switch server automatically if the connection drops</string>
+    <string name="minab_failover_summary">When the connected server drops, Minab connects to the next healthy server from the last test (up to 3 tries). Works while the app is open.</string>
+    <string name="minab_failover_switched">Connection dropped — switched to %1$s</string>
+    <string name="minab_failover_gave_up">Connection dropped and no healthy server is left to try.</string>
+    <!-- Minab Beta v0.9 — notification channel name for the
+         failover switch message (MinabFailover). -->
+    <string name="minab_connection_channel_name">Connection</string>
+    <!-- Minab Beta v0.9 — empty name in the add/duplicate profile
+         dialog (VPNProfileList): an empty name closed the app. -->
+    <string name="minab_profile_name_required">Enter a name for the profile.</string>
+    <string name="minab_ip_checking">IP: checking…</string>
+    <string name="minab_ip_result">IP: %1$s · %2$s</string>
+    <string name="minab_ip_result_no_country">IP: %1$s</string>
+    <string name="minab_ip_unknown">IP: —</string>
+    <string name="minab_per_app_vpn">Apps using the VPN</string>
+    <string name="minab_per_app_vpn_summary">Choose which apps go through the VPN and which go direct</string>
+    <string name="minab_per_app_only">Only these apps use the VPN</string>
+    <string name="minab_per_app_except">All apps except these use the VPN</string>
+    <string name="minab_per_app_save">Save</string>
+    <string name="minab_per_app_saved">Saved for all configs.</string>
+    <string name="minab_per_app_loading">Loading apps…</string>
+    <string name="minab_import_from_link">Import from a link</string>
+    <string name="minab_import_url_hint">Paste a link to a .ovpn file or a .zip of .ovpn files</string>
+    <string name="minab_fetch_url">Download &amp; import</string>
+    <string name="minab_link_failed">Could not download that link.</string>
+    <string name="minab_restore_backup">Restore a Minab backup</string>
+    <string name="minab_restore_done">Backup restored: %1$d config(s), groups and settings put back.</string>
+    <string name="minab_restore_failed">Could not restore that backup.</string>
+    <!-- Minab Beta v0.9 — shown by the Restore button only: that
+         button restores, it never plain-imports, so the message
+         says so plainly. -->
+    <string name="minab_restore_no_metadata">That file is not a Minab backup.</string>
+    <string name="minab_delete_short">Delete</string>
+    <string name="minab_share_selected_short">Share (%1$d)</string>
+    <string name="minab_faq_best_title">How do I connect to the fastest server?</string>
+    <string name="minab_faq_best">After a ping test or a real test, tap “Connect to best server” on Home. It connects the fastest server that passed the real test, or the fastest ping when no real test has run yet.</string>
+    <string name="minab_faq_failover_title">What happens if the connected server drops?</string>
+    <string name="minab_faq_failover">If the server you are connected to drops, Minab automatically connects to the next healthy server from your last test results — up to 3 tries — and tells you which server it switched to. You can turn this off in Settings (“Switch server automatically if the connection drops”). It only works while the app is open.</string>
+    <string name="minab_faq_ip_title">How do I see my IP address and country while connected?</string>
+    <string name="minab_faq_ip">When the VPN is connected, Home shows your current public IP address and country under the connect button (for example “IP: 203.0.113.7 · Germany”). The check runs through the tunnel, takes a few seconds, and shows “—” when it cannot reach the IP service.</string>
+    <string name="minab_faq_search_title">How do I find a server, or keep one at the top?</string>
+    <string name="minab_faq_search">Type in the search box above the server list on Home to filter by name or country. Tap the star on a server to make it a favorite — favorites always stay at the top of the list. Tap the star again to remove it.</string>
+    <string name="minab_faq_widget_title">Is there a home-screen widget?</string>
+    <string name="minab_faq_widget">Yes. Long-press your home screen, choose Widgets, and add the Minab widget. It shows whether the VPN is connected and which server is connected; tap it to connect or disconnect. It connects the last-used server.</string>
+    <string name="minab_faq_perapp_title">Can I choose which apps use the VPN?</string>
+    <string name="minab_faq_perapp">Yes — in Settings, tap “Apps using the VPN”. Pick the apps and choose whether only those apps use the VPN, or every app except those. The choice is saved on all your configs, and configs you import later get the same choice.</string>
+    <string name="minab_faq_link_title">Can I import configs from a link?</string>
+    <string name="minab_faq_link">Yes. On the bulk-import screen, paste a link to a .ovpn file or to a .zip of .ovpn files, then tap “Download &amp; import”. The files are imported exactly like files you pick by hand.</string>
+    <string name="minab_faq_backup_title">How do I back up everything, and restore it?</string>
+    <string name="minab_faq_backup">On the Configs tab, “Back up configs” saves all your configs plus your groups, per-config usernames and passwords, favorites and settings into one .zip file. Keep that file private — it contains your passwords. To restore, open bulk import and tap “Restore a Minab backup”, then pick the file: everything comes back exactly as it was, groups included. “Share as zip” still exports plain .ovpn files only.</string>
 
 </resources>
