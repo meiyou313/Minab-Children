@@ -1,4 +1,4 @@
-# Minab — Android CI for Minab Beta v0.6
+# Minab — Android CI for Minab Beta v0.7
 #
 # Builds the debug APK with GitHub Actions (no local SDK needed) and,
 # when a v* tag is pushed, publishes it as the "Minab debug Beta
@@ -19,21 +19,21 @@
 # v0.1–v0.3 could not install over each other. v0.4 itself needs a
 # ONE-TIME uninstall of older betas, because its key differs from
 # the old per-build debug keys. See README.md ("Signing").
-name: Minab Android (Beta v0.6)
+name: Minab Android (Beta v0.7)
 
 permissions:
   contents: write
 
 on:
   push:
-    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, master, main]
-    tags: ["v0.5", "v0.5.1", "v0.6"]
+    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, minab-beta-0.7, master, main]
+    tags: ["v0.5", "v0.5.1", "v0.6", "v0.7"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    name: "Build Minab Beta v0.6 (debug APK)"
+    name: "Build Minab Beta v0.7 (debug APK)"
     runs-on: ubuntu-24.04
     env:
       MINAB_KEYSTORE_BASE64_1: ${{ secrets.MINAB_KEYSTORE_BASE64_1 }}
@@ -85,26 +85,26 @@ jobs:
       - name: List built APKs
         run: find main/build/outputs/apk -name '*.apk' -print
 
-      # Minab Beta v0.6 — the release asset carries its version in
-      # its name (Minab-debug-Beta-v0.6.apk), so releases are easy
+      # Minab Beta v0.7 — the release asset carries its version in
+      # its name (Minab-debug-Beta-v0.7.apk), so releases are easy
       # to tell apart. The built file is copied, not moved, so the
       # stock name stays available too.
       - name: Rename APK with version
         run: |
           APK=$(find main/build/outputs/apk -name 'main-ui-ovpn23-debug.apk' | head -n 1)
-          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.6.apk"
+          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.7.apk"
           ls -l "$(dirname "$APK")"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: minab-beta-v0.6-debug-apk
-          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.6.apk
+          name: minab-beta-v0.7-debug-apk
+          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.7.apk
           if-no-files-found: error
 
       # The release step is tag-driven: tag_name and the release
-      # name come from the pushed tag (v0.6 -> "Minab debug Beta
-      # v0.6"), so a hotfix tag needs no workflow change.
+      # name come from the pushed tag (v0.7 -> "Minab debug Beta
+      # v0.7"), so a hotfix tag needs no workflow change.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -113,15 +113,49 @@ jobs:
           name: Minab debug Beta ${{ github.ref_name }}
           draft: false
           prerelease: true
-          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.6.apk
+          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.7.apk
           body: |
-            Minab debug Beta v0.6 — Android only, debug build signed with the permanent Minab key.
+            Minab debug Beta v0.7 — Android only, debug build signed with the permanent Minab key.
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
             and password for all, profile groups (manual + automatic
             by country), and bulk ping test of all profiles or one
             group.
+
+            New in v0.7:
+            - The app is now called "Minab Open Vpn" (launcher,
+              toolbar and home header); the memorial line stays.
+            - New app icon: a pink backpack with white flowers,
+              like the reference photo — plus a white silhouette
+              version for the VPN notification icon.
+            - Home buttons (Import / Test ping / Real test) no longer
+              get clipped on narrow screens.
+            - The hint sentence under the connect button is gone;
+              the test explanation is now two short lines.
+            - The "Uncategorized" group tab moved to the end,
+              just before "+".
+            - Ping and real badges are fixed-width columns now, so
+              they line up neatly.
+            - The connected server's row is highlighted in green,
+              and its name under the connect button is small, with
+              its ping next to it — tap the ping to re-test it.
+            - After a ping test the list sorts by ping again, and
+              after a real test it sorts by the real results
+              (last test wins; the sort now survives switching tabs).
+            - The connect button is ~30% smaller.
+            - Graph tab: "Data used" bar charts — real measured
+              download + upload, daily (last 7 days), weekly
+              (last 8 weeks) and monthly (last 6 months), each bar
+              labelled with its exact value. The live speed graphs
+              are still there below.
+            - Settings: "Show speed in notification" is now the
+              first option (still on by default).
+            - Fixed: some servers wrongly showed a green
+              "Real: 0 ms" badge. Those profiles were never
+              real-tested — an old saved value was read as a
+              measurement. A real fetch can never take 0 ms, so
+              such values are now ignored and recorded as Blocked.
 
             New in v0.6: Real test — the "Real test" button on Home
             actually connects each server in turn and fetches the
@@ -169,4 +203,4 @@ jobs:
               every tab, not only on Home.
 
             Install: download the APK below and install it on Android.
-            It installs over v0.5.1 and v0.4 normally (same permanent key).
+            It installs over v0.6 normally (same permanent key).
