@@ -225,10 +225,10 @@ class ConfigsFragment : ListFragment() {
                     // Minab v0.7: skip a stale "0 ms" result (see
                     // VpnProfile migration guard) — 0 is not a
                     // measurement, it is a never-tested profile.
-                    if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0) {
+                    if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0L) {
                         subtitle.append(" · ").append(profile.mLastPingResult)
                     }
-                    if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0) {
+                    if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0L) {
                         subtitle.append(" · ").append(profile.mLastRealResult)
                     }
                     if (profile.isUserPWAuth()) {

@@ -518,7 +518,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val filtered = allvpn?.filter { profile ->
             selectedCategory == null || profile?.getCategory() == selectedCategory
         } ?: emptyList()
-        val sortedset: TreeSet<VpnProfile?>? = when (sortMode) {
+        val sortedset: TreeSet<VpnProfile?> = when (sortMode) {
             SORT_PING -> TreeSet<VpnProfile?>(VpnProfilePingComparator())
             SORT_REAL -> TreeSet<VpnProfile?>(VpnProfileRealComparator())
             else -> if (sortByLRU) TreeSet<VpnProfile?>(VpnProfileLRUComparator())
@@ -1623,7 +1623,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                         else -> R.drawable.minab_ping_badge_fail
                     }
                 )
-            } else if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0) {
+            } else if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0L) {
                 badge.visibility = View.VISIBLE
                 badge.text = profile.mLastPingResult
                 badge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
@@ -1649,7 +1649,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                         else -> R.drawable.minab_ping_badge_fail
                     }
                 )
-            } else if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0) {
+            } else if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0L) {
                 realBadge.visibility = View.VISIBLE
                 realBadge.text = profile.mLastRealResult
                 realBadge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
