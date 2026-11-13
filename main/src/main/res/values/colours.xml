@@ -38,6 +38,9 @@
     <!-- Namaki home palette (day): connected green, busy amber. -->
     <color name="minab_connected">#0DB37C</color>
     <color name="minab_connected_light">#4ED2A5</color>
+    <!-- Minab Beta v0.7: light green tint behind the connected
+         server's row in the Home list, so it stands out. -->
+    <color name="minab_connected_bg">#140DB37C</color>
     <color name="minab_busy">#F08C00</color>
     <!-- Ping pill colours (Namaki StatusColors: good #22A06B,
          busy amber, idle grey). Fast uses the home connected green. -->
@@ -58,5 +61,5 @@
 
     <color name="dataIn">#ff0000</color>
     <color name="dataOut">#0000ff</color>
-    <color name="logobackground">#F2F2F2</color>
+    <color name="logobackground">#FF95B2</color>
 </resources>

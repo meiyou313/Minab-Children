@@ -3,7 +3,10 @@
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   -->
 <resources>
-    <string name="app">Minab</string>
+    <!-- Minab Beta v0.7: the app is now called "Minab Open Vpn".
+         This one string is the launcher label, the toolbar title
+         and the Home header title (all take it from here). -->
+    <string name="app">Minab Open Vpn</string>
     <string name="address">Server Address:</string>
     <string name="port">Server Port:</string>
     <string name="location">Location</string>
@@ -554,17 +557,22 @@
          UI — ping is fast but cannot prove the VPN works; the real
          test can. The Configs tab has both tests too, with a
          longer wait per server (20 s vs 12 s on Home). -->
-    <string name="minab_tests_explained">Ping test checks whether the server answers — fast, but it does not prove the VPN works. Real test actually connects and opens Telegram Web — slower, but it proves the server really bypasses filtering.</string>
+    <string name="minab_tests_explained">Ping test: fast but weak\nReal test: slow but accurate</string>
     <string name="minab_configs_test_title">Test servers</string>
     <string name="minab_configs_test_explained">Test ping is fast: it only checks whether the server answers. Real test actually connects each server and opens Telegram Web through it — slower, but it proves the server really bypasses filtering.</string>
     <string name="minab_real_already_running">A real test is already running.</string>
     <!-- Minab Beta v0.2: short labels for the visible main-screen buttons -->
     <string name="minab_bulk_import_short">Bulk import</string>
+    <!-- Minab Beta v0.7: the Home button is short — "Import" fits
+         next to "Test ping" and "Real test" on narrow screens. -->
+    <string name="minab_import_short">Import</string>
+    <!-- Minab Beta v0.7: the ping of the connected server, shown
+         next to its name; tapping it re-tests that server now. -->
+    <string name="minab_connected_ping_desc">Tap to re-test the ping of the connected server</string>
     <string name="minab_test_ping">Test ping</string>
     <string name="minab_cancel_short">Cancel</string>
     <!-- Minab Beta v0.3: Namaki-style home (PowerOrb) + bug fixes -->
     <string name="minab_tap_to_connect">Tap to connect</string>
-    <string name="minab_tap_to_connect_hint">Tap the power button to connect the selected profile, or tap a profile below.</string>
     <string name="minab_status_connected">Connected</string>
     <string name="minab_status_connecting">Connecting…</string>
     <string name="minab_no_profiles_yet">No profiles yet — import some configs first.</string>
@@ -595,11 +603,20 @@
     <string name="minab_check_update_summary">Check GitHub for a newer Minab release</string>
     <string name="minab_show_speed_notification">Show speed in notification</string>
     <string name="minab_show_speed_notification_summary">After connecting, show download / upload speed in the VPN notification</string>
-    <string name="minab_about_text">Minab is an Android OpenVPN client. Import many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test the ping of all configs — or one group — at once. Tap a config to connect; the big round button connects the last-used one.</string>
+    <string name="minab_about_text">Minab Open Vpn is an Android OpenVPN client. Import many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test the ping of all configs — or one group — at once. Tap a config to connect; the big round button connects the last-used one.</string>
     <string name="minab_configs_title">Configs</string>
     <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping, share or delete. Tick the boxes to select configs, then delete or share them as a zip.</string>
     <string name="minab_credentials_for_group">Set for this group</string>
     <string name="minab_credentials_for_all">Set for all configs</string>
+    <!-- Minab Beta v0.7: "Data used" on the Graph tab — real measured
+         download + upload, per day / week / month, as bar charts. -->
+    <string name="minab_data_used">Data used</string>
+    <string name="minab_data_daily">Daily</string>
+    <string name="minab_data_weekly">Weekly</string>
+    <string name="minab_data_monthly">Monthly</string>
+    <string name="minab_data_total">Total: %1$s</string>
+    <string name="minab_data_none_yet">No usage recorded yet — connect to a server and the data you use will appear here.</string>
+    <string name="minab_live_speed">Live speed</string>
     <string name="minab_backup_configs">Back up configs</string>
     <string name="minab_backup_done">Backed up %1$d config(s).</string>
     <string name="minab_backup_none">No configs to back up yet.</string>
