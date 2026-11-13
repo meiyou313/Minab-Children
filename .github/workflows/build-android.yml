@@ -1,4 +1,4 @@
-# Minab — Android CI for Minab Beta v0.8
+# Minab — Android CI for Minab Beta v0.9
 #
 # Builds the debug APK with GitHub Actions (no local SDK needed) and,
 # when a v* tag is pushed, publishes it as the "Minab debug Beta
@@ -19,21 +19,21 @@
 # v0.1–v0.3 could not install over each other. v0.4 itself needs a
 # ONE-TIME uninstall of older betas, because its key differs from
 # the old per-build debug keys. See README.md ("Signing").
-name: Minab Android (Beta v0.8)
+name: Minab Android (Beta v0.9)
 
 permissions:
   contents: write
 
 on:
   push:
-    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, minab-beta-0.7, minab-beta-0.8, master, main]
-    tags: ["v0.5", "v0.5.1", "v0.6", "v0.7", "v0.8"]
+    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, minab-beta-0.7, minab-beta-0.8, minab-beta-0.9, master, main]
+    tags: ["v0.5", "v0.5.1", "v0.6", "v0.7", "v0.8", "v0.9"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    name: "Build Minab Beta v0.8 (debug APK)"
+    name: "Build Minab Beta v0.9 (debug APK)"
     runs-on: ubuntu-24.04
     env:
       MINAB_KEYSTORE_BASE64_1: ${{ secrets.MINAB_KEYSTORE_BASE64_1 }}
@@ -85,26 +85,32 @@ jobs:
       - name: List built APKs
         run: find main/build/outputs/apk -name '*.apk' -print
 
-      # Minab Beta v0.8 — the release asset carries its version in
-      # its name (Minab-debug-Beta-v0.8.apk), so releases are easy
+      # Minab Beta v0.9 — the release asset carries its version in
+      # its name (Minab-debug-Beta-v0.9.apk), so releases are easy
       # to tell apart. The built file is copied, not moved, so the
       # stock name stays available too.
       - name: Rename APK with version
         run: |
           APK=$(find main/build/outputs/apk -name 'main-ui-ovpn23-debug.apk' | head -n 1)
-          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.8.apk"
+          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.9.apk"
           ls -l "$(dirname "$APK")"
 
       - name: Upload debug APK
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
-          name: minab-beta-v0.8-debug-apk
-          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.8.apk
+          name: minab-beta-v0.9-debug-apk
+          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.9.apk
           if-no-files-found: error
+          retention-days: 7
+          # Artifacts are only a temporary copy of the release APK:
+          # keep them 7 days and only on tag (release) builds, so
+          # branch builds stop adding ~50 MB each to the 500 MB
+          # free artifact storage. Releases themselves are unaffected.
 
       # The release step is tag-driven: tag_name and the release
-      # name come from the pushed tag (v0.8 -> "Minab debug Beta
-      # v0.8"), so a hotfix tag needs no workflow change.
+      # name come from the pushed tag (v0.9 -> "Minab debug Beta
+      # v0.9"), so a hotfix tag needs no workflow change.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -113,15 +119,86 @@ jobs:
           name: Minab debug Beta ${{ github.ref_name }}
           draft: false
           prerelease: true
-          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.8.apk
+          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.9.apk
           body: |
-            Minab debug Beta v0.8 — Android only, debug build signed with the permanent Minab key.
+            Minab debug Beta v0.9 — Android only, debug build signed with the permanent Minab key.
+            Installs over v0.8 normally (no uninstall needed).
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
             and password for all, profile groups (manual + automatic
             by country), and bulk ping test of all profiles or one
             group.
+
+            New in v0.9:
+            - About is much shorter now (80–90% trimmed): what the
+              app is, the version (at the top AND the bottom), the
+              GitHub links, the thanks to ics-openvpn, and the list
+              of Minab's extra features. A "Check for updates"
+              button sits at the top of About.
+            - Update notice on Home AND as a phone notification
+              when a new version is published (at most once per
+              version; only when the checker positively finds a
+              genuinely newer release).
+            - Configs tab: the server list now sits in the same
+              Configs window (one scroll for the whole page), and
+              the Delete / Share buttons are no longer half-cut.
+            - Bulk import: the top text is rewritten in plain words
+              (pick many .ovpn files or a zip, one shared
+              username/password for all, then import), and the
+              header is fully visible now — it used to start
+              mid-sentence.
+            - FAQ: the first card's title is no longer clipped at
+              the top; all text is smaller and in Vazirmatn; 8 new
+              questions with complete answers cover the new
+              features (best server, failover, IP check, search,
+              widget, per-app VPN, import from a link, full backup).
+            - New launcher icon: exactly the pink-backpack photo
+              (no AI, no redraw, no zoom or crop), fitted inside
+              the adaptive-icon safe zone; the Home header uses the
+              same photo with its background removed.
+            - "Connect to best server": one button connects the
+              fastest healthy server from the last tests (best
+              real-test result, falling back to best ping).
+            - Auto-failover: when the connected server drops, Minab
+              connects to the next healthy server by itself (up to
+              3 tries, then it stops and says so). No test runs on
+              the switch — it just switches and shows a message
+              with the new server's name. (Works while the app is
+              open; a setting in Settings turns it off.)
+            - After connecting, the current public IP and country
+              show under the connect button (checked through the
+              tunnel; "—" when it cannot be checked). No speed
+              test — there is none anywhere in the app.
+            - Search servers by name or country on Home, and star
+              (favorite) servers so they stay at the top.
+            - Home-screen widget: shows the state and the connected
+              server; tap it to connect or disconnect.
+            - Per-app VPN (split tunneling): pick which apps go
+              through the VPN and which go direct (in Settings).
+            - Import from a link: paste a URL to a .ovpn file or a
+              .zip of .ovpn files; Minab downloads and imports it
+              like files picked by hand.
+            - Full backup: "Back up configs" now also saves the
+              groups, per-profile usernames/passwords, favorites
+              and settings in the same zip, and restoring it (from
+              the bulk import screen) puts everything back exactly.
+              The plain .ovpn-only zip export still works as before.
+            - Ping fix: a TCP ping now needs a real OpenVPN reply —
+              before, a middlebox answering the handshake made far
+              servers read as 1–3 ms while the real test said
+              Blocked. ICMP replies are checked against the target
+              and impossible sub-5 ms values to public servers are
+              dropped. A failed probe never shows as a small green
+              number anymore.
+            - The top-bar "+" is gone (it opened the empty-profile
+              dialog, not an import, and it closed the app); the
+              bulk-import button is the "+" now. The duplicate
+              flow still works, and an empty profile name is
+              refused plainly instead of closing the app.
+            - The real-test pre-check retries once on a transient
+              failure, so one lost probe no longer marks a server
+              Blocked.
 
             New in v0.8:
             - The app is now called "Minab OpenVPN" (launcher,
