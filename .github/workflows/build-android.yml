@@ -1,4 +1,4 @@
-# Minab — Android CI for Minab Beta v0.7
+# Minab — Android CI for Minab Beta v0.8
 #
 # Builds the debug APK with GitHub Actions (no local SDK needed) and,
 # when a v* tag is pushed, publishes it as the "Minab debug Beta
@@ -19,21 +19,21 @@
 # v0.1–v0.3 could not install over each other. v0.4 itself needs a
 # ONE-TIME uninstall of older betas, because its key differs from
 # the old per-build debug keys. See README.md ("Signing").
-name: Minab Android (Beta v0.7)
+name: Minab Android (Beta v0.8)
 
 permissions:
   contents: write
 
 on:
   push:
-    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, minab-beta-0.7, master, main]
-    tags: ["v0.5", "v0.5.1", "v0.6", "v0.7"]
+    branches: [minab-beta-0.1, minab-beta-0.2, minab-beta-0.3, minab-beta-0.4, minab-beta-0.5, minab-beta-0.5.1, minab-beta-0.6, minab-beta-0.7, minab-beta-0.8, master, main]
+    tags: ["v0.5", "v0.5.1", "v0.6", "v0.7", "v0.8"]
   pull_request:
   workflow_dispatch:
 
 jobs:
   build:
-    name: "Build Minab Beta v0.7 (debug APK)"
+    name: "Build Minab Beta v0.8 (debug APK)"
     runs-on: ubuntu-24.04
     env:
       MINAB_KEYSTORE_BASE64_1: ${{ secrets.MINAB_KEYSTORE_BASE64_1 }}
@@ -85,26 +85,26 @@ jobs:
       - name: List built APKs
         run: find main/build/outputs/apk -name '*.apk' -print
 
-      # Minab Beta v0.7 — the release asset carries its version in
-      # its name (Minab-debug-Beta-v0.7.apk), so releases are easy
+      # Minab Beta v0.8 — the release asset carries its version in
+      # its name (Minab-debug-Beta-v0.8.apk), so releases are easy
       # to tell apart. The built file is copied, not moved, so the
       # stock name stays available too.
       - name: Rename APK with version
         run: |
           APK=$(find main/build/outputs/apk -name 'main-ui-ovpn23-debug.apk' | head -n 1)
-          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.7.apk"
+          cp "$APK" "$(dirname "$APK")/Minab-debug-Beta-v0.8.apk"
           ls -l "$(dirname "$APK")"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: minab-beta-v0.7-debug-apk
-          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.7.apk
+          name: minab-beta-v0.8-debug-apk
+          path: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.8.apk
           if-no-files-found: error
 
       # The release step is tag-driven: tag_name and the release
-      # name come from the pushed tag (v0.7 -> "Minab debug Beta
-      # v0.7"), so a hotfix tag needs no workflow change.
+      # name come from the pushed tag (v0.8 -> "Minab debug Beta
+      # v0.8"), so a hotfix tag needs no workflow change.
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -113,15 +113,49 @@ jobs:
           name: Minab debug Beta ${{ github.ref_name }}
           draft: false
           prerelease: true
-          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.7.apk
+          files: main/build/outputs/apk/**/debug/Minab-debug-Beta-v0.8.apk
           body: |
-            Minab debug Beta v0.7 — Android only, debug build signed with the permanent Minab key.
+            Minab debug Beta v0.8 — Android only, debug build signed with the permanent Minab key.
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
             and password for all, profile groups (manual + automatic
             by country), and bulk ping test of all profiles or one
             group.
+
+            New in v0.8:
+            - The app is now called "Minab OpenVPN" (launcher,
+              toolbar and home header), and the app icon sits next
+              to the name on Home.
+            - The GitHub repo is now "Minab Children OpenVPN"
+              (github.com/meiyou313/Minab-Children-OpenVPN).
+            - About is rewritten around this project: the GitHub
+              profile and repo links come first, and the thanks to
+              the ics-openvpn and OpenVPN projects are at the end.
+            - Settings text is smaller and more minimal, and the
+              empty icon space on the left is gone.
+            - FAQ is rewritten: only questions about this app —
+              bulk import, groups, ping test, real test, data used,
+              copy/move and updates.
+            - Configs tab: the "Uncategorized" tab moved to the end,
+              just before "+", like on Home.
+            - Configs tab: tick configs and use the new Copy / Move
+              actions next to Delete to copy or move them to
+              another group.
+            - Home: the small ping icon next to each group name is
+              gone. "Ping test" / "Real test" now test only the
+              selected group (or everything when "all" is selected).
+            - "Test ping" is renamed "Ping test" everywhere.
+            - Graph tab: the Daily / Weekly / Monthly chips are
+              fixed — no more half-cut text.
+            - Swiping between tabs needs a longer drag now, so
+              accidental tab switches are rarer.
+            - Real test is faster: a dead server is skipped after a
+              ~2 s reachability pre-check instead of burning the
+              full 12 s / 20 s connect wait. (A real test still
+              connects each server in turn — Android allows only
+              one VPN tunnel at a time, so parallel real tests
+              like proxy apps do are not possible with OpenVPN.)
 
             New in v0.7:
             - The app is now called "Minab Open Vpn" (launcher,
@@ -175,7 +209,7 @@ jobs:
 
             New in v0.5:
             - The repo is now "Minab Children"
-              (github.com/meiyou313/Minab-Children); the app is still
+              (github.com/meiyou313/Minab-Children-OpenVPN); the app is still
               just "Minab".
             - Releases carry their version in the title and the APK
               file name ("Minab debug Beta v0.6").
@@ -203,4 +237,4 @@ jobs:
               every tab, not only on Home.
 
             Install: download the APK below and install it on Android.
-            It installs over v0.6 normally (same permanent key).
+            It installs over v0.7 normally (same permanent key).
