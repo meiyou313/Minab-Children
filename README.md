@@ -1,4 +1,4 @@
-# Minab — Minab Beta v0.8
+# Minab — Minab Beta v0.9
 
 Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
 Android by Arne Schwabe, GPLv2). This repository is **public on
@@ -11,8 +11,9 @@ it to publish their source (see the upstream note below).
   is Java-serialised and its class name must not change, or profiles
   saved by older versions would stop loading)
 - Repo: `https://github.com/meiyou313/Minab-Children-OpenVPN` (public)
-- Version: **Minab debug Beta v0.8** — `versionName = "0.8-beta"`, `versionCode = 9`, tag `v0.8`
-  (v0.7: tag `v0.7`, `versionName = "0.7-beta"`, `versionCode = 8`;
+- Version: **Minab debug Beta v0.9** — `versionName = "0.9-beta"`, `versionCode = 10`, tag `v0.9`
+  (v0.8: tag `v0.8`, `versionName = "0.8-beta"`, `versionCode = 9`;
+  v0.7: tag `v0.7`, `versionName = "0.7-beta"`, `versionCode = 8`;
   v0.6: tag `v0.6`, `versionName = "0.6-beta"`, `versionCode = 7`;
   v0.5.1: tag `v0.5.1`, `versionName = "0.5.1-beta"`, `versionCode = 6`;
   v0.5: tag `v0.5`, `versionName = "0.5-beta"`, `versionCode = 5`;
@@ -26,6 +27,67 @@ it to publish their source (see the upstream note below).
   code, no Namaki signing key, no shared repo. (v0.3 only takes its
   *look* — indigo seed, Vazirmatn font, PowerOrb home, grouped server
   card — rebuilt natively in Android XML/Java.)
+
+## What changed in v0.9
+
+- **About:** 80–90% shorter — only what the app is, the version
+  (top and bottom), the GitHub links, the thanks to ics-openvpn,
+  and the feature headlines. A **"Check for updates"** button sits
+  at the top of About.
+- **Updates:** when a new version is published, the notice shows
+  on **Home and as a phone notification** (at most once per
+  version; only when the checker positively finds a genuinely
+  newer release).
+- **Configs tab:** the server list now sits **in the same Configs
+  window** (one scroll for the whole page), and the
+  **Delete / Share** buttons are no longer half-cut.
+- **Bulk import:** the top text is rewritten in plain words, and
+  the header is fully visible now (it used to start mid-sentence);
+  the category spinner at the bottom is fully visible too.
+- **FAQ:** the first card's title is no longer clipped at the top;
+  all text is smaller and in Vazirmatn; **8 new Q&As** cover the
+  new features.
+- **Icon:** the launcher icon is now **exactly the pink-backpack
+  photo** (no AI, no redraw, no zoom or crop), fitted inside the
+  adaptive-icon safe zone; the Home header uses the same photo
+  with its background removed.
+- **Best server:** one button connects the fastest healthy server
+  from the last tests (best real-test result, falling back to best
+  ping).
+- **Auto-failover:** when the connected server drops, Minab
+  connects to the next healthy server by itself (up to 3 tries,
+  then it stops and says so). No test runs on the switch — it just
+  switches and shows a message with the new server's name. Works
+  while the app is open; a setting in Settings turns it off.
+- **IP check:** after connecting, the current public IP and
+  country show under the connect button (through the tunnel;
+  "—" when it cannot be checked). There is no speed test anywhere.
+- **Search + favorites:** search servers by name or country on
+  Home, and star servers so they stay at the top.
+- **Widget:** a home-screen widget shows the state and the
+  connected server; tap it to connect or disconnect.
+- **Per-app VPN:** pick which apps go through the VPN and which go
+  direct (in Settings).
+- **Import from a link:** paste a URL to a .ovpn file or a .zip of
+  .ovpn files; Minab downloads and imports it like files picked
+  by hand.
+- **Full backup:** "Back up configs" now also saves the groups,
+  per-profile usernames/passwords, favorites and settings in the
+  same zip, and restoring it (from the bulk import screen) puts
+  everything back exactly. The plain .ovpn-only zip export still
+  works as before.
+- **Ping fix:** a TCP ping now needs a real OpenVPN reply — before,
+  a middlebox answering the handshake made far servers read as
+  1–3 ms while the real test said Blocked. ICMP replies are
+  checked against the target and impossible sub-5 ms values to
+  public servers are dropped. A failed probe never shows as a
+  small green number anymore.
+- **Top-bar "+":** removed — it opened the empty-profile dialog,
+  not an import, and it closed the app. The bulk-import button is
+  the "+" now. The duplicate flow still works, and an empty
+  profile name is refused plainly instead of closing the app.
+- **Real test:** the pre-check retries once on a transient
+  failure, so one lost probe no longer marks a server Blocked.
 
 ## What changed in v0.8
 
