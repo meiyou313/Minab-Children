@@ -19,6 +19,7 @@ object MinabFavorites {
     private const val KEY = "minab_favorites"
 
     /** UUIDs of the starred profiles (never null). */
+    @JvmStatic
     fun getAll(context: Context): Set<String> {
         return try {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -28,12 +29,14 @@ object MinabFavorites {
         }
     }
 
+    @JvmStatic
     fun isFavorite(context: Context, uuid: String?): Boolean {
         if (uuid == null) return false
         return getAll(context).contains(uuid)
     }
 
     /** Toggles the star; returns the new state (true = now a favorite). */
+    @JvmStatic
     fun toggle(context: Context, uuid: String): Boolean {
         val current = getAll(context).toMutableSet()
         val nowFavorite = if (current.contains(uuid)) {
@@ -54,6 +57,7 @@ object MinabFavorites {
     }
 
     /** Replace the whole set (used by backup restore). */
+    @JvmStatic
     fun setAll(context: Context, uuids: Set<String>) {
         try {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
