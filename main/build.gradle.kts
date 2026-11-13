@@ -41,6 +41,19 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
+        // Minab Beta v0.7 (beta numbering; first non-beta will be 1.0.0).
+        // v0.7: new pink-backpack app icon (+ monochrome notification
+        // icon), Home polish — unclipped buttons, no hint sentence,
+        // two-line test explanation, Uncategorized tab last, fixed
+        // ping/real badge columns, green connected-row highlight,
+        // small connected name + tappable ping pill, reliable
+        // ping/real auto-sort (one persisted sort mode), ~30%
+        // smaller PowerOrb, "Data used" bar charts on Graph (daily /
+        // weekly / monthly, real measured traffic), speed option at
+        // the top of Settings, and the app is now "Minab Open Vpn".
+        // Also fixed: stale "Real: 0 ms" badges — pre-v0.6 profiles
+        // deserialised the new long fields as 0, which the badge
+        // code read as a real measurement.
         // Minab Beta v0.6 (beta numbering; first non-beta will be 1.0.0).
         // v0.6: Real test — connect each server in turn and fetch
         // web.telegram.org through the tunnel (ping phase first when
@@ -67,8 +80,8 @@ android {
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 7
-        versionName = "0.6-beta"
+        versionCode = 8
+        versionName = "0.7-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
