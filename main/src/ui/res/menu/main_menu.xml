@@ -6,18 +6,18 @@
 
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
-    <!-- Minab Beta v0.5 — the three top-bar actions, constant on
-         every tab (they live in the activity menu, not in a
-         fragment menu): add one config, bulk import, settings. -->
-    <item
-        android:id="@+id/minab_top_add"
-        android:icon="@drawable/ic_menu_add"
-        app:showAsAction="always"
-        android:title="@string/menu_add_profile"
-        android:titleCondensed="@string/add"/>
+    <!-- Minab Beta v0.5 — the top-bar actions, constant on every
+         tab (they live in the activity menu, not in a fragment
+         menu): bulk import and settings.
+         Minab Beta v0.9 — the "+" (minab_top_add) is GONE: it
+         opened the upstream "create an EMPTY profile by hand"
+         dialog, not an import, and it closed the app. The
+         bulk-import button now carries the "+" icon itself
+         (ic_menu_add), because that is what the user expects
+         "add a config" to look like. -->
     <item
         android:id="@+id/minab_top_bulk_import"
-        android:icon="@drawable/ic_minab_import"
+        android:icon="@drawable/ic_menu_add"
         app:showAsAction="always"
         android:title="@string/minab_bulk_import"
         android:titleCondensed="@string/minab_bulk_import_short"/>
