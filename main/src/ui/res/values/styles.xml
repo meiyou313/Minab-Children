@@ -20,6 +20,16 @@
             @android:color/transparent
         </item>
 
+        <!-- Minab Beta v0.8 — Settings text is smaller and more
+             minimal: the stock preference title is 16sp and the
+             summary 14sp. The preference layouts take them from
+             textAppearanceListItem / textAppearanceListItemSecondary,
+             so shrinking those two appearances shrinks every
+             preference row (and the plain list items that share
+             them). -->
+        <item name="android:textAppearanceListItem">@style/Minab.TextAppearance.ListItem</item>
+        <item name="android:textAppearanceListItemSecondary">@style/Minab.TextAppearance.ListItemSecondary</item>
+
         <!-- Optional: set to transparent if your app is drawing behind the status bar. -->
         <item name="android:statusBarColor">
             @android:color/transparent
@@ -80,6 +90,16 @@
     <!-- Small pill badge that shows a profile's last ping ("24 ms",
          "Timeout", "Failed") next to its name in the list. v0.5:
          smaller, to match the minimal rows. -->
+    <!-- Minab Beta v0.8 — smaller Settings text (see
+         blinkt.baseTheme above): preference titles 14sp,
+         summaries 12sp. -->
+    <style name="Minab.TextAppearance.ListItem" parent="TextAppearance.AppCompat.Subhead">
+        <item name="android:textSize">14sp</item>
+    </style>
+    <style name="Minab.TextAppearance.ListItemSecondary" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textSize">12sp</item>
+    </style>
+
     <style name="Minab.PingBadge">
         <item name="android:fontFamily">@font/vazirmatn</item>
         <item name="android:textSize">10sp</item>
