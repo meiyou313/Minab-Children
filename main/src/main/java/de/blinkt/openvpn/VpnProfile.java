@@ -443,6 +443,21 @@ public class VpnProfile implements Serializable, Cloneable {
             mLastPingResult = "";
         if (mLastRealResult == null)
             mLastRealResult = "";
+        // Minab v0.7: Java serialization does NOT run the field
+        // initialisers above, so profiles saved before v0.6 (real
+        // test) or before v0.2 (ping) deserialise the long fields
+        // as 0 instead of -1 — and the badge code then showed
+        // "Real: 0 ms" / "0 ms" as if it were a real measurement.
+        // 0 ms is impossible for a remote server, so repair it:
+        // a 0 means "never tested".
+        if (mLastPingMs == 0) {
+            mLastPingMs = -1;
+            mLastPingResult = "";
+        }
+        if (mLastRealMs == 0) {
+            mLastRealMs = -1;
+            mLastRealResult = "";
+        }
 
         mProfileVersion = CURRENT_PROFILE_VERSION;
         if (changesLog == null) {
