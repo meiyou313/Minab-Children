@@ -118,6 +118,15 @@
         tools:text="Real: 850 ms"
         tools:visibility="visible" />
 
+    <ImageView
+        android:id="@+id/minab_favorite_star"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="4dp"
+        android:contentDescription="@string/minab_favorite_desc"
+        android:src="@drawable/minab_star_off" />
+
     <View
         android:layout_width="1dip"
         android:layout_height="match_parent"

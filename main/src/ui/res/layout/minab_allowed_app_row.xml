@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Minab Beta v0.9 — one row of the per-app VPN picker: app icon,
+  ~ name, checkbox. Tapping the row toggles the checkbox.
+  -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp">
+
+    <ImageView
+        android:id="@+id/minab_allowed_app_icon"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="12dp" />
+
+    <TextView
+        android:id="@+id/minab_allowed_app_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="@font/vazirmatn"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:textColor="@color/minab_text_primary"
+        android:textSize="14sp" />
+
+    <CheckBox
+        android:id="@+id/minab_allowed_app_check"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:focusable="false" />
+
+</LinearLayout>

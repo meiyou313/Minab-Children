@@ -16,6 +16,7 @@
   ~ the new ones.
   -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/minab_bulk_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/minab_home_gradient"
@@ -26,7 +27,8 @@
         android:layout_height="wrap_content"
         android:background="@drawable/minab_card_bg"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="20dp"
+        android:paddingBottom="32dp">
 
         <TextView
             android:layout_width="match_parent"
@@ -55,6 +57,50 @@
             android:drawableStart="@drawable/ic_baseline_archive_24"
             android:drawableTint="@color/minab_teal"
             android:text="@string/minab_pick_zip" />
+
+        <!-- Minab Beta v0.9 — import from a link: paste a URL to a
+             .ovpn file or a .zip of .ovpn files, download it and
+             import it like files picked by hand. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:fontFamily="@font/vazirmatn"
+            android:text="@string/minab_import_from_link"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textColor="@color/minab_text_primary"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/minab_bulk_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/minab_input_bg"
+            android:fontFamily="@font/vazirmatn"
+            android:hint="@string/minab_import_url_hint"
+            android:inputType="textUri"
+            android:padding="12dp"
+            android:singleLine="true"
+            android:textColor="@color/minab_text_primary" />
+
+        <Button
+            android:id="@+id/minab_bulk_fetch_url"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/minab_fetch_url" />
+
+        <!-- Minab Beta v0.9 — restore a full Minab backup (configs
+             + groups + credentials + favorites + settings). -->
+        <Button
+            android:id="@+id/minab_bulk_restore"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/minab_restore_backup" />
 
         <TextView
             android:layout_width="match_parent"

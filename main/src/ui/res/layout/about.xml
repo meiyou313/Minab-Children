@@ -17,6 +17,20 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
+        <!-- Minab Beta v0.9 — check for updates, at the TOP of the
+             About screen (like Namaki). Tapping it checks GitHub
+             now (no 24 h cache) and the result shows in
+             minab_update_status below. -->
+        <Button
+            android:id="@+id/minab_about_check_update"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:minHeight="40dp"
+            android:text="@string/minab_check_update"
+            android:textSize="13sp" />
+
         <TextView
                 android:id="@+id/version"
                 android:layout_width="match_parent"
@@ -30,13 +44,16 @@
              when a newer version exists). -->
         <!-- Minab Beta v0.8 — autoLink="web" so the GitHub links
              in minab_about_text are tappable. -->
+        <!-- Minab Beta v0.9 — the text is set in code
+             (AboutFragment) so the version can appear at the top
+             AND the bottom of it; the string carries %1$s twice. -->
         <TextView
+                android:id="@+id/minab_about_text_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:autoLink="web"
                 android:fontFamily="@font/vazirmatn"
-                android:text="@string/minab_about_text"
                 android:textColor="@color/minab_text_secondary"
                 android:textSize="13sp" />
 

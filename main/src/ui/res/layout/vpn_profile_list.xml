@@ -214,6 +214,23 @@
                 tools:text="94 ms" />
         </LinearLayout>
 
+        <!-- Minab Beta v0.9 — the connected server's public IP and
+             country, checked through the tunnel after connecting.
+             Hidden while disconnected; "—" when the check fails. -->
+        <TextView
+            android:id="@+id/minab_ip_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/vazirmatn"
+            android:gravity="center"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textColor="@color/minab_text_secondary"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
         <!-- Minab Children: visible action buttons (v0.2). In v0.1 these
              were text-only items in the overflow menu, so users could
              not find them. The overflow items are kept as well.
@@ -286,6 +303,25 @@
                 android:textSize="11sp" />
         </LinearLayout>
 
+        <!-- Minab Beta v0.9 — connect to the best server: the fastest
+             server that passed the real test, or the fastest ping when
+             no real test has run yet. Full width, under the three
+             action buttons, so the row does not get crowded. -->
+        <Button
+            android:id="@+id/minab_btn_best_server"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:layout_marginTop="8dp"
+            android:drawableStart="@drawable/ic_minab_ping_small"
+            android:drawablePadding="4dp"
+            android:drawableTint="@color/minab_teal"
+            android:ellipsize="end"
+            android:minHeight="36dp"
+            android:singleLine="true"
+            android:text="@string/minab_best_server"
+            android:textSize="11sp" />
+
         <!-- Minab Beta v0.6 — what the two tests mean, so the user
              knows the ping test is fast but the real test is the
              accurate one. v0.8: Ping test / Real test test only the
@@ -324,6 +360,25 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal" />
         </HorizontalScrollView>
+
+        <!-- Minab Beta v0.9 — search servers by name or country.
+             Filters the list below as you type; favorites still
+             stay at the top. -->
+        <EditText
+            android:id="@+id/minab_search"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/minab_input_bg"
+            android:fontFamily="@font/vazirmatn"
+            android:hint="@string/minab_search_hint"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:padding="10dp"
+            android:singleLine="true"
+            android:textColor="@color/minab_text_primary"
+            android:textColorHint="@color/minab_text_secondary"
+            android:textSize="12sp" />
 
         <!-- Minab Children: ping progress (v0.2). Visible while a ping
              test runs: bar + "Pinging N profiles… X done" + Cancel.

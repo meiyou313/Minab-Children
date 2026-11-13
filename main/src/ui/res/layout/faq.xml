@@ -12,4 +12,5 @@
         android:horizontalSpacing="@dimen/stdpadding"
         android:paddingLeft="@dimen/stdpadding"
         android:paddingRight="@dimen/stdpadding"
+        android:paddingTop="8dp"
         android:verticalSpacing="@dimen/stdpadding" />

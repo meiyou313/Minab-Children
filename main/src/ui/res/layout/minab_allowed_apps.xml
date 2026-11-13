@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Minab Beta v0.9 — per-app VPN (split tunneling): which apps use
+  ~ the VPN. Two modes on top (only these / all except these), then
+  ~ the launchable apps with checkboxes, then Save.
+  -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/minab_home_gradient"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/minab_allowed_apps_only"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/vazirmatn"
+            android:text="@string/minab_per_app_only"
+            android:textColor="@color/minab_text_primary"
+            android:textSize="14sp" />
+
+        <RadioButton
+            android:id="@+id/minab_allowed_apps_except"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/vazirmatn"
+            android:text="@string/minab_per_app_except"
+            android:textColor="@color/minab_text_primary"
+            android:textSize="14sp" />
+    </RadioGroup>
+
+    <ProgressBar
+        android:id="@+id/minab_allowed_apps_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="24dp" />
+
+    <TextView
+        android:id="@+id/minab_allowed_apps_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_per_app_loading"
+        android:textColor="@color/minab_text_secondary"
+        android:textSize="12sp" />
+
+    <ListView
+        android:id="@+id/minab_allowed_apps_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_weight="1"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/minab_allowed_apps_save"
+        style="@style/Minab.PrimaryButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:enabled="false"
+        android:text="@string/minab_per_app_save" />
+
+</LinearLayout>

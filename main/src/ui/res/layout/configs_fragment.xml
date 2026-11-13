@@ -9,11 +9,25 @@
   ~ explanation of what they do; the rows are minimal (checkbox,
   ~ flag, small name) like Home; ticking boxes reveals Delete
   ~ selected / Share as zip; the group bar fades at the right edge.
+  ~
+  ~ Minab Beta v0.9 — the server list is part of this page's single
+  ~ scroll now, like Home (one NestedScrollView; the ListView is
+  ~ sized to its content in code, ConfigsFragment.expandListView),
+  ~ so the list no longer sits in a separate small window with its
+  ~ own scroll. The selection buttons use short one-word labels
+  ~ ("Delete", "Copy", "Move", "Share") and wrap_content height, so
+  ~ they can never wrap to a clipped second line (v0.8 screenshot:
+  ~ "Delete selected" wrapped and its second line was cut off).
   -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/minab_home_gradient"
+    android:fillViewport="true">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingLeft="16dp"
     android:paddingRight="16dp"
@@ -227,7 +241,10 @@
     <!-- Minab Beta v0.5 — selection actions: shown only while one
          or more configs are ticked. Minab Beta v0.8: Copy and Move
          sit next to Delete, to copy or move the ticked configs to
-         another group. -->
+         another group. Minab Beta v0.9: one-word labels and
+         wrap_content height (see the header comment) — the old
+         "Delete selected" label wrapped to two lines in a 36dp
+         button and its second line was clipped. -->
     <LinearLayout
         android:id="@+id/minab_configs_selection_row"
         android:layout_width="match_parent"
@@ -240,57 +257,64 @@
             android:id="@+id/minab_configs_delete_selected"
             style="@style/Minab.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:minHeight="36dp"
-            android:text="@string/minab_delete_selected"
+            android:minHeight="40dp"
+            android:singleLine="true"
+            android:text="@string/minab_delete_short"
             android:textColor="@color/minab_busy"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/minab_configs_copy_selected"
             style="@style/Minab.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:minHeight="36dp"
+            android:minHeight="40dp"
+            android:singleLine="true"
             android:text="@string/minab_copy_selected"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/minab_configs_move_selected"
             style="@style/Minab.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="6dp"
             android:layout_weight="1"
-            android:minHeight="36dp"
+            android:minHeight="40dp"
+            android:singleLine="true"
             android:text="@string/minab_move_selected"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/minab_configs_share_selected"
             style="@style/Minab.PrimaryButton"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:minHeight="36dp"
+            android:minHeight="40dp"
+            android:singleLine="true"
             android:text="@string/minab_share_zip"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
+    <!-- Minab Beta v0.9 — the list is part of this page's single
+         scroll (see the header comment): no inner scroll, its
+         height is set to its content in code. -->
     <ListView
         android:id="@android:id/list"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginTop="10dp"
-        android:layout_weight="1"
         android:background="@drawable/minab_card_bg"
         android:divider="@color/minab_divider"
-        android:dividerHeight="1dp" />
+        android:dividerHeight="1dp"
+        android:nestedScrollingEnabled="false" />
 
     <TextView
         android:id="@android:id/empty"
@@ -304,3 +328,4 @@
         android:textSize="14sp" />
 
 </LinearLayout>
+</androidx.core.widget.NestedScrollView>
