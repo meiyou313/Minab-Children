@@ -56,6 +56,24 @@
                 android:summary="@string/encrypt_profiles_summary"
                 android:title="@string/encrypt_profiles" />
 
+        <!-- Minab Beta v0.9: auto-failover — switch to the next
+             healthy server when the connected one drops (up to 3
+             tries). Default on. -->
+        <CheckBoxPreference app:iconSpaceReserved="false"
+                android:defaultValue="true"
+                android:key="minab_failover"
+                android:singleLineTitle="false"
+                android:summary="@string/minab_failover_summary"
+                android:title="@string/minab_failover" />
+
+        <!-- Minab Beta v0.9: per-app VPN (split tunneling) picker. -->
+        <Preference app:iconSpaceReserved="false"
+                android:key="minab_per_app_vpn"
+                android:persistent="false"
+                android:singleLineTitle="false"
+                android:summary="@string/minab_per_app_vpn_summary"
+                android:title="@string/minab_per_app_vpn" />
+
         <!-- Minab Beta v0.4: manual update check (Home and About
              check automatically, cached for 24 h). -->
         <Preference app:iconSpaceReserved="false"

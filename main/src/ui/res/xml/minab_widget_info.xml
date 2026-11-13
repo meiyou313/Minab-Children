@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Minab Beta v0.9 — home-screen widget info. No polling
+  ~ (updatePeriodMillis=0): the app refreshes the widget on every
+  ~ connection-state change (see MinabWidgetProvider).
+  -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="48dp"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/minab_widget"
+    android:previewLayout="@layout/minab_widget"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen" />
