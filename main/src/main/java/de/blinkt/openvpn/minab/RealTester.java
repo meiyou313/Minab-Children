@@ -56,6 +56,12 @@ import de.blinkt.openvpn.core.OpenVPNService;
 import de.blinkt.openvpn.core.ProfileManager;
 import de.blinkt.openvpn.core.VpnStatus;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -239,6 +245,24 @@ public class RealTester implements VpnStatus.StateListener {
                 if (stopped() || myRunId != runId) break;
                 realCurrentName = profile.mName;
                 postRealProgress();
+                // Minab v0.8: fast pre-check — a dead server is
+                // skipped in ~2 s instead of burning the whole
+                // connect cap. A skip records the same "Blocked"
+                // result as a failed full test, so the list stays
+                // truthful; nothing was connected, so there is
+                // nothing to disconnect.
+                if (!probeServer(profile)) {
+                    if (myRunId == runId && !cancelled.get()) {
+                        profile.mLastRealMs = -1;
+                        profile.mLastRealTime = System.currentTimeMillis();
+                        profile.mLastRealResult = appContext.getString(R.string.minab_real_blocked);
+                        ProfileManager.saveProfile(appContext, profile);
+                        realDoneCount++;
+                        postRealProgress();
+                        postToMain(() -> listener.onProfileResult(profile));
+                    }
+                    continue;
+                }
                 // Connect on the UI thread (startActivity needs it).
                 postToMain(() -> {
                     if (!cancelled.get()) listener.onConnectRequested(profile);
@@ -408,6 +432,111 @@ public class RealTester implements VpnStatus.StateListener {
             }
         }
         return !VpnStatus.isVPNActive();
+    }
+
+    // --- Minab v0.8: fast pre-check before each full tunnel connect. ---
+    //
+    // A dead server used to burn the whole connect cap (12 s on Home,
+    // 20 s on Configs) before being marked Blocked. The probe below
+    // answers in ~2 s whether the server is even reachable:
+    //   - TCP profiles: a direct TCP connect to the profile's remote
+    //     host:port (2 s timeout). Refused / timeout / DNS failure
+    //     means the server is gone — skip it as failed-fast.
+    //   - UDP profiles: one OpenVPN P_CONTROL_HARD_RESET_CLIENT_V2
+    //     packet (first byte 0x38, then 8 random session-id bytes,
+    //     then 4-byte packet id 0) to the remote host:port, waiting
+    //     up to 2 s for ANY UDP reply. A live OpenVPN server answers
+    //     a client reset with its own reset; silence means the
+    //     server (or the path to it) is dead — skip it as failed-fast.
+    //
+    // The probe never replaces the real test: it only weeds out the
+    // obviously dead servers, and the full tunnel connect + Telegram
+    // fetch still run for every server that answers. Socket outcomes
+    // (connect failure, timeout, no reply, DNS failure) skip the
+    // server; any unexpected error inside the probe itself falls
+    // through to the normal full test, so a probe bug can never
+    // disable the real test.
+
+    /** How long the pre-check waits for an answer (per server). */
+    private static final int PROBE_TIMEOUT_MS = 2000;
+
+    /**
+     * True when the server answered the probe (go on with the full
+     * tunnel test), false when it clearly did not (skip as
+     * failed-fast). An unexpected error inside the probe itself
+     * returns true, so a probe bug can never disable the real test.
+     */
+    private boolean probeServer(VpnProfile profile) {
+        String host;
+        int port;
+        boolean udp;
+        try {
+            host = profile.mServerName;
+            port = Integer.parseInt(profile.mServerPort);
+            udp = profile.mUseUdp;
+        } catch (Exception e) {
+            // Unparsable profile data: the probe cannot run, so do
+            // the full test instead of guessing.
+            return true;
+        }
+        if (host == null || host.isEmpty() || port <= 0 || port > 65535) return true;
+        try {
+            return udp ? probeUdp(host, port) : probeTcp(host, port);
+        } catch (IOException e) {
+            // Socket setup failed (e.g. no network at all when the
+            // socket was created): let the full test decide.
+            return true;
+        } catch (RuntimeException e) {
+            // A bug in the probe itself: never let it disable the
+            // real test.
+            return true;
+        }
+    }
+
+    /** Direct TCP connect to host:port. IOException (refused /
+        timeout / DNS failure) means the server is unreachable. */
+    private boolean probeTcp(String host, int port) throws IOException {
+        Socket socket = new Socket();
+        try {
+            try {
+                socket.connect(new InetSocketAddress(host, port), PROBE_TIMEOUT_MS);
+            } catch (IOException e) {
+                return false;
+            }
+            return true;
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    /** One OpenVPN client-reset packet to host:port; true when ANY
+        UDP reply arrives within the timeout. IOException from the
+        resolve / send / receive (including the receive timeout and
+        DNS failure) means no answer. */
+    private boolean probeUdp(String host, int port) throws IOException {
+        DatagramSocket socket = new DatagramSocket();
+        try {
+            socket.setSoTimeout(PROBE_TIMEOUT_MS);
+            byte[] payload = new byte[13];
+            payload[0] = 0x38; // P_CONTROL_HARD_RESET_CLIENT_V2, key id 0
+            java.util.Random random = new java.util.Random();
+            for (int i = 0; i < 8; i++) payload[1 + i] = (byte) random.nextInt(256);
+            // Bytes 9-12 stay 0: packet id 0.
+            try {
+                InetAddress address = InetAddress.getByName(host);
+                socket.send(new DatagramPacket(payload, payload.length, address, port));
+                byte[] buf = new byte[512];
+                socket.receive(new DatagramPacket(buf, buf.length));
+            } catch (IOException e) {
+                return false;
+            }
+            return true;
+        } finally {
+            socket.close();
+        }
     }
 
     /** Drop the current VPN without any confirmation dialog (the
