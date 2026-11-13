@@ -3,10 +3,10 @@
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   -->
 <resources>
-    <!-- Minab Beta v0.7: the app is now called "Minab Open Vpn".
+    <!-- Minab Beta v0.8: the app is now called "Minab OpenVPN".
          This one string is the launcher label, the toolbar title
          and the Home header title (all take it from here). -->
-    <string name="app">Minab Open Vpn</string>
+    <string name="app">Minab OpenVPN</string>
     <string name="address">Server Address:</string>
     <string name="port">Server Port:</string>
     <string name="location">Location</string>
@@ -535,9 +535,9 @@
     <string name="minab_rename_category">Rename category</string>
     <string name="minab_delete_category">Delete category</string>
     <string name="minab_assign_category">Assign category</string>
-    <string name="minab_ping_all">Test ping: all profiles</string>
-    <string name="minab_ping_category">Test ping: this category</string>
-    <string name="minab_ping_one">Test ping</string>
+    <string name="minab_ping_all">Ping test: all profiles</string>
+    <string name="minab_ping_category">Ping test: this category</string>
+    <string name="minab_ping_one">Ping test</string>
     <string name="minab_ping_running">Pinging %1$d profiles… %2$d done</string>
     <string name="minab_ping_done">Ping test finished. Fastest first.</string>
     <string name="minab_ping_cancelled">Ping test cancelled.</string>
@@ -559,17 +559,18 @@
          longer wait per server (20 s vs 12 s on Home). -->
     <string name="minab_tests_explained">Ping test: fast but weak\nReal test: slow but accurate</string>
     <string name="minab_configs_test_title">Test servers</string>
-    <string name="minab_configs_test_explained">Test ping is fast: it only checks whether the server answers. Real test actually connects each server and opens Telegram Web through it — slower, but it proves the server really bypasses filtering.</string>
+    <string name="minab_configs_test_explained">Ping test is fast: it only checks whether the server answers. Real test actually connects each server and opens Telegram Web through it — slower, but it proves the server really bypasses filtering.</string>
     <string name="minab_real_already_running">A real test is already running.</string>
     <!-- Minab Beta v0.2: short labels for the visible main-screen buttons -->
     <string name="minab_bulk_import_short">Bulk import</string>
     <!-- Minab Beta v0.7: the Home button is short — "Import" fits
-         next to "Test ping" and "Real test" on narrow screens. -->
+         next to "Ping test" and "Real test" on narrow screens. -->
     <string name="minab_import_short">Import</string>
     <!-- Minab Beta v0.7: the ping of the connected server, shown
          next to its name; tapping it re-tests that server now. -->
     <string name="minab_connected_ping_desc">Tap to re-test the ping of the connected server</string>
-    <string name="minab_test_ping">Test ping</string>
+    <!-- Minab Beta v0.8: "Test ping" is now "Ping test" everywhere. -->
+    <string name="minab_test_ping">Ping test</string>
     <string name="minab_cancel_short">Cancel</string>
     <!-- Minab Beta v0.3: Namaki-style home (PowerOrb) + bug fixes -->
     <string name="minab_tap_to_connect">Tap to connect</string>
@@ -603,9 +604,14 @@
     <string name="minab_check_update_summary">Check GitHub for a newer Minab release</string>
     <string name="minab_show_speed_notification">Show speed in notification</string>
     <string name="minab_show_speed_notification_summary">After connecting, show download / upload speed in the VPN notification</string>
-    <string name="minab_about_text">Minab Open Vpn is an Android OpenVPN client. Import many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test the ping of all configs — or one group — at once. Tap a config to connect; the big round button connects the last-used one.</string>
+    <!-- Minab Beta v0.8: About is about this project first —
+         GitHub profile and repo links at the top, the thanks to the
+         projects it is built on at the very end. The links are
+         plain text; about.xml sets autoLink="web" so they are
+         tappable. -->
+    <string name="minab_about_text">Minab OpenVPN is an Android OpenVPN client by meiyou313.\n\nGitHub: https://github.com/meiyou313\nSource code: https://github.com/meiyou313/Minab-Children-OpenVPN\n\nImport many .ovpn configs at once with one shared username and password, group them by country (automatically, or by hand), and test them — a fast ping test, or a real test that actually connects each server and opens Telegram Web through it, so you know it really bypasses filtering. The Graph tab shows your real measured data usage, daily, weekly and monthly. Tap a config to connect; the big round button connects the last-used one.\n\nThanks: Minab is built on ics-openvpn — OpenVPN for Android by Arne Schwabe (GPLv2) — and the OpenVPN core. Without their work, this project would never have reached here.</string>
     <string name="minab_configs_title">Configs</string>
-    <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping, share or delete. Tick the boxes to select configs, then delete or share them as a zip.</string>
+    <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping, share or delete. Tick the boxes to select configs, then delete, share, copy or move them.</string>
     <string name="minab_credentials_for_group">Set for this group</string>
     <string name="minab_credentials_for_all">Set for all configs</string>
     <!-- Minab Beta v0.7: "Data used" on the Graph tab — real measured
@@ -633,7 +639,7 @@
          selection (delete/share), FAQ moved to Settings. -->
     <string name="minab_memorial">In memory of the 168 innocent children of Minab Elementary School, who took flight to heaven far too soon.</string>
     <string name="minab_all_tab">all</string>
-    <string name="minab_faq_settings_summary">Questions about bulk import, groups, ping and updates</string>
+    <string name="minab_faq_settings_summary">Questions about import, groups, ping, real test, data used and updates</string>
     <string name="minab_credentials_title">VPN username &amp; password</string>
     <string name="minab_credentials_explained">The login your configs use to connect. Set one username and password for this group, or for all configs — the same login is also used for configs you import later.</string>
     <string name="minab_delete_selected">Delete selected</string>
@@ -648,12 +654,26 @@
     <string name="minab_share_config">Share config</string>
     <string name="minab_flag_description">Country flag</string>
     <string name="minab_faq_bulk_title">How do I import many configs at once?</string>
-    <string name="minab_faq_bulk">On the Home tab tap “Bulk import”, pick many .ovpn or .conf files at once (or one .zip with them inside), and enter one username and password to apply to all of them. Tap “Apply to all profiles” and the credentials are also written onto configs you already imported.</string>
+    <string name="minab_faq_bulk">On the Home tab tap “Import”, pick many .ovpn or .conf files at once (or one .zip with them inside), and enter one username and password to apply to all of them. Tap “Apply to all profiles” and the credentials are also written onto configs you already imported.</string>
     <string name="minab_faq_groups_title">How are configs grouped by country?</string>
-    <string name="minab_faq_groups">Minab guesses the country from the config name or server address when importing (for example “de-01…” → Germany) and puts the config in that group. You can also create your own groups and move configs between them: long-press a config, or use the Configs tab. The small ping icon next to a group name tests the ping of just that group.</string>
-    <string name="minab_faq_ping_title">What does the bulk ping test do?</string>
-    <string name="minab_faq_ping">“Test ping” on Home tests every config shown (or one group, via its ping icon) and shows a coloured badge next to each one — green under 100 ms, amber under 300 ms, grey above that. When it finishes, the list is sorted fastest first. The numbers go through the VPN tunnel while a VPN is connected, so test with the VPN off for direct latency.</string>
+    <string name="minab_faq_groups">Minab guesses the country from the config name or server address when importing (for example “de-01…” → Germany) and puts the config in that group. You can also create your own groups and move configs between them: long-press a config, use the Configs tab (tick configs, then Copy or Move), or the category field in the profile editor.</string>
+    <string name="minab_faq_ping_title">What does the ping test do?</string>
+    <string name="minab_faq_ping">“Ping test” on Home tests the configs shown — only the selected group, or everything when “all” is selected — and shows a coloured badge next to each one: green under 100 ms, amber under 300 ms, grey above that. When it finishes, the list is sorted fastest first. The numbers go through the VPN tunnel while a VPN is connected, so test with the VPN off for direct latency.</string>
+    <string name="minab_faq_real_title">What does the real test do?</string>
+    <string name="minab_faq_real">Real test connects each server in turn and opens Telegram Web (web.telegram.org) through the tunnel. A server passes only when the page actually loads, so it proves the server really bypasses filtering — a ping cannot prove that. It tests the fastest servers first (from the ping test) and stops as soon as 3 servers have passed. On Home it waits up to 12 seconds per server, on the Configs tab up to 20 seconds. Only one VPN tunnel can be active on Android, so servers are tested one after another, never in parallel.</string>
+    <string name="minab_faq_data_title">Where do I see how much data I used?</string>
+    <string name="minab_faq_data">On the Graph tab, the “Data used” card shows your real measured download + upload as bar charts: Daily (last 7 days), Weekly (last 8 weeks) and Monthly (last 6 months). Usage is only recorded from v0.7 onward, so the charts start empty and fill up as you use the VPN.</string>
+    <string name="minab_faq_copymove_title">How do I copy or move configs to another group?</string>
+    <string name="minab_faq_copymove">On the Configs tab, tick the boxes next to the configs you want, then tap Copy or Move next to Delete and pick the target group. Move changes the group of the selected configs; Copy leaves the originals where they are and puts a duplicate in the target group.</string>
+    <string name="minab_faq_security_title">Are my configs and passwords safe?</string>
+    <string name="minab_faq_security">Your .ovpn configs and passwords are stored only inside this app, in the app’s own private files. They are never uploaded anywhere. Delete the copies of your .ovpn files from shared storage after importing, because any app can read files there. If your phone is rooted, other apps with root access could still read the app’s files.</string>
     <string name="minab_faq_update_title">How do I get a new version?</string>
     <string name="minab_faq_update">Minab checks GitHub for a newer release when it starts and shows a small banner on Home when one is available. You can also check by hand in Settings (“Check for updates”) or on the About tab. Versions from v0.4 onward install over the previous version; v0.4 itself needs a one-time uninstall of the older beta first, because the signing key changed.</string>
+    <!-- Minab Beta v0.8: copy / move selected configs to a group. -->
+    <string name="minab_copy_selected">Copy</string>
+    <string name="minab_move_selected">Move</string>
+    <string name="minab_copy_move_title">Copy or move to group</string>
+    <string name="minab_copied">Copied %1$d config(s) to “%2$s”.</string>
+    <string name="minab_moved">Moved %1$d config(s) to “%2$s”.</string>
 
 </resources>
