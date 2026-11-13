@@ -85,28 +85,35 @@
          result was only small secondary text under the name; now each
          tested profile shows a coloured pill ("24 ms", "Timeout",
          "Failed") here. Set in VPNProfileList.VPNArrayAdapter.getView. -->
+    <!-- Minab Beta v0.7: both badges have the same FIXED width
+         (86dp) with centred text, so they form two neat vertical
+         columns — ping in one, real in the other — whatever the
+         server name length. Text is single-line with ellipsis,
+         so a very long value can never push the row around. -->
     <TextView
         android:id="@+id/minab_ping_badge"
         style="@style/Minab.PingBadge"
-        android:layout_width="wrap_content"
+        android:layout_width="86dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="6dp"
         android:background="@drawable/minab_ping_badge_fast"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:singleLine="true"
         android:visibility="gone"
         tools:text="24 ms"
         tools:visibility="visible" />
 
-    <!-- Minab Beta v0.6: real-test badge next to the ping badge
-         ("Real: 850 ms" when the server really bypasses filtering,
-         "Blocked" when it does not). Set in
-         VPNProfileList.VPNArrayAdapter.getView. -->
     <TextView
         android:id="@+id/minab_real_badge"
         style="@style/Minab.PingBadge"
-        android:layout_width="wrap_content"
+        android:layout_width="86dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="6dp"
         android:background="@drawable/minab_ping_badge_fast"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:singleLine="true"
         android:visibility="gone"
         tools:text="Real: 850 ms"
         tools:visibility="visible" />
