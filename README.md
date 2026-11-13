@@ -1,18 +1,19 @@
-# Minab — Minab Beta v0.7
+# Minab — Minab Beta v0.8
 
 Android-only OpenVPN client, based on **ics-openvpn** (OpenVPN for
 Android by Arne Schwabe, GPLv2). This repository is **public on
 purpose**: the base is GPLv2 and its author requires anyone building on
 it to publish their source (see the upstream note below).
 
-- App name: **Minab Open Vpn**
+- App name: **Minab OpenVPN**
 - Package (applicationId): `com.minab.children`
   (the internal Java package stays `de.blinkt.openvpn` — `VpnProfile`
   is Java-serialised and its class name must not change, or profiles
   saved by older versions would stop loading)
-- Repo: `https://github.com/meiyou313/Minab-Children` (public)
-- Version: **Minab debug Beta v0.7** — `versionName = "0.7-beta"`, `versionCode = 8`, tag `v0.7`
-  (v0.6: tag `v0.6`, `versionName = "0.6-beta"`, `versionCode = 7`;
+- Repo: `https://github.com/meiyou313/Minab-Children-OpenVPN` (public)
+- Version: **Minab debug Beta v0.8** — `versionName = "0.8-beta"`, `versionCode = 9`, tag `v0.8`
+  (v0.7: tag `v0.7`, `versionName = "0.7-beta"`, `versionCode = 8`;
+  v0.6: tag `v0.6`, `versionName = "0.6-beta"`, `versionCode = 7`;
   v0.5.1: tag `v0.5.1`, `versionName = "0.5.1-beta"`, `versionCode = 6`;
   v0.5: tag `v0.5`, `versionName = "0.5-beta"`, `versionCode = 5`;
   v0.4: tag `v0.4`, `versionName = "0.4-beta"`, `versionCode = 4`;
@@ -25,6 +26,37 @@ it to publish their source (see the upstream note below).
   code, no Namaki signing key, no shared repo. (v0.3 only takes its
   *look* — indigo seed, Vazirmatn font, PowerOrb home, grouped server
   card — rebuilt natively in Android XML/Java.)
+
+## What changed in v0.8
+
+- **Name:** the visible app name is now **Minab OpenVPN**, and the
+  app icon sits next to the name on Home. The GitHub repo is now
+  **Minab Children OpenVPN**
+  (`github.com/meiyou313/Minab-Children-OpenVPN`).
+- **About:** rewritten around this project — the GitHub profile and
+  repo links come first; the thanks to ics-openvpn and OpenVPN are
+  at the end.
+- **Settings:** smaller, more minimal text, and the empty icon space
+  on the left is gone.
+- **FAQ:** rewritten — only questions about this app (bulk import,
+  groups, ping test, real test, data used, copy/move, updates).
+- **Configs tab:** the "Uncategorized" tab moved to the end, just
+  before "+"; ticking configs now shows **Copy** and **Move** next
+  to Delete, to copy or move the selected servers to another group.
+- **Home:** the small ping icon next to each group name is gone.
+  "Ping test" / "Real test" test only the selected group (or
+  everything when "all" is selected). "Test ping" is renamed
+  **"Ping test"** everywhere.
+- **Graph tab:** the Daily / Weekly / Monthly chips are fixed — no
+  more half-cut text.
+- **Tab swiping:** needs a longer drag now, so accidental tab
+  switches are rarer.
+- **Real test, faster:** a dead server is skipped after a ~2 s
+  reachability pre-check (TCP connect for TCP profiles, one
+  OpenVPN reset packet for UDP profiles) instead of burning the
+  full 12 s / 20 s connect wait. The real test itself is unchanged
+  (it still connects each server in turn — Android allows only one
+  VPN tunnel at a time).
 
 ## What changed in v0.4
 
@@ -167,10 +199,10 @@ connect / disconnect flow:
   anycast IP whose country is not the country in its name.
 
 ### 3. Bulk ping — test all profiles, or one category, at once
-- Main screen, **"Test ping"** button at the top (since v0.2; tests
+- Main screen, **"Ping test"** button at the top (since v0.2; tests
   the profiles currently shown — all, or the selected category), or
-  menu: **Test ping: all profiles** / **Test ping: this category**,
-  or long-press one profile → **Test ping**.
+  menu: **Ping test: all profiles** / **Ping test: this category**,
+  or long-press one profile → **Ping test**.
 - 8 threads in parallel. Per host: first ICMP via
   `/system/bin/ping -c 1 -W 2`, falling back to TCP-connect timing
   to the profile's remote host:port (3 s timeout) when ICMP gives no

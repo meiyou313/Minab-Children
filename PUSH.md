@@ -37,7 +37,7 @@ Web UI:
 Or with `gh` (logged in as meiyou313):
 
 ```sh
-gh repo create meiyou313/Minab-Children --public \
+gh repo create meiyou313/Minab-Children-OpenVPN --public \
   --description "Minab Children — Android OpenVPN client with bulk import, categories and bulk ping (based on ics-openvpn, GPLv2)"
 ```
 
@@ -60,7 +60,7 @@ Pushing the branch already runs `.github/workflows/build-android.yml`
 ("Minab Android (Beta v0.4)"): checkout with submodules, JDK 17
 Temurin, Android SDK, `./gradlew assembleUiOvpn23Debug`.
 
-Watch it at: https://github.com/meiyou313/Minab-Children/actions
+Watch it at: https://github.com/meiyou313/Minab-Children-OpenVPN/actions
 
 - Green → download the APK from the run's artifacts
   (`minab-beta-v0.4-debug-apk`).
@@ -88,7 +88,7 @@ git push minab v0.4
 
 The same workflow then publishes the GitHub Release
 **"Minab Beta v0.4"** (marked pre-release) with the debug APK
-attached: https://github.com/meiyou313/Minab-Children/releases/tag/v0.4
+attached: https://github.com/meiyou313/Minab-Children-OpenVPN/releases/tag/v0.4
 
 ## 5. What to verify on the phone (before calling it done)
 
