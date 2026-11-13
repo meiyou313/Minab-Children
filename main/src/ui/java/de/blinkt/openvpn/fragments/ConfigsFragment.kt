@@ -222,10 +222,13 @@ class ConfigsFragment : ListFragment() {
                     // shows them without opening Home.
                     val subtitle = StringBuilder()
                     subtitle.append("[").append(profile.getCategory()).append("]")
-                    if (profile.mLastPingResult.isNotEmpty()) {
+                    // Minab v0.7: skip a stale "0 ms" result (see
+                    // VpnProfile migration guard) — 0 is not a
+                    // measurement, it is a never-tested profile.
+                    if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0) {
                         subtitle.append(" · ").append(profile.mLastPingResult)
                     }
-                    if (profile.mLastRealResult.isNotEmpty()) {
+                    if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0) {
                         subtitle.append(" · ").append(profile.mLastRealResult)
                     }
                     if (profile.isUserPWAuth()) {

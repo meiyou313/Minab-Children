@@ -84,8 +84,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     // --- Minab Children state ---
     /** Null = show all categories; otherwise only this category is listed. */
     private var selectedCategory: String? = null
-    /** When true the list is sorted by last ping, fastest first. */
-    private var sortByPing: Boolean = false
+    /** Minab v0.7: ONE sort mode (NONE / PING / REAL) instead of
+        two booleans, persisted in "MinabPrefs" so it survives the
+        fragment being recreated (e.g. switching tabs) and process
+        death. The last completed test wins; every repopulate
+        respects the current mode. Why the v0.6 sort "did not
+        stick": the flags were in-memory only (lost on fragment
+        recreation), tapping a group tab or the filter dialog reset
+        them, and a test finishing while Home was not visible never
+        applied its sort at all. */
+    private var sortMode: Int = SORT_NONE
     @Volatile
     private var pingTester: PingTester? = null
     private var pingDoneCount: Int = 0
@@ -94,8 +102,6 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     // The runner itself lives in minab.RealTester (shared with
     // Configs); this fragment only owns the UI state and the
     // connect action (startVPN). See startRealTest below.
-    /** When true the list is sorted by last real test, working first. */
-    private var sortByReal: Boolean = false
     /** True from the tap on "Real test" until the run ends/cancels. */
     @Volatile
     private var realTestActive: Boolean = false
@@ -131,6 +137,11 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     // --- Minab v0.3: Namaki-style PowerOrb (home connect button) ---
     private var orbButton: android.widget.ImageButton? = null
     private var orbStatusView: TextView? = null
+    // --- Minab v0.7: the connected server's ping pill next to the
+    // status line (tap = re-test that server's ping now) ---
+    private var connectedPingView: TextView? = null
+    @Volatile
+    private var connectedPingTesting: Boolean = false
     // --- Minab v0.4: update notice banner ---
     private var updateBanner: TextView? = null
 
@@ -181,6 +192,15 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        // Minab v0.7: restore the persisted sort mode BEFORE the
+        // first populate, so the list comes back sorted the way
+        // the last test left it.
+        try {
+            sortMode = requireContext().getSharedPreferences("MinabPrefs", Context.MODE_PRIVATE)
+                .getInt(PREF_SORT_MODE, SORT_NONE)
+        } catch (e: Exception) {
+            sortMode = SORT_NONE
+        }
         setListAdapter()
 
         registerPermissionReceiver()
@@ -395,6 +415,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         orbButton = v.findViewById<View?>(R.id.minab_power_orb) as android.widget.ImageButton?
         orbStatusView = v.findViewById<View?>(R.id.minab_home_status) as TextView?
         orbButton?.setOnClickListener { toggleOrbConnection() }
+        // Minab v0.7: the connected server's ping pill — tap it to
+        // re-test that server's ping now.
+        connectedPingView = v.findViewById<View?>(R.id.minab_connected_ping) as TextView?
+        connectedPingView?.setOnClickListener { retestConnectedPing() }
         updateOrbState()
         rebuildCategoryChips()
         registerForContextMenu(v.findViewById(android.R.id.list))
@@ -494,11 +518,12 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val filtered = allvpn?.filter { profile ->
             selectedCategory == null || profile?.getCategory() == selectedCategory
         } ?: emptyList()
-        val sortedset: TreeSet<VpnProfile?>?
-        if (sortByPing) sortedset = TreeSet<VpnProfile?>(VpnProfilePingComparator())
-        else if (sortByReal) sortedset = TreeSet<VpnProfile?>(VpnProfileRealComparator())
-        else if (sortByLRU) sortedset = TreeSet<VpnProfile?>(VpnProfileLRUComparator())
-        else sortedset = TreeSet<VpnProfile?>(VpnProfileNameComparator())
+        val sortedset: TreeSet<VpnProfile?>? = when (sortMode) {
+            SORT_PING -> TreeSet<VpnProfile?>(VpnProfilePingComparator())
+            SORT_REAL -> TreeSet<VpnProfile?>(VpnProfileRealComparator())
+            else -> if (sortByLRU) TreeSet<VpnProfile?>(VpnProfileLRUComparator())
+                else TreeSet<VpnProfile?>(VpnProfileNameComparator())
+        }
 
         sortedset.addAll(filtered)
         mArrayadapter!!.clear()
@@ -515,6 +540,36 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         // created"), which crashed the app on every launch. Fragment
         // .view returns null instead of throwing, so post on that.
         view?.post { expandListView() }
+    }
+
+    /** Set the Home sort mode and persist it (see the sortMode
+        field). The last completed test wins. */
+    private fun setSortMode(mode: Int) {
+        sortMode = mode
+        try {
+            requireContext().getSharedPreferences("MinabPrefs", Context.MODE_PRIVATE)
+                .edit().putInt(PREF_SORT_MODE, mode).apply()
+        } catch (e: Exception) {
+            // Prefs unavailable: the in-memory mode still applies
+            // for this session.
+        }
+    }
+
+    /** Re-sort the rows already in the adapter, live, while a test
+        runs — without rebuilding chips or re-measuring the list.
+        No-op unless the current sort mode is PING or REAL. */
+    private fun resortAdapter() {
+        val adapter = mArrayadapter ?: return
+        val sorted = when (sortMode) {
+            SORT_PING -> (0 until adapter.count).mapNotNull { adapter.getItem(it) }
+                .sortedWith(VpnProfilePingComparator())
+            SORT_REAL -> (0 until adapter.count).mapNotNull { adapter.getItem(it) }
+                .sortedWith(VpnProfileRealComparator())
+            else -> return
+        }
+        adapter.clear()
+        adapter.addAll(sorted)
+        adapter.notifyDataSetChanged()
     }
 
     /** Minab v0.5 — size the (non-scrolling) ListView to the total
@@ -574,7 +629,11 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         container.removeAllViews()
         val context = requireContext()
         addGroupTab(container, null, pM.getProfiles().toList())
+        // Minab v0.7: "Uncategorized" goes LAST (just before "+"),
+        // after the country groups and Manage — it is the catch-all,
+        // not a country.
         for (category in CategoryStore.getCategories(context)) {
+            if (category == CategoryStore.DEFAULT_CATEGORY) continue
             val inGroup = pM.getProfiles().toList().filter { it.getCategory() == category }
             addGroupTab(container, category, inGroup)
         }
@@ -592,6 +651,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         manage.layoutParams = manageParams
         manage.setOnClickListener { showManageCategoriesDialog() }
         container.addView(manage)
+        val uncProfiles = pM.getProfiles().toList()
+            .filter { it.getCategory() == CategoryStore.DEFAULT_CATEGORY }
+        addGroupTab(container, CategoryStore.DEFAULT_CATEGORY, uncProfiles)
         val add = TextView(context)
         add.text = "+ " + getString(R.string.minab_new_group)
         add.textSize = 11f
@@ -648,9 +710,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         )
         label.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
         label.setOnClickListener {
+            // Minab v0.7: filtering must NOT reset the sort mode —
+            // switching groups used to silently drop the ping/real
+            // sort, which is why the sort "did not stick".
             selectedCategory = category
-            sortByPing = false
-            sortByReal = false
             populateVpnList()
         }
         tab.addView(label)
@@ -680,8 +743,6 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             .setTitle(R.string.minab_filter_category)
             .setItems(labels) { _, which ->
                 selectedCategory = categories[which]
-                sortByPing = false
-                sortByReal = false
                 populateVpnList()
             }
             .setNeutralButton(R.string.minab_manage_categories) { _, _ ->
@@ -811,7 +872,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     /** Disc colour + state line under the orb, like Namaki's home:
         green disc + "Connected — <name>" while connected, indigo
         disc + "Tap to connect" otherwise. Safe to call before the
-        view exists (onResume / state updates). */
+        view exists (onResume / state updates). v0.7: the connected
+        line is small and minimal (12sp, one line) and the connected
+        server's ping sits next to it as a tappable pill. */
     private fun updateOrbState() {
         val button = orbButton ?: return
         val status = orbStatusView ?: return
@@ -822,17 +885,79 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             else R.drawable.minab_orb_disc)
         if (active) {
             val uuid = VpnStatus.getLastConnectedVPNProfile()
-            val name = uuid?.let { ProfileManager.get(requireContext(), it)?.mName }
+            val profile = uuid?.let { ProfileManager.get(requireContext(), it) }
+            val name = profile?.mName
             status.text = if (name.isNullOrEmpty()) {
                 getString(R.string.minab_status_connected)
             } else {
                 getString(R.string.minab_status_connected) + " — " + name
             }
+            status.textSize = 12f
             status.setTextColor(resources.getColor(R.color.minab_connected, requireContext().theme))
+            val pill = connectedPingView
+            if (profile != null && pill != null) {
+                pill.visibility = View.VISIBLE
+                if (!connectedPingTesting) pill.text = connectedPingLabel(profile)
+            } else {
+                pill?.visibility = View.GONE
+            }
         } else {
             status.text = getString(R.string.minab_tap_to_connect)
+            status.textSize = 18f
             status.setTextColor(resources.getColor(R.color.minab_text_primary, requireContext().theme))
+            connectedPingView?.visibility = View.GONE
         }
+    }
+
+    /** The pill text for the connected server: its last ping
+        ("94 ms" / "Timeout"), or "—" when never tested (tap the
+        pill to test now). */
+    private fun connectedPingLabel(profile: VpnProfile): String {
+        if (profile.mLastPingResult.isNotEmpty()) return profile.mLastPingResult
+        if (profile.mLastPingMs > 0) return profile.mLastPingMs.toString() + " ms"
+        return "—"
+    }
+
+    /** Minab v0.7: re-test the ping of the currently connected
+        server only (like Namaki: tap the ping to re-check it).
+        Runs on a worker thread; updates the pill and the row
+        badge when the result arrives. */
+    private fun retestConnectedPing() {
+        if (connectedPingTesting) return
+        if (!VpnStatus.isVPNActive()) return
+        val uuid = VpnStatus.getLastConnectedVPNProfile() ?: return
+        val profile = try {
+            ProfileManager.get(requireContext(), uuid)
+        } catch (e: Exception) {
+            null
+        } ?: return
+        val pill = connectedPingView ?: return
+        connectedPingTesting = true
+        pill.text = "…"
+        Thread {
+            val result = try {
+                PingTester.testOne(profile)
+            } catch (e: Exception) {
+                null
+            }
+            activity?.runOnUiThread {
+                connectedPingTesting = false
+                if (!isAdded) return@runOnUiThread
+                if (result != null) {
+                    profile.mLastPingMs =
+                        if (result.status == PingTester.Status.OK) result.ms else -1
+                    profile.mLastPingTime = result.timestampMs
+                    profile.mLastPingResult = result.displayText()
+                    try {
+                        ProfileManager.saveProfile(requireContext(), profile)
+                    } catch (e: Exception) {
+                        // Saving must not hide the result on screen.
+                    }
+                }
+                updateOrbState()
+                mArrayadapter?.notifyDataSetChanged()
+            }
+        }.start()
     }
 
     // --- Minab Children: bulk ping ---
@@ -850,8 +975,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         }
         cancelPingTest()
         cancelRealTest()
-        sortByPing = false
-        sortByReal = false
+        // Minab v0.7: do NOT reset the sort here — the list keeps
+        // its previous order during the test; the finish sets the
+        // new mode (last completed test wins).
         if (VpnStatus.isVPNActive()) {
             Toast.makeText(requireContext(), R.string.minab_ping_while_vpn, Toast.LENGTH_LONG).show()
         }
@@ -862,7 +988,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 Toast.makeText(requireContext(), R.string.minab_ping_cancelled, Toast.LENGTH_SHORT).show()
                 pingProgressRow?.visibility = View.GONE
             } else {
-                sortByPing = true
+                setSortMode(SORT_PING)
                 populateVpnList()
                 Toast.makeText(requireContext(), R.string.minab_ping_done, Toast.LENGTH_SHORT).show()
                 // Keep the progress row visible as a "done" line:
@@ -915,7 +1041,11 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         ProfileManager.saveProfile(requireContext(), result.profile)
         pingDoneCount++
         updatePingStatus()
-        mArrayadapter?.notifyDataSetChanged()
+        // Minab v0.7: re-sort live as results arrive (when the
+        // list is ping-sorted), so the fastest server floats to
+        // the top during the test, not only at the end.
+        if (sortMode == SORT_PING) resortAdapter()
+        else mArrayadapter?.notifyDataSetChanged()
     }
 
     private fun updatePingStatus() {
@@ -957,8 +1087,8 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         }
         cancelPingTest()
         cancelRealTest()
-        sortByPing = false
-        sortByReal = false
+        // Minab v0.7: do NOT reset the sort here — the finish sets
+        // the new mode (last completed test wins).
         realTestRunId++
         val runId = realTestRunId
         val tester = RealTester(
@@ -991,7 +1121,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
 
                 override fun onProfileResult(profile: VpnProfile) {
                     if (!isAdded || runId != realTestRunId) return
-                    mArrayadapter?.notifyDataSetChanged()
+                    // Minab v0.7: re-sort live as results arrive
+                    // (when the list is real-sorted).
+                    if (sortMode == SORT_REAL) resortAdapter()
+                    else mArrayadapter?.notifyDataSetChanged()
                 }
 
                 override fun onFinished(cancelled: Boolean, working: Int) {
@@ -1002,8 +1135,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                         pingProgressRow?.visibility = View.GONE
                         return
                     }
-                    sortByPing = false
-                    sortByReal = true
+                    setSortMode(SORT_REAL)
                     populateVpnList()
                     Toast.makeText(requireContext(), R.string.minab_real_done, Toast.LENGTH_SHORT).show()
                     pingProgressRow?.visibility = View.VISIBLE
@@ -1152,6 +1284,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             Toast.makeText(getActivity(), R.string.sorted_lru, Toast.LENGTH_SHORT).show()
         }
         prefsedit.apply()
+        // Minab v0.7: an explicit sort change from the menu clears
+        // the test sort mode, so the LRU / name sort actually shows.
+        setSortMode(SORT_NONE)
         populateVpnList()
         return true
     }
@@ -1336,16 +1471,18 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             if (lhs == null) return -1
             if (rhs == null) return 1
             // Working servers first, fastest real delay first.
-            val lReal = lhs.mLastRealMs >= 0
-            val rReal = rhs.mLastRealMs >= 0
+            // Minab v0.7: 0 ms is not a measurement (see
+            // VpnProfile migration guard), so "> 0" here.
+            val lReal = lhs.mLastRealMs > 0
+            val rReal = rhs.mLastRealMs > 0
             if (lReal != rReal) return if (lReal) -1 else 1
             if (lReal) {
                 if (lhs.mLastRealMs != rhs.mLastRealMs) return lhs.mLastRealMs.compareTo(rhs.mLastRealMs)
                 return (lhs.mName ?: "").compareTo(rhs.mName ?: "")
             }
             // The rest by ping: tested first by ms, then the rest by name.
-            val l = if (lhs.mLastPingMs >= 0) lhs.mLastPingMs else Long.MAX_VALUE
-            val r = if (rhs.mLastPingMs >= 0) rhs.mLastPingMs else Long.MAX_VALUE
+            val l = if (lhs.mLastPingMs > 0) lhs.mLastPingMs else Long.MAX_VALUE
+            val r = if (rhs.mLastPingMs > 0) rhs.mLastPingMs else Long.MAX_VALUE
             if (l != r) return l.compareTo(r)
             return (lhs.mName ?: "").compareTo(rhs.mName ?: "")
         }
@@ -1357,8 +1494,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             if (lhs == null) return -1
             if (rhs == null) return 1
             // Tested profiles first, fastest first; untested / failed last.
-            val l = if (lhs.mLastPingMs >= 0) lhs.mLastPingMs else Long.MAX_VALUE
-            val r = if (rhs.mLastPingMs >= 0) rhs.mLastPingMs else Long.MAX_VALUE
+            // Minab v0.7: 0 ms is not a measurement (see
+            // VpnProfile migration guard), so "> 0" here.
+            val l = if (lhs.mLastPingMs > 0) lhs.mLastPingMs else Long.MAX_VALUE
+            val r = if (rhs.mLastPingMs > 0) rhs.mLastPingMs else Long.MAX_VALUE
             if (l != r) return l.compareTo(r)
             return (lhs.mName ?: "").compareTo(rhs.mName ?: "")
         }
@@ -1404,6 +1543,25 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             val v = super.getView(position, convertView, parent)
 
             val profile = getListAdapter()!!.getItem(position) as VpnProfile
+
+            // Minab v0.7: highlight the connected server's row in
+            // green, so it is obvious at a glance. Both branches
+            // must set the colours (rows are recycled). Updates
+            // live: updateState() calls notifyDataSetChanged() on
+            // every connection-state change.
+            val connected = VpnStatus.isVPNActive() &&
+                profile.getUUIDString() == VpnStatus.getLastConnectedVPNProfile()
+            if (connected) {
+                v.setBackgroundColor(
+                    resources.getColor(R.color.minab_connected_bg, requireContext().theme))
+            } else {
+                v.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            }
+            val titleText = v.findViewById<TextView>(R.id.vpn_item_title)
+            titleText.setTextColor(
+                resources.getColor(
+                    if (connected) R.color.minab_connected else R.color.minab_text_primary,
+                    requireContext().theme))
 
             val titleview = v.findViewById<View>(R.id.vpn_list_item_left)
             titleview.setOnClickListener(View.OnClickListener { v1: View? -> startOrStopVPN(profile) })
@@ -1452,7 +1610,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 flagView.visibility = View.GONE
             }
             val badge = v.findViewById<TextView>(R.id.minab_ping_badge)
-            if (profile.mLastPingMs >= 0) {
+            // Minab v0.7: "> 0" (not ">= 0") — a 0 ms value is not
+            // a measurement (see VpnProfile migration guard), and
+            // the else-branch ignores a stale "0 ms" result text.
+            if (profile.mLastPingMs > 0) {
                 badge.visibility = View.VISIBLE
                 badge.text = profile.mLastPingResult.ifEmpty { profile.mLastPingMs.toString() + " ms" }
                 badge.setBackgroundResource(
@@ -1462,7 +1623,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                         else -> R.drawable.minab_ping_badge_fail
                     }
                 )
-            } else if (profile.mLastPingResult.isNotEmpty()) {
+            } else if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0) {
                 badge.visibility = View.VISIBLE
                 badge.text = profile.mLastPingResult
                 badge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
@@ -1475,7 +1636,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             // profile ("Real: 850 ms" when the server really bypasses
             // filtering, "Blocked" when it does not).
             val realBadge = v.findViewById<TextView>(R.id.minab_real_badge)
-            if (profile.mLastRealMs >= 0) {
+            // Minab v0.7: "> 0" (not ">= 0") — a 0 ms value is not
+            // a measurement (see VpnProfile migration guard), and
+            // the else-branch ignores a stale "Real: 0 ms" text.
+            if (profile.mLastRealMs > 0) {
                 realBadge.visibility = View.VISIBLE
                 realBadge.text = profile.mLastRealResult.ifEmpty { getString(R.string.minab_real_ms, profile.mLastRealMs) }
                 realBadge.setBackgroundResource(
@@ -1485,7 +1649,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                         else -> R.drawable.minab_ping_badge_fail
                     }
                 )
-            } else if (profile.mLastRealResult.isNotEmpty()) {
+            } else if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0) {
                 realBadge.visibility = View.VISIBLE
                 realBadge.text = profile.mLastRealResult
                 realBadge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
@@ -1542,5 +1706,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         // a run is slower because the VPN service starts cold),
         // while 12 s still fails dead servers much faster than 20 s.
         private const val HOME_REAL_CONNECT_TIMEOUT_MS = 12_000L
+        // Minab v0.7: the Home list sort mode (see sortMode above).
+        private const val SORT_NONE = 0
+        private const val SORT_PING = 1
+        private const val SORT_REAL = 2
+        private const val PREF_SORT_MODE = "minab_sort_mode"
     }
 }

@@ -8,13 +8,19 @@ package de.blinkt.openvpn.fragments;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -40,6 +46,7 @@ import de.blinkt.openvpn.R;
 import de.blinkt.openvpn.core.OpenVPNManagement;
 import de.blinkt.openvpn.core.TrafficHistory;
 import de.blinkt.openvpn.core.VpnStatus;
+import de.blinkt.openvpn.minab.DataUsageStore;
 
 import static android.content.Context.MODE_PRIVATE;
 import static de.blinkt.openvpn.core.OpenVPNService.humanReadableByteCount;
@@ -63,6 +70,22 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
     private TextView mSpeedStatus;
     private boolean mLogScale;
 
+    // --- Minab v0.7: "Data used" bar charts (daily / weekly /
+    // monthly) above the live charts. The bars are plain Views
+    // built in renderDataUsed(); the numbers come from
+    // DataUsageStore, which records the real byte-count deltas. ---
+    private static final String PREF_DATA_MODE = "minabDataMode";
+    private static final int DATA_DAILY = 0;
+    private static final int DATA_WEEKLY = 1;
+    private static final int DATA_MONTHLY = 2;
+    private int mDataMode = DATA_DAILY;
+    private LinearLayout mDataBars;
+    private TextView mDataTotal;
+    private TextView mDataEmpty;
+    private Button mDataDaily;
+    private Button mDataWeekly;
+    private Button mDataMonthly;
+
     private static final int TIME_PERIOD_SECDONS = 0;
     private static final int TIME_PERIOD_MINUTES = 1;
     private static final int TIME_PERIOD_HOURS = 2;
@@ -83,6 +106,22 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
         charts.add(TIME_PERIOD_SECDONS);
         charts.add(TIME_PERIOD_MINUTES);
         charts.add(TIME_PERIOD_HOURS);
+
+        // Minab v0.7: the "Data used" card is a ListView header
+        // (added before the adapter, as ListView requires) — the
+        // live line charts below it are unchanged.
+        View dataHeader = inflater.inflate(R.layout.graph_data_used, mListView, false);
+        mDataBars = dataHeader.findViewById(R.id.minab_data_bars);
+        mDataTotal = dataHeader.findViewById(R.id.minab_data_total);
+        mDataEmpty = dataHeader.findViewById(R.id.minab_data_empty);
+        mDataDaily = dataHeader.findViewById(R.id.minab_data_daily);
+        mDataWeekly = dataHeader.findViewById(R.id.minab_data_weekly);
+        mDataMonthly = dataHeader.findViewById(R.id.minab_data_monthly);
+        mDataMode = getActivity().getPreferences(MODE_PRIVATE).getInt(PREF_DATA_MODE, DATA_DAILY);
+        mDataDaily.setOnClickListener(v1 -> setDataMode(DATA_DAILY));
+        mDataWeekly.setOnClickListener(v1 -> setDataMode(DATA_WEEKLY));
+        mDataMonthly.setOnClickListener(v1 -> setDataMode(DATA_MONTHLY));
+        mListView.addHeaderView(dataHeader);
 
         mChartAdapter = new ChartDataAdapter(getActivity(), charts);
         mListView.setAdapter(mChartAdapter);
@@ -109,9 +148,118 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
 
         mHandler = new Handler();
 
+        renderDataUsed();
+
         return v;
 
 
+    }
+
+    /** Minab v0.7: switch the "Data used" view and remember it. */
+    private void setDataMode(int mode) {
+        mDataMode = mode;
+        getActivity().getPreferences(MODE_PRIVATE).edit().putInt(PREF_DATA_MODE, mode).apply();
+        renderDataUsed();
+    }
+
+    /** Minab v0.7: (re)build the "Data used" bar chart from the
+        real measured usage. Each bar is a plain View whose height
+        is proportional to the largest bar, labelled with its exact
+        value (MB/GB); empty days get a 2dp baseline. No library. */
+    private void renderDataUsed() {
+        if (!isAdded() || mDataBars == null) return;
+        Context ctx = getActivity();
+        List<DataUsageStore.Bucket> buckets;
+        switch (mDataMode) {
+            case DATA_WEEKLY:
+                buckets = DataUsageStore.getWeekly(ctx);
+                break;
+            case DATA_MONTHLY:
+                buckets = DataUsageStore.getMonthly(ctx);
+                break;
+            default:
+                buckets = DataUsageStore.getDaily(ctx);
+                break;
+        }
+        long max = 0;
+        long total = 0;
+        for (DataUsageStore.Bucket b : buckets) {
+            max = Math.max(max, b.bytes);
+            total += b.bytes;
+        }
+        mDataBars.removeAllViews();
+        float density = getResources().getDisplayMetrics().density;
+        int maxBarPx = (int) (88 * density);
+        int minBarPx = (int) (2 * density);
+        int barWidthPx = (int) (20 * density);
+        for (DataUsageStore.Bucket b : buckets) {
+            LinearLayout col = new LinearLayout(ctx);
+            col.setOrientation(LinearLayout.VERTICAL);
+            col.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            col.setLayoutParams(new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+
+            TextView value = new TextView(ctx);
+            value.setText(b.bytes > 0 ? DataUsageStore.formatBytes(b.bytes) : "");
+            value.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            value.setTypeface(null, Typeface.BOLD);
+            value.setGravity(Gravity.CENTER);
+            value.setMaxLines(1);
+            value.setEllipsize(TextUtils.TruncateAt.END);
+            value.setTextColor(mTextColour);
+            col.addView(value, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+
+            View bar = new View(ctx);
+            int height = b.bytes <= 0 ? minBarPx
+                    : (int) (minBarPx + (b.bytes / (double) max) * maxBarPx);
+            if (b.bytes > 0) {
+                bar.setBackgroundResource(R.drawable.minab_data_bar);
+            } else {
+                bar.setBackgroundColor(getResources().getColor(R.color.minab_divider));
+            }
+            LinearLayout.LayoutParams barParams =
+                    new LinearLayout.LayoutParams(barWidthPx, height);
+            barParams.gravity = Gravity.CENTER_HORIZONTAL;
+            barParams.topMargin = minBarPx;
+            col.addView(bar, barParams);
+
+            TextView label = new TextView(ctx);
+            label.setText(b.label);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
+            label.setGravity(Gravity.CENTER);
+            label.setMaxLines(1);
+            label.setEllipsize(TextUtils.TruncateAt.END);
+            label.setTextColor(getResources().getColor(R.color.minab_text_secondary));
+            col.addView(label, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+
+            mDataBars.addView(col);
+        }
+        mDataEmpty.setVisibility(total == 0 ? View.VISIBLE : View.GONE);
+        mDataTotal.setVisibility(total == 0 ? View.GONE : View.VISIBLE);
+        if (total > 0) {
+            mDataTotal.setText(getString(
+                    R.string.minab_data_total, DataUsageStore.formatBytes(total)));
+        }
+        updateDataChips();
+    }
+
+    /** Minab v0.7: highlight the active Daily / Weekly / Monthly chip. */
+    private void updateDataChips() {
+        Button[] chips = {mDataDaily, mDataWeekly, mDataMonthly};
+        for (int i = 0; i < chips.length; i++) {
+            if (chips[i] == null) continue;
+            boolean active = (i == mDataMode);
+            chips[i].setBackgroundResource(active
+                    ? R.drawable.minab_btn_primary
+                    : R.drawable.minab_btn_outline);
+            chips[i].setTextColor(getResources().getColor(active
+                    ? android.R.color.white
+                    : R.color.minab_teal));
+        }
     }
 
     private Runnable triggerRefresh = new Runnable() {
@@ -128,6 +276,7 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
 
         VpnStatus.addByteCountListener(this);
         mHandler.postDelayed(triggerRefresh, OpenVPNManagement.mBytecountInterval * 1500);
+        renderDataUsed();
     }
 
     @Override
@@ -159,6 +308,9 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
                 mHandler.removeCallbacks(triggerRefresh);
                 mSpeedStatus.setText(netstat);
                 mChartAdapter.notifyDataSetChanged();
+                // Minab v0.7: the "Data used" bars grow live while
+                // connected (cheap rebuild, at most 8 columns).
+                renderDataUsed();
                 mHandler.postDelayed(triggerRefresh, OpenVPNManagement.mBytecountInterval * 1500);
             }
         });
