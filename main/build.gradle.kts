@@ -41,6 +41,25 @@ android {
         minSdk = 23
         targetSdk = 37
         //targetSdkPreview = "UpsideDownCake"
+        // Minab Beta v0.9 (beta numbering; first non-beta will be 1.0.0).
+        // v0.9: shorter About (80–90% trimmed, version top + bottom,
+        // "Check for updates" button at the top), update notice on
+        // Home AND as a system notification (once per version),
+        // Configs list inline in the same window (no separate small
+        // window; Delete/Share buttons no longer half-cut), bulk
+        // import header rewritten + full header visible, FAQ top
+        // fixed + smaller Vazirmatn text + 8 new Q&As, exact photo
+        // launcher icon (pink backpack, background removed), best-
+        // server connect, auto-failover (max 3, no test on switch),
+        // IP + country after connecting (no speed test), search +
+        // favorites, home widget, per-app VPN, import from a link,
+        // full backup (groups + credentials + favorites + settings).
+        // Ping fix: TCP ping now requires a real OpenVPN reply (a
+        // middlebox answering the handshake no longer reads as
+        // 1–3 ms), ICMP replies are checked against the target and
+        // impossible sub-5 ms values to public servers are dropped.
+        // Top-bar "+" removed (it opened the empty-profile dialog,
+        // which closed the app); the bulk-import button is "+" now.
         // Minab Beta v0.7 (beta numbering; first non-beta will be 1.0.0).
         // v0.7: new pink-backpack app icon (+ monochrome notification
         // icon), Home polish — unclipped buttons, no hint sentence,
@@ -80,8 +99,8 @@ android {
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 9
-        versionName = "0.8-beta"
+        versionCode = 10
+        versionName = "0.9-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
