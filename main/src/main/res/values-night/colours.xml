@@ -20,4 +20,7 @@
     <color name="minab_tab_frame">#26FFFFFF</color>
     <color name="minab_gradient_top">#141B3D</color>
     <color name="minab_gradient_bottom">#070A18</color>
+    <!-- Minab Beta v0.7: connected-row tint, stronger than day mode
+         so it still reads on the dark background. -->
+    <color name="minab_connected_bg">#260DB37C</color>
 </resources>
