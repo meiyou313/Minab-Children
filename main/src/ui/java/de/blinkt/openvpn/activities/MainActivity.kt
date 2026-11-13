@@ -17,7 +17,11 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.activities.BulkImportActivity
+import de.blinkt.openvpn.core.ConnectionStatus
 import de.blinkt.openvpn.core.GlobalPreferences
+import de.blinkt.openvpn.core.VpnStatus
+import de.blinkt.openvpn.minab.MinabFailover
+import de.blinkt.openvpn.minab.MinabWidgetProvider
 import de.blinkt.openvpn.fragments.*
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
 import de.blinkt.openvpn.minab.MinabPagerSensitivity
@@ -76,6 +80,13 @@ class MainActivity : BaseActivity() {
         }.attach()
 
         setUpEdgeEdgeInsetsListener(view, R.id.root_linear_layout)
+        // Minab Beta v0.9 — the FAQ overlay is a sibling of the tab
+        // content, so it needs the same top inset: without it the
+        // overlay starts under the status bar / action bar and the
+        // first question card's title is clipped (v0.8 screenshot).
+        // setupBottom=false: the FAQ's own RecyclerView handles its
+        // bottom padding (Utils.applyInsetListener).
+        setUpEdgeEdgeInsetsListener(view, R.id.minab_faq_container, setupBottom = false)
         setContentView(view)
 
         // Minab Beta v0.5 — the FAQ overlay (see main_activity.xml):
@@ -126,6 +137,12 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Minab Beta v0.9 — failover + widget refresh. The listener
+        // only lives while the app is in the foreground (starting a
+        // VPN from the background is blocked by Android), so
+        // failover only runs while the app is open.
+        VpnStatus.addStateListener(minabStateListener)
+        MinabWidgetProvider.updateAllWidgets(this)
         val intent = intent
         if (intent != null) {
             val action = intent.action
@@ -141,6 +158,29 @@ class MainActivity : BaseActivity() {
             }
             setIntent(null)
         }
+    }
+
+    override fun onPause() {
+        VpnStatus.removeStateListener(minabStateListener)
+        super.onPause()
+    }
+
+    /** Minab Beta v0.9 — connection-state listener for failover
+        (switch to the next healthy server when the connected one
+        drops) and for refreshing the home-screen widget. */
+    private val minabStateListener = object : VpnStatus.StateListener {
+        override fun updateState(
+            state: String?,
+            logmessage: String?,
+            localizedResId: Int,
+            level: ConnectionStatus?,
+            intent: Intent?
+        ) {
+            MinabFailover.onStateChanged(this@MainActivity, level)
+            MinabWidgetProvider.updateAllWidgets(this@MainActivity)
+        }
+
+        override fun setConnectedVPN(uuid: String?) {}
     }
 
     private fun checkUriForProfileImport(uri: Uri) {
@@ -177,17 +217,11 @@ class MainActivity : BaseActivity() {
             return true
         }
         // Minab Beta v0.5 — the top-bar actions are constant on
-        // every tab (they live in the activity menu). Add opens the
-        // single-config dialog on Home; bulk import opens the bulk
-        // importer; the gear jumps to the Settings tab.
-        if (item.itemId == R.id.minab_top_add) {
-            mPager.currentItem = 0
-            mPager.post {
-                val home = supportFragmentManager.findFragmentByTag("f0") as? VPNProfileList
-                home?.openAddProfile()
-            }
-            return true
-        }
+        // every tab (they live in the activity menu). Bulk import
+        // opens the bulk importer; the gear jumps to the Settings
+        // tab. (The "+" add-one-config item was removed in v0.9:
+        // it opened the upstream "create an EMPTY profile by hand"
+        // dialog, not an import, and it closed the app.)
         if (item.itemId == R.id.minab_top_bulk_import) {
             startActivity(Intent(this, BulkImportActivity::class.java))
             return true

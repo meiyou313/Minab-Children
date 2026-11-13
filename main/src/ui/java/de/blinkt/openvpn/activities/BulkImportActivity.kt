@@ -46,6 +46,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -55,6 +56,9 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.VpnProfile
@@ -63,15 +67,26 @@ import de.blinkt.openvpn.minab.AutoCategory
 import de.blinkt.openvpn.minab.BulkImportHelper
 import de.blinkt.openvpn.minab.CategoryStore
 import de.blinkt.openvpn.minab.ImportSummaryStore
+import de.blinkt.openvpn.minab.MinabBackup
 import de.blinkt.openvpn.minab.SharedCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 class BulkImportActivity : BaseActivity() {
+    companion object {
+        /** Cap for one downloaded or picked zip: MinabBackup uses the
+            same 64 MB cap, so a backup picked here is never refused
+            there for size. */
+        private const val MAX_ZIP_BYTES = 64 * 1024 * 1024
+    }
 
     private lateinit var usernameField: EditText
     private lateinit var passwordField: EditText
@@ -84,6 +99,13 @@ class BulkImportActivity : BaseActivity() {
     private lateinit var importButton: Button
     private lateinit var zipButton: Button
     private lateinit var applyButton: Button
+    // --- Minab v0.9: import from a link + restore a full backup ---
+    private lateinit var urlField: EditText
+    private lateinit var fetchButton: Button
+    private lateinit var restoreButton: Button
+    /** Set while a run restores a full backup: the restore summary
+        replaces the import summary at the end of the run. */
+    private var restoreSummary: String? = null
 
     private var selectedCategory: String = CategoryStore.DEFAULT_CATEGORY
     /** Files the user picked for the import currently running (or 0). */
@@ -96,6 +118,10 @@ class BulkImportActivity : BaseActivity() {
     private val pickZip = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> if (uri != null) onZipPicked(uri) }
+
+    private val pickRestore = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) onRestorePicked(uri) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,6 +138,25 @@ class BulkImportActivity : BaseActivity() {
         importButton = findViewById(R.id.minab_bulk_pick)
         zipButton = findViewById(R.id.minab_bulk_pick_zip)
         applyButton = findViewById(R.id.minab_bulk_apply_credentials)
+        urlField = findViewById(R.id.minab_bulk_url)
+        fetchButton = findViewById(R.id.minab_bulk_fetch_url)
+        restoreButton = findViewById(R.id.minab_bulk_restore)
+
+        // Minab Beta v0.9 — edge-to-edge: this activity never
+        // applied the system-bars insets, so its content started
+        // under the status bar / action bar and the header text was
+        // clipped (v0.8 screenshot). Push the ScrollView down by the
+        // top inset and pad its bottom by the navigation-bar inset,
+        // so the spinner at the end scrolls fully into view.
+        // (BaseActivity.setUpEdgeEdgeInsetsListener is not usable
+        // here — it assumes a statusbar_background view exists.)
+        val root = findViewById<View>(R.id.minab_bulk_root)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.updateLayoutParams<ViewGroup.MarginLayoutParams> { topMargin = bars.top }
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, bars.bottom)
+            insets
+        }
 
         // v0.3 bug fix 2: pre-fill the saved shared credentials, so
         // the user sees what is stored and can Apply again or edit.
@@ -144,6 +189,16 @@ class BulkImportActivity : BaseActivity() {
             pickZip.launch(arrayOf("application/zip", "application/x-zip-compressed", "*/*"))
         }
         applyButton.setOnClickListener { applySharedCredentials() }
+
+        // Minab Beta v0.9 — import from a link: paste a URL to a
+        // .ovpn file or a .zip of .ovpn files and fetch it.
+        fetchButton.setOnClickListener { onFetchUrlClicked() }
+
+        // Minab Beta v0.9 — restore a full Minab backup (configs +
+        // groups + credentials + favorites + settings).
+        restoreButton.setOnClickListener {
+            pickRestore.launch(arrayOf("application/zip", "*/*"))
+        }
     }
 
     override fun onDestroy() {
@@ -222,12 +277,19 @@ class BulkImportActivity : BaseActivity() {
                     stream = contentResolver.openInputStream(uri)
                     if (stream != null) {
                         if (isZipName(name)) {
-                            val zipResult = BulkImportHelper.importZip(this, stream, opts)
-                            result.imported += zipResult.imported
-                            result.skippedDuplicates += zipResult.skippedDuplicates
-                            result.failed += zipResult.failed
-                            result.failedNames.addAll(zipResult.failedNames)
-                            result.importedProfiles.addAll(zipResult.importedProfiles)
+                            // Minab Beta v0.9 — read the zip into
+                            // memory first: a full Minab backup is
+                            // detected by its metadata and restored
+                            // (groups + credentials + favorites +
+                            // settings), anything else is a plain
+                            // import as before.
+                            val bytes = readAllBytes(stream, MAX_ZIP_BYTES)
+                            if (bytes == null) {
+                                result.failed++
+                                result.failedNames.add(name ?: uri.toString())
+                            } else {
+                                importZipBytes(bytes, opts, result)
+                            }
                         } else {
                             BulkImportHelper.importOne(this, stream, name, opts, result)
                         }
@@ -260,9 +322,15 @@ class BulkImportActivity : BaseActivity() {
                     result.failed++
                     result.failedNames.add(displayName(uri) ?: uri.toString())
                 } else {
-                    val zipResult = BulkImportHelper.importZip(
-                        this, stream, opts,
-                        BulkImportHelper.ProgressListener { processed ->
+                    // Minab Beta v0.9 — read the zip into memory
+                    // first (see onFilesPicked): a full Minab backup
+                    // is restored, anything else is a plain import.
+                    val bytes = readAllBytes(stream, MAX_ZIP_BYTES)
+                    if (bytes == null) {
+                        result.failed++
+                        result.failedNames.add(displayName(uri) ?: uri.toString())
+                    } else {
+                        importZipBytes(bytes, opts, result) { processed ->
                             // Zip total is unknown: indeterminate bar
                             // plus a running count (v0.3 bug fix 1).
                             runOnUiThread {
@@ -270,12 +338,8 @@ class BulkImportActivity : BaseActivity() {
                                 statusView.text =
                                     getString(R.string.minab_importing) + " (" + processed + ")"
                             }
-                        })
-                    result.imported += zipResult.imported
-                    result.skippedDuplicates += zipResult.skippedDuplicates
-                    result.failed += zipResult.failed
-                    result.failedNames.addAll(zipResult.failedNames)
-                    result.importedProfiles.addAll(zipResult.importedProfiles)
+                        }
+                    }
                 }
             } finally {
                 try { stream?.close() } catch (ignored: Exception) { }
@@ -378,10 +442,13 @@ class BulkImportActivity : BaseActivity() {
             withContext(Dispatchers.Main) {
                 setBusy(false)
                 progressBar.visibility = View.GONE
-                val summary = getString(
+                // Minab Beta v0.9 — a full backup was restored:
+                // show the restore summary instead of the import one.
+                val summary = restoreSummary ?: getString(
                     R.string.minab_import_summary,
                     result.imported, result.skippedDuplicates, result.failed
                 )
+                restoreSummary = null
                 val extra = if (result.failedNames.isNotEmpty()) {
                     "\n" + result.failedNames.take(10).joinToString("\n")
                 } else ""
@@ -406,6 +473,155 @@ class BulkImportActivity : BaseActivity() {
         importButton.isEnabled = !busy
         zipButton.isEnabled = !busy
         applyButton.isEnabled = !busy
+        fetchButton.isEnabled = !busy
+        restoreButton.isEnabled = !busy
+    }
+
+    /**
+     * Minab Beta v0.9 — one zip, two meanings. A zip that carries a
+     * Minab backup (a minab-backup.json metadata entry) is
+     * RESTORED: profiles plus groups, credentials, favorites and
+     * settings, exactly as they were. Anything else is a plain
+     * import, as before — and restored profiles are deliberately
+     * NOT added to result.importedProfiles, so the auto-categoriser
+     * in runImport does not re-group them (their groups come from
+     * the backup's metadata).
+     */
+    private fun importZipBytes(
+        bytes: ByteArray,
+        opts: BulkImportHelper.ImportOptions,
+        result: BulkImportHelper.ImportResult,
+        onProgress: ((Int) -> Unit)? = null
+    ) {
+        if (MinabBackup.hasMetadata(bytes)) {
+            val restore = MinabBackup.restoreBackup(this, bytes)
+            result.imported += restore.imported
+            result.skippedDuplicates += restore.skippedDuplicates
+            result.failed += restore.failed
+            if (restore.error != null) result.failedNames.add(restore.error!!)
+            if (restore.wasBackup) {
+                restoreSummary = getString(R.string.minab_restore_done, restore.profilesRestored)
+            }
+            return
+        }
+        val listener = if (onProgress == null) null else
+            BulkImportHelper.ProgressListener { processed -> onProgress(processed) }
+        val zipResult = BulkImportHelper.importZip(this, ByteArrayInputStream(bytes), opts, listener)
+        result.imported += zipResult.imported
+        result.skippedDuplicates += zipResult.skippedDuplicates
+        result.failed += zipResult.failed
+        result.failedNames.addAll(zipResult.failedNames)
+        result.importedProfiles.addAll(zipResult.importedProfiles)
+    }
+
+    /** Read a stream fully, capped — null when it is too large. */
+    private fun readAllBytes(stream: InputStream, maxBytes: Int): ByteArray? {
+        val out = ByteArrayOutputStream()
+        val buf = ByteArray(8192)
+        var total = 0
+        while (true) {
+            val n = stream.read(buf)
+            if (n == -1) break
+            total += n
+            if (total > maxBytes) return null
+            out.write(buf, 0, n)
+        }
+        return out.toByteArray()
+    }
+
+    /** Minab Beta v0.9 — import from a link: download the URL, then
+        import it like a file picked by hand. A zip goes through the
+        same backup-or-plain routing as a picked zip; anything else
+        is treated as one .ovpn file (the parser rejects an HTML
+        error page as a failure, so a wrong link shows as failed
+        instead of importing garbage). */
+    private fun onFetchUrlClicked() {
+        val url = urlField.text.toString().trim()
+        if (url.isEmpty()) {
+            Toast.makeText(this, R.string.minab_link_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            Toast.makeText(this, R.string.minab_link_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        selectedCount = 0
+        runImport { result, opts ->
+            val bytes = downloadUrl(url)
+            if (bytes == null) {
+                result.failed++
+                result.failedNames.add(url)
+            } else if (isZipBytes(bytes)) {
+                importZipBytes(bytes, opts, result)
+            } else {
+                BulkImportHelper.importOne(this, ByteArrayInputStream(bytes), urlName(url), opts, result)
+            }
+            result
+        }
+    }
+
+    /** Download a URL, capped at MAX_ZIP_BYTES, following redirects.
+        Null on any failure (bad URL, HTTP error, timeout, too big). */
+    private fun downloadUrl(url: String): ByteArray? {
+        var conn: HttpURLConnection? = null
+        try {
+            conn = URL(url).openConnection() as HttpURLConnection
+            conn.connectTimeout = 15_000
+            conn.readTimeout = 15_000
+            conn.instanceFollowRedirects = true
+            conn.setRequestProperty("User-Agent", "Minab")
+            if (conn.responseCode != HttpURLConnection.HTTP_OK) return null
+            return readAllBytes(conn.inputStream, MAX_ZIP_BYTES)
+        } catch (e: Exception) {
+            return null
+        } finally {
+            try { conn?.disconnect() } catch (ignored: Exception) { }
+        }
+    }
+
+    private fun isZipBytes(bytes: ByteArray): Boolean =
+        bytes.size >= 4 &&
+            bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte() &&
+            bytes[2] == 0x03.toByte() && bytes[3] == 0x04.toByte()
+
+    /** A file name for a downloaded single config: the URL's last
+        segment, or "link.ovpn" when it has none. */
+    private fun urlName(url: String): String {
+        val last = url.substringAfterLast('/').substringBefore('?').substringBefore('#')
+        return if (last.isEmpty()) "link.ovpn" else last
+    }
+
+    /** Minab Beta v0.9 — restore a full Minab backup picked by hand.
+        A zip without backup metadata is NOT imported here: the user
+        asked for a restore, so they are told plainly that this file
+        is not a Minab backup (plain import is the two buttons
+        above). */
+    private fun onRestorePicked(uri: Uri) {
+        setBusy(true)
+        statusView.text = getString(R.string.minab_importing)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val message: String
+            try {
+                val bytes = contentResolver.openInputStream(uri)?.use { readAllBytes(it, MAX_ZIP_BYTES) }
+                when {
+                    bytes == null -> message = getString(R.string.minab_restore_failed)
+                    !MinabBackup.hasMetadata(bytes) -> message = getString(R.string.minab_restore_no_metadata)
+                    else -> {
+                        val restore = MinabBackup.restoreBackup(this@BulkImportActivity, bytes)
+                        message = if (restore.error != null) getString(R.string.minab_restore_failed)
+                            else getString(R.string.minab_restore_done, restore.profilesRestored)
+                        if (restore.imported > 0) setResult(Activity.RESULT_OK)
+                    }
+                }
+            } catch (e: Exception) {
+                message = getString(R.string.minab_restore_failed)
+            }
+            withContext(Dispatchers.Main) {
+                setBusy(false)
+                statusView.text = message
+                Toast.makeText(this@BulkImportActivity, message, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun displayName(uri: Uri): String? {
