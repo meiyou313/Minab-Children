@@ -600,7 +600,7 @@ class BulkImportActivity : BaseActivity() {
         setBusy(true)
         statusView.text = getString(R.string.minab_importing)
         lifecycleScope.launch(Dispatchers.IO) {
-            val message: String
+            var message: String
             try {
                 val bytes = contentResolver.openInputStream(uri)?.use { readAllBytes(it, MAX_ZIP_BYTES) }
                 when {
