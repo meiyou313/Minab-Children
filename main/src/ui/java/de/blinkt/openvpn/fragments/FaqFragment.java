@@ -114,55 +114,28 @@ public class FaqFragment extends Fragment {
 
     private static FAQEntry[] faqitemsVersionSpecific = {
 
-            // Minab Beta v0.4 — Minab's own questions first, so the
-            // FAQ describes this app (bulk import, groups, bulk
-            // ping, updates) instead of only generic OpenVPN topics.
+            // Minab Beta v0.8 — the FAQ is Minab only now: the
+            // generic upstream ics-openvpn entries (TAP mode,
+            // remote API, kill switch, NCP, Samsung quirks, TLS
+            // alerts, routing details, battery, shortcuts, log
+            // copying, proxy/CIDR notes) described the upstream
+            // app, not this one, so they are gone. What is left
+            // answers the questions this app's users actually ask.
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_bulk_title, R.string.minab_faq_bulk),
 
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_groups_title, R.string.minab_faq_groups),
 
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_ping_title, R.string.minab_faq_ping),
 
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_real_title, R.string.minab_faq_real),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_data_title, R.string.minab_faq_data),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_copymove_title, R.string.minab_faq_copymove),
+
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_update_title, R.string.minab_faq_update),
 
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_howto_title, R.string.faq_howto),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_title_ncp, R.string.faq_ncp ),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_killswitch_title, R.string.faq_killswitch),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_remote_api_title, R.string.faq_remote_api),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.weakmd_title, R.string.weakmd),
-            new FAQEntry(Build.VERSION_CODES.LOLLIPOP, -1, R.string.samsung_broken_title, R.string.samsung_broken),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_duplicate_notification_title, R.string.faq_duplicate_notification),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_androids_clients_title, R.string.faq_android_clients),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.battery_consumption_title, R.string.battery_consumption),
-
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.tap_mode, R.string.faq_tap_mode),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.tls_cipher_alert_title, R.string.tls_cipher_alert),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_security_title, R.string.faq_security),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.faq_shortcut, R.string.faq_howto_shortcut),
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.tap_mode, R.string.tap_faq2),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.copying_log_entries, R.string.faq_copying),
-
-            new FAQEntry(Build.VERSION_CODES.KITKAT, -1, R.string.faq_routing_title, R.string.faq_routing),
-
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.ab_only_cidr_title, R.string.ab_only_cidr),
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.ab_proxy_title, R.string.ab_proxy),
-
-            new FAQEntry(Build.VERSION_CODES.LOLLIPOP, -1, R.string.ab_not_route_to_vpn_title, R.string.ab_not_route_to_vpn),
-            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.tap_mode, R.string.tap_faq3),
-
-            // DNS weirdness in Samsung 5.0: https://plus.google.com/117315704597472009168/posts/g78bZLWmqgD
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_security_title, R.string.minab_faq_security),
     };
 
 

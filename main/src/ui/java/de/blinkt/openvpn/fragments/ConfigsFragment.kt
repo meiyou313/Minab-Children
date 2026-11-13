@@ -69,7 +69,7 @@ class ConfigsFragment : ListFragment() {
     private val selectedUuids = mutableSetOf<String>()
     private var selectionRow: View? = null
     private var shareButton: Button? = null
-    // --- Minab v0.6: the two server tests (Test ping / Real test) ---
+    // --- Minab v0.6: the two server tests (Ping test / Real test) ---
     // The Real test runner itself is minab.RealTester (shared with
     // Home); this fragment only owns the UI state and the connect
     // action (startVPN). Ping tests are independent (they do not
@@ -134,10 +134,17 @@ class ConfigsFragment : ListFragment() {
         v.findViewById<Button>(R.id.minab_configs_delete_selected)?.setOnClickListener {
             showDeleteSelectedDialog()
         }
+        // Minab v0.8: Copy / Move the ticked configs to a group.
+        v.findViewById<Button>(R.id.minab_configs_copy_selected)?.setOnClickListener {
+            showCopyMoveDialog(true)
+        }
+        v.findViewById<Button>(R.id.minab_configs_move_selected)?.setOnClickListener {
+            showCopyMoveDialog(false)
+        }
         v.findViewById<Button>(R.id.minab_configs_share_selected)?.setOnClickListener {
             shareProfiles(selectedProfiles())
         }
-        // Minab v0.6: the two server tests. Test ping is the fast
+        // Minab v0.6: the two server tests. Ping test is the fast
         // parallel check; Real test actually connects each server
         // and opens Telegram Web through it (see startRealTest).
         v.findViewById<Button>(R.id.minab_configs_test_ping)?.setOnClickListener {
@@ -322,6 +329,66 @@ class ConfigsFragment : ListFragment() {
             .show()
     }
 
+    // --- Minab v0.8: copy / move the ticked configs to a group ---
+
+    /** Pick a target group, then copy or move the ticked configs
+        there. The picker is the same list as "Assign category"
+        (all groups + "New group"). */
+    private fun showCopyMoveDialog(isCopy: Boolean) {
+        val count = selectedUuids.size
+        if (count == 0) return
+        val categories = CategoryStore.getCategories(requireContext())
+        val labels = (categories + getString(R.string.minab_new_category)).toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.minab_copy_move_title)
+            .setItems(labels) { _, which ->
+                if (which < categories.size) {
+                    copyMoveSelected(categories[which], isCopy)
+                } else {
+                    showNewCategoryDialog { name -> copyMoveSelected(name, isCopy) }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /** Copy duplicates each profile (new UUID, same name) into the
+        target group and keeps the original; Move just changes the
+        group of the selected profiles. New profiles are added the
+        same way bulk import does (addProfile + saveProfile +
+        saveProfileList). */
+    private fun copyMoveSelected(target: String, isCopy: Boolean) {
+        val context = requireContext()
+        val pm = ProfileManager.getInstance(context)
+        CategoryStore.addCategory(context, target)
+        var done = 0
+        for (profile in selectedProfiles()) {
+            if (isCopy) {
+                val copy = profile.copy(profile.mName) ?: continue
+                copy.setCategory(target)
+                pm.addProfile(copy)
+                ProfileManager.saveProfile(context, copy)
+                pm.saveProfileList(context)
+                done++
+            } else {
+                profile.setCategory(target)
+                ProfileManager.saveProfile(context, profile)
+                done++
+            }
+        }
+        val moved = done
+        clearSelection()
+        Toast.makeText(
+            context,
+            getString(
+                if (isCopy) R.string.minab_copied else R.string.minab_moved,
+                moved, target
+            ),
+            Toast.LENGTH_SHORT
+        ).show()
+        refreshList()
+    }
+
     // --- Minab v0.5: share configs as one zip ---
 
     /** Share button scope: the ticked configs, else the current
@@ -419,9 +486,15 @@ class ConfigsFragment : ListFragment() {
         val container = chipsContainer ?: return
         container.removeAllViews()
         val context = requireContext()
-        val categories = mutableListOf<String?>(null)
-        categories.addAll(CategoryStore.getCategories(context))
-        for (category in categories) {
+        // Minab v0.8: "Uncategorized" goes LAST (just before "+"),
+        // like on Home (v0.7) — it is the catch-all, not a country.
+        val ordered = mutableListOf<String?>(null)
+        ordered.addAll(
+            CategoryStore.getCategories(context)
+                .filter { it != CategoryStore.DEFAULT_CATEGORY }
+        )
+        ordered.add(CategoryStore.DEFAULT_CATEGORY)
+        for (category in ordered) {
             // v0.5: the first tab reads just "all", like Home.
             val label = category ?: getString(R.string.minab_all_tab)
             val selected = category == selectedCategory

@@ -617,9 +617,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         a Manage tab + a "+" tab to create a group by hand. Groups
         are the categories: countries are assigned automatically on
         import by AutoCategory, and the user can create or rename
-        groups. Each tab carries a small ping icon that tests just
-        that group (All tests every profile). Tapping the label
-        filters the list. Replaces the plain v0.2 chips.
+        groups. Tapping a tab filters the list; Ping test / Real
+        test test the selected group (v0.8 — the per-group ping
+        icon is gone). Replaces the plain v0.2 chips.
         v0.5: smaller and more minimal (11sp, tighter padding), the
         first tab reads just "all", the "+" tab is LAST, and a
         trailing peek spacer makes the fade at the right edge show
@@ -628,14 +628,13 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val container = categoryChipsContainer ?: return
         container.removeAllViews()
         val context = requireContext()
-        addGroupTab(container, null, pM.getProfiles().toList())
+        addGroupTab(container, null)
         // Minab v0.7: "Uncategorized" goes LAST (just before "+"),
         // after the country groups and Manage — it is the catch-all,
         // not a country.
         for (category in CategoryStore.getCategories(context)) {
             if (category == CategoryStore.DEFAULT_CATEGORY) continue
-            val inGroup = pM.getProfiles().toList().filter { it.getCategory() == category }
-            addGroupTab(container, category, inGroup)
+            addGroupTab(container, category)
         }
         val manage = TextView(context)
         manage.text = getString(R.string.minab_manage_categories)
@@ -651,9 +650,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         manage.layoutParams = manageParams
         manage.setOnClickListener { showManageCategoriesDialog() }
         container.addView(manage)
-        val uncProfiles = pM.getProfiles().toList()
-            .filter { it.getCategory() == CategoryStore.DEFAULT_CATEGORY }
-        addGroupTab(container, CategoryStore.DEFAULT_CATEGORY, uncProfiles)
+        addGroupTab(container, CategoryStore.DEFAULT_CATEGORY)
         val add = TextView(context)
         add.text = "+ " + getString(R.string.minab_new_group)
         add.textSize = 11f
@@ -675,13 +672,13 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         container.addView(peek)
     }
 
-    /** One group tab: label (tap = filter) + small ping icon
-        (tap = ping just this group). category == null is "all".
-        v0.5: 11sp, tighter padding, 18dp ping icon. */
+    /** One group tab: label only (tap = filter). category == null
+        is "all". Minab v0.8: the small ping icon next to the label
+        is gone — Ping test / Real test now test the selected group,
+        so the icon had no job left. v0.5: 11sp, tighter padding. */
     private fun addGroupTab(
         container: LinearLayout,
-        category: String?,
-        profiles: List<VpnProfile>
+        category: String?
     ) {
         val context = requireContext()
         val selected = category == selectedCategory
@@ -692,7 +689,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             if (selected) R.drawable.minab_chip_bg_selected
             else R.drawable.minab_chip_bg
         )
-        tab.setPadding(dp(10), dp(5), dp(7), dp(5))
+        tab.setPadding(dp(10), dp(5), dp(10), dp(5))
         val tabParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -717,19 +714,6 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             populateVpnList()
         }
         tab.addView(label)
-        val pingIcon = android.widget.ImageView(context)
-        pingIcon.setImageResource(R.drawable.ic_minab_ping)
-        pingIcon.setColorFilter(
-            resources.getColor(R.color.minab_teal, context.theme),
-            android.graphics.PorterDuff.Mode.SRC_IN
-        )
-        pingIcon.contentDescription = getString(R.string.minab_ping_group)
-        pingIcon.setPadding(dp(4), dp(4), dp(1), dp(4))
-        val iconParams = LinearLayout.LayoutParams(dp(18), dp(18))
-        iconParams.marginStart = dp(3)
-        pingIcon.layoutParams = iconParams
-        pingIcon.setOnClickListener { startPingTest(profiles) }
-        tab.addView(pingIcon)
         container.addView(tab)
     }
 
