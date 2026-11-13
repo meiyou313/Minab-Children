@@ -481,7 +481,15 @@ public class RealTester implements VpnStatus.StateListener {
         }
         if (host == null || host.isEmpty() || port <= 0 || port > 65535) return true;
         try {
-            return udp ? probeUdp(host, port) : probeTcp(host, port);
+            // Minab v0.9: one retry. A single refused/timeout probe can
+            // be a transient glitch (a brief mobile-data drop, one lost
+            // UDP packet), and a wrongly skipped server is marked
+            // Blocked without ever getting its full test. Two failures
+            // in a row is a real answer; the second try costs at most
+            // another 2 s, still far less than the 12/20 s full wait.
+            boolean ok = udp ? probeUdp(host, port) : probeTcp(host, port);
+            if (!ok) ok = udp ? probeUdp(host, port) : probeTcp(host, port);
+            return ok;
         } catch (IOException e) {
             // Socket setup failed (e.g. no network at all when the
             // socket was created): let the full test decide.

@@ -126,7 +126,7 @@ public final class BulkImportHelper {
                 return null;
             }
 
-            applyOptions(profile, options);
+            applyOptions(context, profile, options);
             ProfileManager pm = ProfileManager.getInstance(context);
             pm.addProfile(profile);
             profile.addChangeLogEntry("Profile imported via Minab bulk import");
@@ -210,7 +210,7 @@ public final class BulkImportHelper {
         return wanted + " (" + i + ")";
     }
 
-    private static void applyOptions(VpnProfile profile, ImportOptions options) {
+    private static void applyOptions(Context context, VpnProfile profile, ImportOptions options) {
         if (options == null) return;
         if (options.category != null && !options.category.isEmpty()) {
             // The category name itself is recorded in CategoryStore by the
@@ -224,6 +224,16 @@ public final class BulkImportHelper {
             if (options.username != null) profile.mUsername = options.username;
             if (options.password != null) profile.mPassword = options.password;
         }
+        // Minab Beta v0.9 — per-app VPN: a choice saved in Settings
+        // ("Apps using the VPN") applies to configs imported later
+        // too, so the user does not have to re-pick apps after every
+        // import. No choice saved yet means the upstream default
+        // (every app uses the VPN).
+        // Note: restore (MinabBackup) imports with empty options and
+        // then overwrites category/credentials from the metadata, so
+        // this stored choice does not fight the restore — the
+        // metadata's own allowed-apps are applied afterwards.
+        MinabAllowedApps.applyStoredToProfile(context, profile);
     }
 
     private static byte[] readCapped(InputStream in, int maxBytes) throws IOException {

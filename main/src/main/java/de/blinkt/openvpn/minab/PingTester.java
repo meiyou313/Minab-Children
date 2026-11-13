@@ -11,16 +11,43 @@
  *      without root on Android because the binary is setuid / has the
  *      needed capability on most devices; on devices where it is blocked
  *      it simply fails fast and we fall through to step 2.
- *   2. TCP connect timing — open a Socket to the profile's remote
- *      host:port with a 3 s timeout and measure connect time. This is
- *      NOT a true ICMP ping (a filtered port or a slow TLS handshake
- *      does not apply here — only the TCP handshake is timed), but it
- *      answers the question the list needs: "is this server reachable
- *      from here, and how fast does it answer?" A TCP failure is
- *      reported as Failed, not as a fake latency.
- *   Overall per-host budget is ~3 s; a host that answers neither way is
+ *      The reply is only trusted when it really came from the target:
+ *      the "64 bytes from <ip>" line must name the resolved target IP,
+ *      and a sub-5 ms reply to a public IP is impossible from a phone
+ *      (mobile radio + routing alone exceed that), so it is discarded
+ *      as a spoofed/local answer -- see the v0.9 note below.
+ *   2. TCP connect + OpenVPN reset probe -- open a Socket to the
+ *      profile's remote host:port with a 3 s timeout, send one OpenVPN
+ *      P_CONTROL_HARD_RESET_CLIENT_V2 packet, and wait up to 2 s for ANY
+ *      reply bytes. A live OpenVPN server answers a client reset with
+ *      its own reset. The bare connect alone proves nothing (a
+ *      middlebox can answer the TCP handshake in 1-3 ms and then kill
+ *      the connection), so the number is only reported when the server
+ *      itself answers, and it is the time until the first reply byte.
+ *      No reply: reset/closed with no data means Failed; silence with
+ *      the connection still open means Timeout (the server may use
+ *      tls-auth and silently drop an unsigned reset -- it can still
+ *      work, and the real test is the arbiter). This is NOT a true
+ *      ICMP ping, but it answers the question the list needs: "is this
+ *      server reachable from here, and how fast does it answer?"
+ *      A TCP failure is reported as Failed/Timeout, not as a fake
+ *      latency.
+ *   Overall per-host budget is ~5 s; a host that answers neither way is
  *   reported as Timeout (ICMP silent + TCP timeout) or Failed (TCP
- *   refused / DNS failure).
+ *   refused / DNS failure / connection reset with no data).
+ *
+ *   v0.9 -- why the extra checks: on the user's phone in v0.8, servers
+ *   in the US, Netherlands, Poland and Switzerland all showed green
+ *   ping badges of 1-3 ms while the real test marked them all Blocked.
+ *   A 1-3 ms round trip to another continent is physically impossible
+ *   from that location. What the old code measured was not the server:
+ *   the TCP connect was answered in 1-3 ms by a middlebox on the path
+ *   (it completes the handshake, then kills the data -- which is why
+ *   the real test, which actually handshakes, correctly said Blocked).
+ *   A failed or unanswered probe must NEVER be shown as a small green
+ *   number, so the TCP step now requires the server itself to answer,
+ *   and the ICMP step verifies the replying IP and discards impossible
+ *   sub-5 ms values to public addresses.
  *
  * Concurrency: a fixed pool of 8 threads, one task per profile. Results
  * arrive through PingListener callbacks (already on a worker thread —
@@ -58,7 +85,8 @@ import de.blinkt.openvpn.VpnProfile;
 
 public final class PingTester {
     public static final int THREADS = 8;
-    /** Per-host budget in ms (ICMP -W 2 plus TCP 3000, worst case ~5 s). */
+    /** Per-host budget in ms for the TCP connect (the ICMP -W 2 and the
+        2 s reset-probe read add up to ~5 s worst case per host). */
     public static final int TIMEOUT_MS = 3000;
 
     private static final Pattern PING_TIME =
@@ -150,13 +178,32 @@ public final class PingTester {
         if (TextUtils.isEmpty(host)) {
             return new Result(profile, Status.FAILED, -1);
         }
-        Long icmp = icmpPing(host);
+        java.net.InetAddress expected = null;
+        try {
+            expected = java.net.InetAddress.getByName(host);
+        } catch (Exception ignored) {
+            // DNS failure: the ICMP check runs without an expected IP
+            // (it will fail too) and the TCP step reports Failed.
+        }
+        Long icmp = icmpPing(host, expected);
         if (icmp != null) return new Result(profile, Status.OK, icmp);
         return tcpPing(profile, host, port);
     }
 
-    /** Returns ms on success, null when ICMP gave no usable answer. */
-    static Long icmpPing(String host) {
+    /** The "64 bytes from <ip>" line of the ping output, if any. */
+    private static final Pattern PING_FROM =
+            Pattern.compile("bytes from ([0-9a-fA-F.:]+)");
+
+    /**
+     * Returns ms on success, null when ICMP gave no usable answer.
+     * Only a reply that really came from the target counts: the
+     * replying IP must be the resolved target IP, and a sub-5 ms
+     * reply to a public IP is impossible from a phone, so it is
+     * discarded as spoofed (a middlebox answering for the target).
+     * Local targets (loopback / LAN) are exempt from the 5 ms floor:
+     * a 1 ms ping to a server on the same network is genuine.
+     */
+    static Long icmpPing(String host, java.net.InetAddress expected) {
         Process proc = null;
         try {
             // -c 1: one packet. -W 2: wait at most 2 s for the reply.
@@ -169,12 +216,31 @@ public final class PingTester {
                 while ((line = r.readLine()) != null) out.append(line).append('\n');
             }
             int exit = proc.waitFor();
-            Matcher m = PING_TIME.matcher(out.toString());
-            if (m.find()) {
-                return Math.round(Double.parseDouble(m.group(1)));
+            String output = out.toString();
+            Matcher m = PING_TIME.matcher(output);
+            if (!m.find()) {
+                // No time= line: host silent (or ping binary blocked).
+                return null;
             }
-            // No time= line: host silent (or ping binary blocked).
-            return null;
+            long ms = Math.round(Double.parseDouble(m.group(1)));
+            if (expected != null) {
+                Matcher from = PING_FROM.matcher(output);
+                if (from.find()) {
+                    String replyIp = from.group(1);
+                    String targetIp = expected.getHostAddress();
+                    if (!replyIp.equals(targetIp)) {
+                        // The reply came from something else on the
+                        // path, not from the server: not a measurement.
+                        return null;
+                    }
+                }
+                if (ms < 5 && isPublicAddress(expected)) {
+                    // A round trip to a public IP can never be under
+                    // 5 ms from a phone: spoofed or local answer.
+                    return null;
+                }
+            }
+            return ms;
         } catch (Exception e) {
             return null;
         } finally {
@@ -182,11 +248,46 @@ public final class PingTester {
         }
     }
 
+    /** True for a routable public address (not loopback / LAN / link-local). */
+    private static boolean isPublicAddress(java.net.InetAddress addr) {
+        return !addr.isLoopbackAddress() && !addr.isLinkLocalAddress()
+                && !addr.isSiteLocalAddress() && !addr.isMulticastAddress()
+                && !addr.isAnyLocalAddress();
+    }
+
+    /**
+     * TCP "ping" that only counts when the server itself answers.
+     * Connect (3 s), then send one OpenVPN client-reset packet and
+     * wait up to 2 s for ANY reply bytes. A live OpenVPN server
+     * answers a client reset with its own reset; the reported ms is
+     * the time from connect start to the first reply byte (about two
+     * round trips, so it reads higher than a bare ICMP ping -- that
+     * is honest). A middlebox that only completes the handshake and
+     * then resets/closes the connection yields Failed (read returns
+     * -1 or the read throws); a server that silently drops the packet
+     * (e.g. tls-auth) leaves the connection open, so the read times
+     * out and the result is Timeout -- not a green number, and the
+     * real test (which does the full handshake) is the arbiter.
+     */
     private static Result tcpPing(VpnProfile profile, String host, int port) {
         Socket socket = new Socket();
         long start = System.nanoTime();
         try {
             socket.connect(new InetSocketAddress(host, port), TIMEOUT_MS);
+            socket.setSoTimeout(2000);
+            byte[] payload = new byte[13];
+            payload[0] = 0x38; // P_CONTROL_HARD_RESET_CLIENT_V2, key id 0
+            java.util.Random random = new java.util.Random();
+            for (int i = 0; i < 8; i++) payload[1 + i] = (byte) random.nextInt(256);
+            // Bytes 9-12 stay 0: packet id 0.
+            socket.getOutputStream().write(payload);
+            socket.getOutputStream().flush();
+            byte[] buf = new byte[512];
+            int read = socket.getInputStream().read(buf);
+            if (read <= 0) {
+                // Server closed the connection without answering.
+                return new Result(profile, Status.FAILED, -1);
+            }
             long ms = (System.nanoTime() - start) / 1_000_000L;
             return new Result(profile, Status.OK, ms);
         } catch (java.net.SocketTimeoutException e) {
@@ -194,9 +295,10 @@ public final class PingTester {
         } catch (java.net.UnknownHostException e) {
             return new Result(profile, Status.FAILED, -1);
         } catch (Exception e) {
-            // Connection refused etc. Distinguish a timeout (already
-            // handled) from a fast refusal: both are "Failed" here, the
-            // user-visible difference is Timeout vs Failed.
+            // Connection refused / reset etc. Distinguish a timeout
+            // (already handled) from a fast refusal: both are
+            // "Failed" here, the user-visible difference is Timeout
+            // vs Failed.
             return new Result(profile, Status.FAILED, -1);
         } finally {
             try {
