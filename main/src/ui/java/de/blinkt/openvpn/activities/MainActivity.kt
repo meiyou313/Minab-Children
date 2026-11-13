@@ -20,6 +20,7 @@ import de.blinkt.openvpn.activities.BulkImportActivity
 import de.blinkt.openvpn.core.GlobalPreferences
 import de.blinkt.openvpn.fragments.*
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
+import de.blinkt.openvpn.minab.MinabPagerSensitivity
 import de.blinkt.openvpn.views.ScreenSlidePagerAdapter
 
 class MainActivity : BaseActivity() {
@@ -65,6 +66,10 @@ class MainActivity : BaseActivity() {
 
         mPagerAdapter.addTab(R.string.about, AboutFragment::class.java)
         mPager.setAdapter(mPagerAdapter)
+
+        // Minab Beta v0.8 — tab swiping was too eager; a longer
+        // drag is needed to change pages now (tab taps unaffected).
+        MinabPagerSensitivity.reduceSensitivity(mPager)
 
         TabLayoutMediator(tablayout, mPager) { tab, position ->
             tab.text = mPagerAdapter.getPageTitle(position)

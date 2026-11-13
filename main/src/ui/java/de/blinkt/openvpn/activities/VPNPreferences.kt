@@ -30,6 +30,7 @@ import de.blinkt.openvpn.fragments.Settings_Routing
 import de.blinkt.openvpn.fragments.Settings_UserEditable
 import de.blinkt.openvpn.fragments.ShowConfigFragment
 import de.blinkt.openvpn.fragments.VPNProfileList
+import de.blinkt.openvpn.minab.MinabPagerSensitivity
 import de.blinkt.openvpn.views.ScreenSlidePagerAdapter
 
 class VPNPreferences : BaseActivity(), VpnStatus.ProfileNotifyListener {
@@ -138,6 +139,10 @@ class VPNPreferences : BaseActivity(), VpnStatus.ProfileNotifyListener {
 
 
         mPager.setAdapter(mPagerAdapter)
+
+        // Minab Beta v0.8 — tab swiping was too eager; a longer
+        // drag is needed to change pages now (tab taps unaffected).
+        MinabPagerSensitivity.reduceSensitivity(mPager)
 
         //TabBarView tabs = (TabBarView) findViewById(R.id.sliding_tabs);
         //tabs.setViewPager(mPager);
