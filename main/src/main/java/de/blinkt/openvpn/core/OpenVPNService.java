@@ -69,6 +69,7 @@ import de.blinkt.openvpn.activities.DisconnectVPN;
 import de.blinkt.openvpn.api.ExternalAppDatabase;
 import de.blinkt.openvpn.core.VpnStatus.ByteCountListener;
 import de.blinkt.openvpn.core.VpnStatus.StateListener;
+import de.blinkt.openvpn.minab.DataUsageStore;
 
 public class OpenVPNService extends VpnService implements StateListener, Callback, ByteCountListener, IOpenVPNServiceInternal {
     public static final String START_SERVICE = "de.blinkt.openvpn.START_SERVICE";
@@ -1376,6 +1377,12 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
 
     @Override
     public void updateByteCount(long in, long out, long diffIn, long diffOut) {
+        // Minab v0.7: record the real measured traffic for the
+        // "Data used" charts on the Graph tab — always, even when
+        // the notification speed is turned off (the setting only
+        // controls the notification). diffIn/diffOut are the
+        // per-interval deltas, clamped to >= 0 by TrafficHistory.
+        DataUsageStore.record(this, diffIn, diffOut);
         if (mDisplayBytecount) {
             // Minab v0.4: user setting (default on) for showing the
             // download/upload speed in the VPN notification. When off,
