@@ -466,7 +466,16 @@ public class RealTester implements VpnStatus.StateListener {
                     // Body unreadable after a good status: still
                     // counts — the tunnel carried the response.
                 }
-                return SystemClock.elapsedRealtime() - start;
+                long ms = SystemClock.elapsedRealtime() - start;
+                // Minab v0.7: a real HTTPS fetch through a VPN tunnel
+                // needs several round trips (TCP + TLS handshake +
+                // HTTP request/response), so it can never complete in
+                // a few milliseconds. A value under 50 ms means the
+                // measurement is bogus (e.g. served without any
+                // network round trip), not a real pass — return -1
+                // (Blocked) instead of a "0 ms" success.
+                if (ms < 50) return -1;
+                return ms;
             }
             return -1;
         } catch (Exception e) {
