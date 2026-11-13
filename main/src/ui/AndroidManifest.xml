@@ -63,6 +63,25 @@
             android:name=".activities.BulkImportActivity"
             android:exported="false"
             android:label="@string/minab_bulk_import_title" />
+
+        <!-- Minab Beta v0.9 — per-app VPN (split tunneling) picker. -->
+        <activity
+            android:name=".activities.MinabAllowedAppsActivity"
+            android:exported="false"
+            android:label="@string/minab_per_app_vpn" />
+
+        <!-- Minab Beta v0.9 — home-screen widget: quick connect/disconnect. -->
+        <receiver
+            android:name=".minab.MinabWidgetProvider"
+            android:exported="false"
+            android:label="@string/app">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/minab_widget_info" />
+        </receiver>
         <service
                 android:exported="true"
                 android:name=".OpenVPNTileService"
