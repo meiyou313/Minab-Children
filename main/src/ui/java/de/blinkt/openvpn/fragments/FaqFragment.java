@@ -136,6 +136,24 @@ public class FaqFragment extends Fragment {
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_update_title, R.string.minab_faq_update),
 
             new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_security_title, R.string.minab_faq_security),
+
+            // Minab Beta v0.9 — the new features, each as its own
+            // question with a complete answer.
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_best_title, R.string.minab_faq_best),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_failover_title, R.string.minab_faq_failover),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_ip_title, R.string.minab_faq_ip),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_search_title, R.string.minab_faq_search),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_widget_title, R.string.minab_faq_widget),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_perapp_title, R.string.minab_faq_perapp),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_link_title, R.string.minab_faq_link),
+
+            new FAQEntry(Build.VERSION_CODES.ICE_CREAM_SANDWICH, -1, R.string.minab_faq_backup_title, R.string.minab_faq_backup),
     };
 
 

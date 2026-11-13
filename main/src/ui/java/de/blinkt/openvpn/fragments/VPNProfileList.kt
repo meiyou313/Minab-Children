@@ -23,7 +23,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
 import android.provider.Settings
+import android.text.Editable
 import android.text.Html
+import android.text.TextWatcher
 import android.text.SpannableString
 import android.view.LayoutInflater
 import android.view.Menu
@@ -35,6 +37,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -61,8 +64,15 @@ import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.core.VpnStatus.StateListener
 import de.blinkt.openvpn.minab.CategoryStore
+import de.blinkt.openvpn.minab.CountryCodes
 import de.blinkt.openvpn.minab.FlagHelper
+import de.blinkt.openvpn.minab.MinabFailover
+import de.blinkt.openvpn.minab.MinabFavorites
+import de.blinkt.openvpn.minab.MinabIpCheck
 import de.blinkt.openvpn.minab.MinabUpdateChecker
+import de.blinkt.openvpn.minab.MinabUpdateNotifier
+import de.blinkt.openvpn.minab.MinabVpnControl
+import de.blinkt.openvpn.minab.MinabWidgetProvider
 import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.minab.RealTester
 import de.blinkt.openvpn.fragments.ImportRemoteConfig.Companion.newInstance
@@ -144,6 +154,13 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     private var connectedPingTesting: Boolean = false
     // --- Minab v0.4: update notice banner ---
     private var updateBanner: TextView? = null
+    // --- Minab v0.9: search + favorites + best server + IP check ---
+    /** Search text typed in the Home search box (empty = no filter). */
+    private var searchQuery: String = ""
+    /** The "IP: … · country" line under the orb, shown while connected. */
+    private var ipInfoView: TextView? = null
+    /** UUID the IP check already ran for (one check per connection). */
+    private var ipCheckedForUuid: String? = null
 
     override fun updateState(
         state: String?,
@@ -157,6 +174,11 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             mLastIntent = intent
             mArrayadapter!!.notifyDataSetChanged()
             updateOrbState()
+            // Minab Beta v0.9 — keep the home-screen widget in sync
+            // with the connection state. getActivity() (not
+            // requireActivity()): this runs later, and the fragment
+            // may be gone by then.
+            getActivity()?.let { MinabWidgetProvider.updateAllWidgets(it) }
             showUserRequestDialogIfNeeded(level, intent)
         })
     }
@@ -178,6 +200,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
 
     private fun startOrStopVPN(profile: VpnProfile) {
         if (VpnStatus.isVPNActive() && profile.getUUIDString() == VpnStatus.getLastConnectedVPNProfile()) {
+            // Minab Beta v0.9 — a deliberate disconnect is NOT a
+            // drop: tell failover, or it would reconnect on its own.
+            MinabFailover.noteUserDisconnect()
             if (mLastIntent != null) {
                 startActivity(mLastIntent!!)
             } else {
@@ -393,6 +418,25 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         // fetch web.telegram.org through the tunnel.
         val realTestButton = v.findViewById<View?>(R.id.minab_btn_real_test) as Button?
         realTestButton?.setOnClickListener { startRealTest(visibleProfiles()) }
+        // Minab Beta v0.9 — connect to the best server: the fastest
+        // healthy server from the last tests (real test first, then
+        // ping). Nothing to connect when nothing was tested yet.
+        val bestServerButton = v.findViewById<View?>(R.id.minab_btn_best_server) as Button?
+        bestServerButton?.setOnClickListener { connectBestServer() }
+        // Minab Beta v0.9 — search the list by name or group.
+        // Typing re-runs the list (see populateVpnList).
+        val searchEdit = v.findViewById<View?>(R.id.minab_search) as EditText?
+        searchEdit?.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                searchQuery = s?.toString()?.trim() ?: ""
+                populateVpnList()
+            }
+        })
+        // Minab Beta v0.9 — the public IP + country line, shown
+        // while connected (see updateOrbState).
+        ipInfoView = v.findViewById<View?>(R.id.minab_ip_info) as TextView?
         categoryChipsContainer = v.findViewById<View?>(R.id.minab_category_chips) as LinearLayout?
         pingProgressRow = v.findViewById<View?>(R.id.minab_ping_progress_row)
         pingProgressBar = v.findViewById<View?>(R.id.minab_ping_progress) as ProgressBar?
@@ -498,6 +542,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 banner.visibility = View.GONE
             }
         }
+        // Minab Beta v0.9 — the same check also feeds the system
+        // notification (at most once per version; the notifier keeps
+        // the last-notified tag in SharedPreferences).
+        if (isAdded) MinabUpdateNotifier.maybeNotifyUpdate(requireContext())
     }
 
     private fun setListAdapter() {
@@ -518,6 +566,14 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val filtered = allvpn?.filter { profile ->
             selectedCategory == null || profile?.getCategory() == selectedCategory
         } ?: emptyList()
+        // Minab Beta v0.9 — search by name or group
+        // (case-insensitive; an empty search shows everything).
+        val query = searchQuery.lowercase()
+        val searched = if (query.isEmpty()) filtered else filtered.filter { profile ->
+            val name = profile?.mName?.lowercase() ?: ""
+            val category = profile?.getCategory()?.lowercase() ?: ""
+            name.contains(query) || category.contains(query)
+        }
         val sortedset: TreeSet<VpnProfile?> = when (sortMode) {
             SORT_PING -> TreeSet<VpnProfile?>(VpnProfilePingComparator())
             SORT_REAL -> TreeSet<VpnProfile?>(VpnProfileRealComparator())
@@ -525,9 +581,16 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 else TreeSet<VpnProfile?>(VpnProfileNameComparator())
         }
 
-        sortedset.addAll(filtered)
+        sortedset.addAll(searched)
+        // Minab Beta v0.9 — favorites first, the rest after, keeping
+        // the test sort inside each group (sortedWith is stable, so
+        // the TreeSet order survives within each group).
+        val favorites = MinabFavorites.getAll(requireContext())
+        val ordered = sortedset.sortedWith(
+            compareByDescending<VpnProfile?> { it != null && favorites.contains(it.getUUIDString()) }
+        )
         mArrayadapter!!.clear()
-        mArrayadapter!!.addAll(sortedset)
+        mArrayadapter!!.addAll(ordered)
 
         setListAdapter(mArrayadapter)
         mArrayadapter!!.notifyDataSetChanged()
@@ -567,8 +630,14 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 .sortedWith(VpnProfileRealComparator())
             else -> return
         }
+        // Minab Beta v0.9 — favorites first (stable sort keeps the
+        // test order inside each group).
+        val favorites = MinabFavorites.getAll(requireContext())
+        val ordered = sorted.sortedWith(
+            compareByDescending { favorites.contains(it.getUUIDString()) }
+        )
         adapter.clear()
-        adapter.addAll(sorted)
+        adapter.addAll(ordered)
         adapter.notifyDataSetChanged()
     }
 
@@ -885,11 +954,63 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             } else {
                 pill?.visibility = View.GONE
             }
+            // Minab Beta v0.9 — public IP + country through the
+            // tunnel, checked once per connection (see updateIpInfo).
+            updateIpInfo(uuid)
         } else {
             status.text = getString(R.string.minab_tap_to_connect)
             status.textSize = 18f
             status.setTextColor(resources.getColor(R.color.minab_text_primary, requireContext().theme))
             connectedPingView?.visibility = View.GONE
+            // Minab Beta v0.9 — hide the IP line and forget which
+            // connection it belonged to, so the next connection
+            // checks again.
+            ipInfoView?.visibility = View.GONE
+            ipCheckedForUuid = null
+        }
+    }
+
+    /** Minab Beta v0.9 — connect to the best server: the fastest
+        healthy server from the last tests (best real-test result,
+        falling back to best ping). Nothing was tested yet → a toast
+        says so instead of connecting blindly. */
+    private fun connectBestServer() {
+        val best = MinabVpnControl.bestProfile(requireContext(), visibleProfiles())
+        if (best == null) {
+            Toast.makeText(requireContext(), R.string.minab_best_none, Toast.LENGTH_LONG).show()
+            return
+        }
+        startVPN(best)
+    }
+
+    /** Minab Beta v0.9 — the public IP + country line under the orb.
+        Checked once per connection (ipCheckedForUuid), through the
+        tunnel, off the UI thread (MinabIpCheck posts its callback
+        on the main thread). Shows "—" on failure, never blocks.
+        The result is only shown when it still belongs to the same
+        connection (the VPN may have switched meanwhile). */
+    private fun updateIpInfo(uuid: String?) {
+        val infoView = ipInfoView ?: return
+        if (uuid == null) {
+            infoView.visibility = View.GONE
+            ipCheckedForUuid = null
+            return
+        }
+        if (ipCheckedForUuid == uuid) return
+        ipCheckedForUuid = uuid
+        infoView.visibility = View.VISIBLE
+        infoView.text = getString(R.string.minab_ip_checking)
+        MinabIpCheck.check { info ->
+            if (!isAdded) return@check
+            if (!VpnStatus.isVPNActive() || VpnStatus.getLastConnectedVPNProfile() != uuid) return@check
+            ipInfoView?.text = when {
+                info == null -> getString(R.string.minab_ip_unknown)
+                info.countryCode.isEmpty() -> getString(R.string.minab_ip_result_no_country, info.ip)
+                else -> getString(
+                    R.string.minab_ip_result,
+                    info.ip, CountryCodes.nameForCode(info.countryCode)
+                )
+            }
         }
     }
 
@@ -1309,14 +1430,11 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         startActivityForResult(intent, SELECT_PROFILE)
     }
 
-    /** Minab Beta v0.5 — entry point for the top-bar "+" (the
-        activity switches to Home, then calls this). Opens the same
-        add-one-config dialog as the old overflow item. */
-    fun openAddProfile() {
-        if (!isAdded) return
-        onAddOrDuplicateProfile(null)
-    }
-
+    // Minab Beta v0.9 — the top-bar "+" (openAddProfile) is GONE:
+    // it opened the upstream "create an EMPTY profile by hand"
+    // dialog, not an import, and it closed the app on an empty
+    // name. The duplicate flow below still uses
+    // onAddOrDuplicateProfile, with a pre-filled name.
     private fun onAddOrDuplicateProfile(mCopyProfile: VpnProfile?) {
         val context: Context? = getActivity()
         if (context != null) {
@@ -1345,7 +1463,20 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
             dialog.setPositiveButton(
                 android.R.string.ok
             ) { dialog12: DialogInterface?, which: Int ->
-                val name = entry.getText().toString()
+                val name = entry.getText().toString().trim()
+                // Minab Beta v0.9 — an empty name made a brand-new
+                // empty VpnProfile("") and editing it closed the
+                // app; refuse it plainly instead. (The duplicate
+                // flow always pre-fills "Copy of X", so it is
+                // unaffected.)
+                if (name.isEmpty()) {
+                    Toast.makeText(
+                        getActivity(),
+                        R.string.minab_profile_name_required,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setPositiveButton
+                }
                 if (this.pM.getProfileByName(name) == null) {
                     val profile: VpnProfile
                     if (mCopyProfile != null) {
@@ -1639,6 +1770,22 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                 realBadge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
             } else {
                 realBadge.visibility = View.GONE
+            }
+
+            // Minab Beta v0.9 — the favorite star: filled for a
+            // favorite, outline otherwise. Tapping it toggles the
+            // favorite and re-sorts the list (favorites stay at the
+            // top). The star has its own listener, so tapping it
+            // does not also connect the VPN (the row's connect
+            // click lives on the left title area only).
+            val star = v.findViewById<ImageView>(R.id.minab_favorite_star)
+            val isFavorite = MinabFavorites.isFavorite(requireContext(), profile.getUUIDString())
+            star.setImageResource(
+                if (isFavorite) R.drawable.minab_star_on else R.drawable.minab_star_off
+            )
+            star.setOnClickListener {
+                MinabFavorites.toggle(requireContext(), profile.getUUIDString())
+                populateVpnList()
             }
 
             return v

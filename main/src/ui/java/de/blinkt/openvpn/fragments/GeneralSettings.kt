@@ -64,6 +64,8 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
         findPreference<Preference>("osslspeed")!!.onPreferenceClickListener = this
         // Minab Beta v0.5: FAQ lives at the end of Settings now.
         findPreference<Preference>("minab_faq")!!.onPreferenceClickListener = this
+        // Minab Beta v0.9: per-app VPN (split tunneling) picker.
+        findPreference<Preference>("minab_per_app_vpn")!!.onPreferenceClickListener = this
         // Minab v0.4: manual update check. Tapping it again while an
         // update is known opens the releases page.
         val checkUpdate = findPreference<Preference>("minab_check_update")!!
@@ -232,6 +234,9 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
             // and to the end of Settings; it opens full-screen over
             // the tabs (MainActivity.showFaq), back closes it.
             (activity as? de.blinkt.openvpn.activities.MainActivity)?.showFaq()
+        } else if (preference.key == "minab_per_app_vpn") {
+            // Minab Beta v0.9 — per-app VPN (split tunneling) picker.
+            startActivity(Intent(activity, de.blinkt.openvpn.activities.MinabAllowedAppsActivity::class.java))
         } else if (preference.key == "minab_check_update") {
             if (minabLatestTag != null &&
                 MinabUpdateChecker.isNewer(BuildConfig.VERSION_NAME, minabLatestTag!!)

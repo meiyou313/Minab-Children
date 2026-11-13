@@ -86,24 +86,44 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
 
         ver.setText(getString(R.string.version_info, name, version));
 
+        // Minab Beta v0.9 — the About text carries the version at
+        // its top AND its bottom (the string has %1$s twice), so it
+        // is set here, not in the layout.
+        TextView aboutText = v.findViewById(R.id.minab_about_text_view);
+        if (aboutText != null) {
+            aboutText.setText(getString(R.string.minab_about_text, version));
+        }
+
         // Minab Beta v0.4 — update notice on About. The check is
         // cached for 24 h inside MinabUpdateChecker.
         TextView updateStatus = v.findViewById(R.id.minab_update_status);
         final String installedVersion = version;
         MinabUpdateChecker.check(getActivity(), false, (latestTag, available) -> {
             if (getActivity() == null || updateStatus == null) return;
-            if (latestTag == null) {
-                updateStatus.setVisibility(View.GONE);
-            } else if (available) {
-                updateStatus.setText(getString(R.string.minab_update_available_short, latestTag));
-                updateStatus.setVisibility(View.VISIBLE);
-                updateStatus.setOnClickListener(view -> MinabUpdateChecker.openReleases(getActivity()));
-            } else {
-                updateStatus.setText(getString(R.string.minab_update_none, installedVersion));
+            renderUpdateStatus(updateStatus, installedVersion, latestTag, available, false);
+        });
+
+        // Minab Beta v0.9 — "Check for updates" at the TOP of the
+        // About screen (like Namaki). A manual check always goes to
+        // the network (force=true) and shows its result clearly,
+        // including a failure message (the automatic check above
+        // just hides the notice when it cannot reach GitHub).
+        android.widget.Button checkUpdateButton =
+                v.findViewById(R.id.minab_about_check_update);
+        if (checkUpdateButton != null) {
+            checkUpdateButton.setOnClickListener(view -> {
+                if (getActivity() == null || updateStatus == null) return;
+                checkUpdateButton.setEnabled(false);
+                updateStatus.setText(getString(R.string.minab_update_checking));
                 updateStatus.setVisibility(View.VISIBLE);
                 updateStatus.setOnClickListener(null);
-            }
-        });
+                MinabUpdateChecker.check(getActivity(), true, (latestTag, available) -> {
+                    checkUpdateButton.setEnabled(true);
+                    if (getActivity() == null || updateStatus == null) return;
+                    renderUpdateStatus(updateStatus, installedVersion, latestTag, available, true);
+                });
+            });
+        }
 
         TextView verO2 = v.findViewById(R.id.version_ovpn2);
         TextView verO3 = v.findViewById(R.id.version_ovpn3);
@@ -142,6 +162,32 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
                 }
         );
         return v;
+    }
+
+    /** Minab Beta v0.9 — one rendering for the update notice, shared
+        by the automatic check and the manual "Check for updates"
+        button. manual=true also shows a failure message when the
+        check could not reach GitHub at all (the automatic check
+        just hides the notice then). */
+    private void renderUpdateStatus(TextView updateStatus, String installedVersion,
+                                    String latestTag, boolean available, boolean manual) {
+        if (latestTag == null) {
+            if (manual) {
+                updateStatus.setText(getString(R.string.minab_update_failed));
+                updateStatus.setVisibility(View.VISIBLE);
+                updateStatus.setOnClickListener(null);
+            } else {
+                updateStatus.setVisibility(View.GONE);
+            }
+        } else if (available) {
+            updateStatus.setText(getString(R.string.minab_update_available_short, latestTag));
+            updateStatus.setVisibility(View.VISIBLE);
+            updateStatus.setOnClickListener(view -> MinabUpdateChecker.openReleases(getActivity()));
+        } else {
+            updateStatus.setText(getString(R.string.minab_update_none, installedVersion));
+            updateStatus.setVisibility(View.VISIBLE);
+            updateStatus.setOnClickListener(null);
+        }
     }
 
     String readHtmlFromAssets()

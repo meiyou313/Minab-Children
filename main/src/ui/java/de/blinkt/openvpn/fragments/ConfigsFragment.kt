@@ -50,6 +50,7 @@ import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.minab.CategoryStore
 import de.blinkt.openvpn.minab.FlagHelper
+import de.blinkt.openvpn.minab.MinabBackup
 import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.minab.RealTester
 import de.blinkt.openvpn.minab.SharedCredentials
@@ -57,8 +58,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.util.TreeSet
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
 
 class ConfigsFragment : ListFragment() {
     private var selectedCategory: String? = null
@@ -266,6 +265,49 @@ class ConfigsFragment : ListFragment() {
         }
         rebuildChips()
         updateSelectionBar()
+        // Minab Beta v0.9 — the list now lives INSIDE this page
+        // (a NestedScrollView) instead of in its own little window,
+        // so the ListView must grow to its full content height.
+        // Posted on the fragment view (v0.5.1 hotfix pattern), so
+        // it never runs before the view exists.
+        view?.post { expandListView() }
+    }
+
+    /** Minab Beta v0.9 — grow the ListView to its full content
+        height, so the whole Configs page scrolls as one (like Home).
+        Same proven pattern as Home's expandListView: measure each
+        row off the view tree, add the dividers, set the total
+        height. Null-safe on the fragment view; one bad row falls
+        back to a standard height instead of crashing. */
+    private fun expandListView() {
+        if (!isAdded || view == null) return
+        val list = try { listView } catch (e: IllegalStateException) { return }
+        val adapter = mArrayadapter ?: return
+        if (adapter.count == 0) {
+            list.layoutParams.height = 0
+            list.requestLayout()
+            return
+        }
+        val width = if (list.width > 0) list.width
+            else resources.displayMetrics.widthPixels - dp(32)
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        var totalHeight = 0
+        for (i in 0 until adapter.count) {
+            try {
+                val item = adapter.getView(i, null, list)
+                item.measure(widthSpec, heightSpec)
+                totalHeight += item.measuredHeight
+            } catch (e: Exception) {
+                // One bad row must not crash the app; assume the
+                // standard two-line row height for it.
+                totalHeight += dp(64)
+            }
+        }
+        totalHeight += list.dividerHeight * (adapter.count - 1)
+        val params = list.layoutParams
+        params.height = totalHeight
+        list.layoutParams = params
     }
 
     // --- Minab v0.5: selection (delete / share) ---
@@ -296,9 +338,12 @@ class ConfigsFragment : ListFragment() {
         val count = selectedUuids.size
         selectionRow?.visibility = if (count > 0) View.VISIBLE else View.GONE
         val shareSelected = view?.findViewById<Button>(R.id.minab_configs_share_selected)
-        if (count > 0) shareSelected?.text = getString(R.string.minab_share_selected, count)
+        // Minab Beta v0.9 — the short label ("Share (3)") fits on
+        // one line; the old label ("Share selected (3)") wrapped to
+        // two lines and the second line was clipped (v0.8 screenshot).
+        if (count > 0) shareSelected?.text = getString(R.string.minab_share_selected_short, count)
         shareButton?.text = when {
-            count > 0 -> getString(R.string.minab_share_selected, count)
+            count > 0 -> getString(R.string.minab_share_selected_short, count)
             selectedCategory != null -> getString(R.string.minab_share_group)
             else -> getString(R.string.minab_share_all)
         }
@@ -457,30 +502,13 @@ class ConfigsFragment : ListFragment() {
         }.start()
     }
 
-    /** Write each profile's .ovpn text as one zip entry. Returns
-        the number of entries written. Shared by backup and share. */
+    /** Plain .ovpn-only zip, exactly as before (the Share flow uses
+        it). Now delegated to MinabBackup so there is one writer. */
     private fun writeProfilesZip(
         context: Context,
         profiles: List<VpnProfile>,
         out: OutputStream
-    ): Int {
-        var count = 0
-        ZipOutputStream(out).use { zip ->
-            for (profile in profiles) {
-                try {
-                    val name = profile.mName
-                        .replace(Regex("[^A-Za-z0-9._-]"), "_")
-                        .ifEmpty { "config" } + ".ovpn"
-                    zip.putNextEntry(ZipEntry(name))
-                    zip.write(profile.getConfigFile(context, false).toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    count++
-                } catch (ignored: Exception) {
-                }
-            }
-        }
-        return count
-    }
+    ): Int = MinabBackup.writeProfilesZip(context, profiles, out)
 
     private fun rebuildChips() {
         val container = chipsContainer ?: return
@@ -932,7 +960,11 @@ class ConfigsFragment : ListFragment() {
             try {
                 val profiles = ProfileManager.getInstance(context).getProfiles().toList()
                 context.contentResolver.openOutputStream(uri)?.use { out ->
-                    count = writeProfilesZip(context, profiles, out)
+                    // Minab Beta v0.9 — this is now a FULL backup:
+                    // the .ovpn files plus a minab-backup.json with
+                    // groups, credentials, favorites and settings,
+                    // so restoring puts everything back exactly.
+                    count = MinabBackup.writeFullBackup(context, profiles, out)
                 }
                 ok = count > 0
             } catch (ignored: Exception) {
