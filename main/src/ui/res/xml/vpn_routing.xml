@@ -4,58 +4,59 @@
   ~ Distributed under the GNU GPL v2 with additional terms. For full terms see the file doc/LICENSE.txt
   -->
 
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto" >
 
-    <CheckBoxPreference
+    <CheckBoxPreference app:iconSpaceReserved="false"
         android:key="routenopull"
         android:summary="@string/ignore_routes_summary"
         android:title="@string/ignored_pushed_routes" />
 
-    <CheckBoxPreference
+    <CheckBoxPreference app:iconSpaceReserved="false"
         android:title="@string/blocklocal_title"
         android:summary="@string/blocklocal_summary"
         android:key="unblockLocal"
     />
 
-    <CheckBoxPreference
+    <CheckBoxPreference app:iconSpaceReserved="false"
         android:title="@string/title_block_address_families"
         android:key="blockUnusedAF"
         android:summary="@string/summary_block_address_families"
         />
     <PreferenceCategory android:title="@string/ipv4" >
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
             android:disableDependentsState="true"
             android:key="useDefaultRoute"
             android:summary="@string/default_route_summary"
             android:title="@string/use_default_title" />
 
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
             android:dependency="useDefaultRoute"
             android:dialogMessage="@string/custom_route_message"
             android:key="customRoutes"
             android:title="@string/custom_routes_title" />
 
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
             android:dependency="useDefaultRoute"
             android:dialogMessage="@string/custom_route_message_excluded"
             android:key="excludedRoutes"
             android:title="@string/custom_routes_title_excluded" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/ipv6" >
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
             android:disableDependentsState="true"
             android:key="useDefaultRoutev6"
             android:summary="@string/default_route_summary"
             android:title="@string/use_default_title" />
 
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
             android:dependency="useDefaultRoutev6"
             android:dialogMessage="@string/custom_route_message"
             android:key="customRoutesv6"
             android:title="@string/custom_routes_title" />
 
         <!-- disable for now. Not supported by OpenVPN itself -->
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
             android:enabled="false"
             android:dependency="useDefaultRoute"
             android:dialogMessage="@string/custom_route_message_excluded"

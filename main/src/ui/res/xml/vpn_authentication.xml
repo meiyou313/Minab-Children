@@ -6,30 +6,30 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory android:title="@string/tls_settings">
-        <ListPreference
+        <ListPreference app:iconSpaceReserved="false"
                 android:entries="@array/tls_profile_entries"
                 android:entryValues="@array/tls_profile_values"
                 android:key="tls_profile"
                 android:persistent="false"
                 android:title="@string/tls_profile"
                 app:useSimpleSummaryProvider="true" />
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:key="remoteServerTLS"
                 android:summary="@string/check_remote_tlscert"
                 android:title="@string/check_remote_tlscert_title" />
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:key="checkRemoteCN"
                 android:summary="@string/remote_tlscn_check_summary"
                 android:title="@string/remote_tlscn_check_title" />
 
-        <de.blinkt.openvpn.views.RemoteCNPreference
+        <de.blinkt.openvpn.views.RemoteCNPreference app:iconSpaceReserved="false"
                 android:dependency="checkRemoteCN"
                 android:key="remotecn"
                 android:negativeButtonText="@string/cancel"
                 android:positiveButtonText="@android:string/ok"
                 android:title="@string/enter_tlscn_title" />
 
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
                 android:dependency="checkRemoteCN"
                 android:dialogMessage="Field  in  the X.509 certificate subject to be used as the username (default=CN)."
                 android:key="remotex509name"
@@ -38,20 +38,20 @@
 
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/tls_authentication">
-        <SwitchPreference
+        <SwitchPreference app:iconSpaceReserved="false"
 
                 android:key="useTLSAuth"
                 android:summary="@string/tls_key_auth"
                 android:title="@string/useTLSAuth" />
 
-        <Preference
+        <Preference app:iconSpaceReserved="false"
                 android:dependency="useTLSAuth"
 
                 android:key="tlsAuthFile"
                 android:title="@string/tls_auth_file"
                 app:useSimpleSummaryProvider="true" />
 
-        <ListPreference
+        <ListPreference app:iconSpaceReserved="false"
                 android:dependency="useTLSAuth"
 
                 android:entries="@array/tls_directions_entries"
@@ -62,14 +62,14 @@
                 app:useSimpleSummaryProvider="true" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/encryption">
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
                 android:dialogMessage="@string/cipher_dialog_message"
                 android:dialogTitle="@string/cipher_dialog_title"
                 android:key="dataciphers"
                 android:persistent="false"
                 android:title="@string/encryption_cipher"
                 app:useSimpleSummaryProvider="true" />
-        <EditTextPreference
+        <EditTextPreference app:iconSpaceReserved="false"
                 android:dialogMessage="@string/auth_dialog_message"
                 android:dialogTitle="@string/auth_dialog_title"
                 android:key="auth"

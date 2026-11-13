@@ -4,6 +4,7 @@
   -->
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools">
     <PreferenceCategory
             android:key="app_behaviour"
@@ -11,21 +12,21 @@
         <!-- Minab Beta v0.7: show-speed-in-notification moved to the
              TOP of the settings list. Default on (XML defaultValue
              and the code default in OpenVPNService both true). -->
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="true"
                 android:key="minab_show_speed_notification"
                 android:singleLineTitle="false"
                 android:summary="@string/minab_show_speed_notification_summary"
                 android:title="@string/minab_show_speed_notification" />
 
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="true"
                 android:key="showlogwindow"
                 android:singleLineTitle="false"
                 android:summary="@string/show_log_summary"
                 android:title="@string/show_log_window" />
 
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="false"
                 android:disableDependentsState="true"
                 android:key="ovpn3"
@@ -35,20 +36,20 @@
                 android:title="OpenVPN 3 Core" />
 
 
-        <de.blinkt.openvpn.views.DefaultVPNListPreference
+        <de.blinkt.openvpn.views.DefaultVPNListPreference app:iconSpaceReserved="false"
                 android:key="alwaysOnVpn"
                 android:singleLineTitle="false"
                 android:title="@string/defaultvpn"
                 tools:summary="@string/defaultvpnsummary" />
 
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="false"
                 android:key="restartvpnonboot"
                 android:singleLineTitle="false"
                 android:summary="@string/keep_vpn_connected_summary"
                 android:title="@string/keep_vpn_connected" />
 
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="true"
                 android:key="preferencryption"
                 android:singleLineTitle="false"
@@ -57,21 +58,21 @@
 
         <!-- Minab Beta v0.4: manual update check (Home and About
              check automatically, cached for 24 h). -->
-        <Preference
+        <Preference app:iconSpaceReserved="false"
                 android:key="minab_check_update"
                 android:persistent="false"
                 android:singleLineTitle="false"
                 android:summary="@string/minab_check_update_summary"
                 android:title="@string/minab_check_update" />
 
-        <CheckBoxPreference android:key="local_network"
+        <CheckBoxPreference app:iconSpaceReserved="false" android:key="local_network"
                 android:persistent="false"
                 android:singleLineTitle="false"
                 android:title="@string/local_network_permission"
                 android:summary="@string/local_network_permission_summary"
                 />
 
-        <Preference
+        <Preference app:iconSpaceReserved="false"
                 android:key="clearapi"
                 android:persistent="false"
                 android:singleLineTitle="false"
@@ -81,14 +82,14 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/vpnbehaviour">
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="true"
                 android:dependency="ovpn3"
                 android:key="usesystemproxy"
                 android:singleLineTitle="false"
                 android:summary="@string/use_system_proxy_summary"
                 android:title="@string/use_system_proxy" />
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="true"
                 android:key="netchangereconnect"
                 android:singleLineTitle="false"
@@ -96,21 +97,21 @@
                 android:title="@string/netchange" />
 
 
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="false"
                 android:key="screenoff"
                 android:singleLineTitle="false"
                 android:summary="@string/screenoff_summary"
                 android:title="@string/screenoff_title" />
 
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="false"
                 android:key="disableconfirmation"
                 android:singleLineTitle="false"
                 android:summary="@string/confirmations_summary"
                 android:title="@string/confirmations_title" />\
 
-        <Preference
+        <Preference app:iconSpaceReserved="false"
                 android:dependency=""
                 android:key="osslspeed"
                 android:persistent="false"
@@ -121,7 +122,7 @@
     <PreferenceCategory
             android:key="device_hacks"
             android:title="@string/device_specific">
-        <CheckBoxPreference
+        <CheckBoxPreference app:iconSpaceReserved="false"
                 android:defaultValue="false"
                 android:key="useInternalFileSelector"
                 android:summary="Always use the very basic file browser instead of the Android file browser. Use this option if you have problems selecting files."
@@ -131,7 +132,7 @@
     <!-- Minab Beta v0.5 — FAQ moved out of the bottom tab bar and
          to the end of Settings. Tapping it opens the FAQ full-screen
          (see GeneralSettings.onPreferenceClick). -->
-    <Preference
+    <Preference app:iconSpaceReserved="false"
             android:key="minab_faq"
             android:persistent="false"
             android:summary="@string/minab_faq_settings_summary"
