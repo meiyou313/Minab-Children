@@ -9,10 +9,11 @@
   ~ #141B3D -> #070A18), a circular connect button with three
   ~ concentric rings (glow 200dp, ring 149dp, disc 118dp — the
   ~ PowerOrb, shrunk ~20% in v0.4), the state under it, then the
-  ~ visible action buttons, group tabs with a per-group ping icon,
-  ~ ping progress, and the server list as ONE grouped card (shadowless, 16dp corners, thin border, rows
+  ~ visible action buttons, group tabs (no per-group ping icon
+  ~ since v0.8 — Ping test / Real test now test the selected
+  ~ group), ping progress, and the server list as ONE grouped card (shadowless, 16dp corners, thin border, rows
   ~ separated by divider lines) with a coloured ping pill per row.
-  ~ Bulk import, Test ping, category chips and ping badges all stay
+  ~ Bulk import, Ping test, category chips and ping badges all stay
   ~ visible on this screen — nothing lives only in the overflow menu.
   ~
   ~ Minab Beta v0.5 — the header subtitle ("Bulk import · Groups ·
@@ -87,7 +88,9 @@
             android:visibility="gone" />
 
         <!-- Minab Beta v0.5 — header: app name, and the memorial
-             line in very small type right next to it. -->
+             line in very small type right next to it.
+             Minab Beta v0.8: the app icon sits to the left of the
+             app name. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -95,9 +98,18 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/app"
+                android:src="@drawable/ic_logo_bunt" />
+
             <!-- Minab Beta v0.7: the app name is now "Minab Open
                  Vpn", so the title is 20sp (was 22sp) to leave
-                 room for the memorial line beside it. -->
+                 room for the memorial line beside it. v0.8: the
+                 name is "Minab OpenVPN" and the icon sits to its
+                 left. -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -276,7 +288,8 @@
 
         <!-- Minab Beta v0.6 — what the two tests mean, so the user
              knows the ping test is fast but the real test is the
-             accurate one. -->
+             accurate one. v0.8: Ping test / Real test test only the
+             selected group (or everything when "all" is selected). -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -289,8 +302,9 @@
         <!-- Minab Children: group tabs (v0.4). One tab per group
              (country groups are assigned automatically on import by
              AutoCategory; the user can also create groups by hand).
-             Each tab has a small ping icon that tests just that
-             group. Built in code (VPNProfileList.rebuildCategoryChips):
+             Tapping a tab filters the list; Ping test / Real test
+             test the selected group (v0.8 — the per-group ping icon
+             is gone). Built in code (VPNProfileList.rebuildCategoryChips):
              all + one tab per group + Manage + a "+" tab at the end.
              v0.5: the bar fades at the right edge (fadingEdge) and the
              last tab peeks in, so it is clear the bar scrolls right. -->

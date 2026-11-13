@@ -28,10 +28,13 @@
         <!-- Minab Beta v0.4 — what Minab is, in Minab's own words,
              and the update notice (tap to open the releases page
              when a newer version exists). -->
+        <!-- Minab Beta v0.8 — autoLink="web" so the GitHub links
+             in minab_about_text are tappable. -->
         <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:autoLink="web"
                 android:fontFamily="@font/vazirmatn"
                 android:text="@string/minab_about_text"
                 android:textColor="@color/minab_text_secondary"

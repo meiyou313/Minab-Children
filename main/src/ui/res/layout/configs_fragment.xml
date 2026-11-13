@@ -132,7 +132,7 @@
     </LinearLayout>
 
     <!-- Minab Beta v0.6 — the two server tests, so the user can
-         choose: Test ping is fast but only checks the server
+         choose: Ping test is fast but only checks the server
          answers; Real test actually connects each server and opens
          Telegram Web through it, so it proves the server really
          bypasses filtering (and waits up to 20 s per server). -->
@@ -225,7 +225,9 @@
     </LinearLayout>
 
     <!-- Minab Beta v0.5 — selection actions: shown only while one
-         or more configs are ticked. -->
+         or more configs are ticked. Minab Beta v0.8: Copy and Move
+         sit next to Delete, to copy or move the ticked configs to
+         another group. -->
     <LinearLayout
         android:id="@+id/minab_configs_selection_row"
         android:layout_width="match_parent"
@@ -239,11 +241,33 @@
             style="@style/Minab.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="36dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1"
             android:minHeight="36dp"
             android:text="@string/minab_delete_selected"
             android:textColor="@color/minab_busy"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/minab_configs_copy_selected"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_copy_selected"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/minab_configs_move_selected"
+            style="@style/Minab.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:minHeight="36dp"
+            android:text="@string/minab_move_selected"
             android:textSize="12sp" />
 
         <Button

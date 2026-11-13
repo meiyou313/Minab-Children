@@ -5,6 +5,14 @@
   ~ "Live speed" heading above the existing live line charts.
   ~ The bars are built in code (GraphFragment.renderDataUsed) from
   ~ plain Views — no chart library — inside minab_data_bars.
+  ~
+  ~ Minab Beta v0.8 — the Daily / Weekly / Monthly chips looked
+  ~ half-cut on the phone: a stock Button is 48dp tall by default
+  ~ with font padding, so at 32dp the 12sp Vazirmatn text was
+  ~ clipped top and bottom. The chips are now 36dp with no minimum
+  ~ height, no padding and no font padding, so the text sits
+  ~ centred and whole; the background is set here too (the code
+  ~ in updateDataChips still swaps it for the active one).
   -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -37,33 +45,54 @@
             <Button
                 android:id="@+id/minab_data_daily"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="36dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:minHeight="32dp"
+                android:background="@drawable/minab_btn_outline"
+                android:fontFamily="@font/vazirmatn"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                android:padding="0dp"
                 android:text="@string/minab_data_daily"
                 android:textAllCaps="false"
+                android:textColor="@color/minab_teal"
                 android:textSize="12sp" />
 
             <Button
                 android:id="@+id/minab_data_weekly"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="36dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:minHeight="32dp"
+                android:background="@drawable/minab_btn_outline"
+                android:fontFamily="@font/vazirmatn"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                android:padding="0dp"
                 android:text="@string/minab_data_weekly"
                 android:textAllCaps="false"
+                android:textColor="@color/minab_teal"
                 android:textSize="12sp" />
 
             <Button
                 android:id="@+id/minab_data_monthly"
                 android:layout_width="0dp"
-                android:layout_height="32dp"
+                android:layout_height="36dp"
                 android:layout_weight="1"
-                android:minHeight="32dp"
+                android:background="@drawable/minab_btn_outline"
+                android:fontFamily="@font/vazirmatn"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                android:padding="0dp"
                 android:text="@string/minab_data_monthly"
                 android:textAllCaps="false"
+                android:textColor="@color/minab_teal"
                 android:textSize="12sp" />
         </LinearLayout>
 
