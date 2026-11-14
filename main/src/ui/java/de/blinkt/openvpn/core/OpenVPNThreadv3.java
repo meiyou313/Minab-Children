@@ -47,6 +47,12 @@ public class OpenVPNThreadv3 extends ClientAPI_OpenVPNClient implements Runnable
     /* The methods in OpenVPN3 can take a long time, so we do async messages to handle them
      * to avoid ANR on the service main thread */
     private final Handler mHandler;
+    /* Minab Beta v0.9.2 — ONE shared Runnable for pollStatus: each
+     * `this::pollStatus` evaluation creates a NEW object, so the old
+     * removeCallbacks(this::pollStatus) never matched anything and
+     * pollStatus kept firing every 2 s forever — even after the
+     * thread finished. Post and remove this exact instance. */
+    private final Runnable pollStatusRunnable = this::pollStatus;
 
     public OpenVPNThreadv3(OpenVPNService openVpnService, VpnProfile vp) {
         mVp = vp;
@@ -66,7 +72,7 @@ public class OpenVPNThreadv3 extends ClientAPI_OpenVPNClient implements Runnable
         VpnStatus.logInfo(ClientAPI_OpenVPNClientHelper.platform());
         VpnStatus.logInfo(ClientAPI_OpenVPNClientHelper.copyright());
 
-        mHandler.postDelayed(this::pollStatus, OpenVPNManagement.mBytecountInterval * 1000);
+        mHandler.postDelayed(pollStatusRunnable, OpenVPNManagement.mBytecountInterval * 1000);
 
         ClientAPI_Status status = connect();
         if (status.getError()) {
@@ -74,7 +80,7 @@ public class OpenVPNThreadv3 extends ClientAPI_OpenVPNClient implements Runnable
             VpnStatus.addExtraHints(status.getMessage());
         }
         VpnStatus.updateStateString("NOPROCESS", "OpenVPN3 thread finished", R.string.state_noprocess, ConnectionStatus.LEVEL_NOTCONNECTED);
-        mHandler.removeCallbacks(this::pollStatus);
+        mHandler.removeCallbacks(pollStatusRunnable);
     }
 
     @Override
@@ -474,6 +480,6 @@ public class OpenVPNThreadv3 extends ClientAPI_OpenVPNClient implements Runnable
         long in = t.getBytesIn();
         long out = t.getBytesOut();
         VpnStatus.updateByteCount(in, out);
-        mHandler.postDelayed(this::pollStatus, OpenVPNManagement.mBytecountInterval * 1000);
+        mHandler.postDelayed(pollStatusRunnable, OpenVPNManagement.mBytecountInterval * 1000);
     }
 }
