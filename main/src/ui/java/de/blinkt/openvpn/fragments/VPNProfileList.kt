@@ -308,7 +308,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
                     || shortcut.getExtras()!!.getInt("version") != SHORTCUT_VERSION
                 ) updateShortcuts.add(disconnectShortcut)
             } else {
-                val p = ProfileManager.get(getContext(), shortcut.getId())
+                val p = ProfileManager.getIfPresent(getContext(), shortcut.getId())
                 if (p == null || p.profileDeleted) {
                     if (shortcut.isEnabled()) {
                         disableShortcuts.add(shortcut.getId())
@@ -384,6 +384,9 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     override fun onPause() {
         super.onPause()
         VpnStatus.removeStateListener(this)
+        // Minab Beta v0.9.2 — a debounced search must not fire
+        // after the fragment is gone (tab switch pauses us).
+        searchDebounceHandler.removeCallbacks(searchDebounceRunnable)
         // Minab v0.6: leaving Home mid-run stops the real test —
         // but launching LaunchVPN pauses us briefly too, so wait
         // 8 s: a quick round-trip (our own connect/disconnect)
@@ -395,6 +398,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         // Stop the ping pool when the fragment is really gone. Results
         // already saved on profiles are kept.
         cancelPingTest()
+        searchDebounceHandler.removeCallbacks(searchDebounceRunnable)
         // Minab v0.6: same for a running real test (drops the VPN
         // under test, if any).
         realTestPauseHandler.removeCallbacks(realTestPauseStop)
@@ -591,6 +595,10 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
     }
 
     private fun populateVpnList() {
+        // Minab Beta v0.9.2 — a debounced search runnable can fire
+        // after the fragment is detached; requireActivity() below
+        // would throw. Never populate when not attached.
+        if (!isAdded) return
         val sortByLRU = Preferences.getDefaultSharedPreferences(requireActivity()).getBoolean(
             PREF_SORT_BY_LRU, false
         )
@@ -1079,13 +1087,19 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val nameView = connNameView
         val pingView = connPingView
         val uuid = VpnStatus.getLastConnectedVPNProfile()
-        val profile = uuid?.let {
+        // Minab Beta v0.9.2 — only look the profile up while a VPN
+        // is active (the v0.9 guard): when disconnected the Name
+        // row uses orbTargetProfile() below, and the stale UUID
+        // (never cleared until now) made the retrying get() block
+        // the UI thread for 10+ s on every state update. The
+        // lookup is the non-retrying getIfPresent: map only.
+        val profile = if (active) uuid?.let {
             try {
-                ProfileManager.get(requireContext(), it)
+                ProfileManager.getIfPresent(requireContext(), it)
             } catch (e: Exception) {
                 null
             }
-        }
+        } else null
         if (active) {
             val connected = lastLevel == ConnectionStatus.LEVEL_CONNECTED
             statusView.text = getString(
@@ -1212,7 +1226,7 @@ class VPNProfileList : ListFragment(), View.OnClickListener, StateListener {
         val profile = if (VpnStatus.isVPNActive()) {
             val uuid = VpnStatus.getLastConnectedVPNProfile() ?: return
             try {
-                ProfileManager.get(requireContext(), uuid)
+                ProfileManager.getIfPresent(requireContext(), uuid)
             } catch (e: Exception) {
                 null
             } ?: return
