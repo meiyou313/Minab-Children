@@ -21,14 +21,16 @@
         android:buttonTint="@color/minab_teal"
         android:focusable="false" />
 
+    <!-- Minab Beta v0.9.1 — the flag is always shown now (fix #6):
+         flagResForProfile falls back to the globe, so the column is
+         never empty. -->
     <ImageView
         android:id="@+id/minab_config_flag"
         android:layout_width="22dp"
         android:layout_height="16dp"
         android:layout_marginStart="2dp"
         android:layout_marginEnd="8dp"
-        android:contentDescription="@string/minab_flag_description"
-        android:visibility="gone" />
+        android:contentDescription="@string/minab_flag_description" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -36,15 +38,16 @@
         android:layout_weight="1"
         android:orientation="vertical">
 
+        <!-- Minab Beta v0.9.1 — the name is shown FULLY (fix #6):
+             small (12sp), up to 2 lines, wrapping — never cut. -->
         <TextView
             android:id="@+id/minab_config_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
             android:fontFamily="@font/vazirmatn"
-            android:maxLines="1"
+            android:maxLines="2"
             android:textColor="@color/minab_text_primary"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/minab_config_subtitle"
@@ -56,5 +59,54 @@
             android:textColor="@color/minab_text_secondary"
             android:textSize="11sp" />
     </LinearLayout>
+
+    <!-- Minab Beta v0.9.1 — ping / real results in neat, small,
+         regular columns like Home (fix #6): 54dp badges, ping
+         first, real second. -->
+    <TextView
+        android:id="@+id/minab_config_ping_badge"
+        style="@style/Minab.PingBadge"
+        android:layout_width="54dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/minab_ping_badge_fast"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/minab_config_real_badge"
+        style="@style/Minab.PingBadge"
+        android:layout_width="54dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/minab_ping_badge_fast"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:singleLine="true"
+        android:visibility="gone" />
+
+    <!-- Minab Beta v0.9.1 — the favorite star (fix #6): filled
+         amber for a favorite, grey outline otherwise. -->
+    <ImageView
+        android:id="@+id/minab_config_star"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="4dp"
+        android:contentDescription="@string/minab_favorite_desc"
+        android:src="@drawable/minab_star_off" />
+
+    <!-- Minab Beta v0.9.1 — the pencil opens the server editor
+         directly (fix #6). -->
+    <ImageView
+        android:id="@+id/minab_config_edit"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="4dp"
+        android:contentDescription="@string/configure_the_vpn"
+        android:src="@drawable/ic_edit" />
 
 </LinearLayout>

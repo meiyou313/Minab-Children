@@ -54,16 +54,17 @@
             android:gravity="center_vertical"
             android:orientation="vertical">
 
+            <!-- Minab Beta v0.9.1 — the name is shown FULLY (fix
+                 #13b): small (12sp), up to 2 lines, wrapping —
+                 never cut in half. -->
             <TextView
                 android:id="@+id/vpn_item_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ellipsize="marquee"
-                android:fadingEdge="horizontal"
                 android:fontFamily="@font/vazirmatn"
-                android:singleLine="true"
+                android:maxLines="2"
                 android:textColor="@color/minab_text_primary"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 tools:text="Vpn Name" />
 
             <TextView
@@ -85,15 +86,15 @@
          result was only small secondary text under the name; now each
          tested profile shows a coloured pill ("24 ms", "Timeout",
          "Failed") here. Set in VPNProfileList.VPNArrayAdapter.getView. -->
-    <!-- Minab Beta v0.7: both badges have the same FIXED width
-         (86dp) with centred text, so they form two neat vertical
-         columns — ping in one, real in the other — whatever the
-         server name length. Text is single-line with ellipsis,
-         so a very long value can never push the row around. -->
+    <!-- Minab Beta v0.9.1 — smaller badges (fix #13b): 54dp
+         instead of 86dp, so the "Failed"/"Blocked" badges stop
+         crowding out the server name. The real badge shows just
+         the ms value now (the "Real: " prefix is gone from
+         minab_real_ms), so both badges fit in 54dp. -->
     <TextView
         android:id="@+id/minab_ping_badge"
         style="@style/Minab.PingBadge"
-        android:layout_width="86dp"
+        android:layout_width="54dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="6dp"
         android:background="@drawable/minab_ping_badge_fast"
@@ -107,7 +108,7 @@
     <TextView
         android:id="@+id/minab_real_badge"
         style="@style/Minab.PingBadge"
-        android:layout_width="86dp"
+        android:layout_width="54dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="6dp"
         android:background="@drawable/minab_ping_badge_fast"
@@ -115,7 +116,7 @@
         android:maxLines="1"
         android:singleLine="true"
         android:visibility="gone"
-        tools:text="Real: 850 ms"
+        tools:text="850 ms"
         tools:visibility="visible" />
 
     <ImageView

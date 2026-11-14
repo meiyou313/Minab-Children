@@ -302,6 +302,24 @@
             android:textSize="11sp" />
     </LinearLayout>
 
+    <!-- Minab Beta v0.9.1 — search the configs by name or country
+         (fix #9), like the search box on Home. -->
+    <EditText
+        android:id="@+id/minab_configs_search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/minab_input_bg"
+        android:fontFamily="@font/vazirmatn"
+        android:hint="@string/minab_search_hint"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:padding="10dp"
+        android:singleLine="true"
+        android:textColor="@color/minab_text_primary"
+        android:textColorHint="@color/minab_text_secondary"
+        android:textSize="12sp" />
+
     <!-- Minab Beta v0.9 — the list is part of this page's single
          scroll (see the header comment): no inner scroll, its
          height is set to its content in code. -->

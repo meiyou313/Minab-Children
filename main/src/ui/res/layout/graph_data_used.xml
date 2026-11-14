@@ -107,13 +107,22 @@
             android:textSize="12sp"
             android:visibility="gone" />
 
-        <LinearLayout
-            android:id="@+id/minab_data_bars"
+        <!-- Minab Beta v0.9.1 — the Daily strip is 50 bars, wider
+             than the screen, so it scrolls sideways (fix #3). -->
+        <HorizontalScrollView
+            android:id="@+id/minab_data_bars_scroll"
             android:layout_width="match_parent"
-            android:layout_height="130dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:gravity="bottom"
-            android:orientation="horizontal" />
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/minab_data_bars"
+                android:layout_width="match_parent"
+                android:layout_height="130dp"
+                android:gravity="bottom"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
 
         <TextView
             android:id="@+id/minab_data_total"

@@ -10,6 +10,29 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- Minab Beta v0.9.1 — the mode is explicit now (fix #2):
+         "Bypass" (all apps except a few) vs "Only these apps".
+         An explanation line under the two choices says what each
+         one does. -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_per_app_mode"
+        android:textColor="@color/minab_text_primary"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="@font/vazirmatn"
+        android:text="@string/minab_per_app_mode_explained"
+        android:textColor="@color/minab_text_secondary"
+        android:textSize="12sp" />
+
     <RadioGroup
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
