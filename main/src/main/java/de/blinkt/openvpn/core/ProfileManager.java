@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -190,6 +191,18 @@ public class ProfileManager {
         return get(context, profileUUID, 0, 10);
     }
 
+    /** Minab Beta v0.9.2 — map lookup only: never sleeps, never
+        reloads from disk. Use on the UI thread; the retrying get()
+        above retries up to 10 times with 100 ms sleeps + a full
+        loadVPNList disk reload each time when the profile is
+        missing from memory, which can block the UI thread for
+        10+ s (ANR) — e.g. a stale last-connected UUID. */
+    public static VpnProfile getIfPresent(Context context, String profileUUID) {
+        if (profileUUID == null) return null;
+        checkInstance(context);
+        return get(profileUUID);
+    }
+
     public static VpnProfile get(Context context, String profileUUID, int version, int tries) {
         checkInstance(context);
         VpnProfile profile = get(profileUUID);
@@ -243,8 +256,12 @@ public class ProfileManager {
         }
     }
 
+    /** Minab Beta v0.9.2 — defensive copy: the old live values()
+        view threw ConcurrentModificationException when the UI
+        thread iterated it while a worker/binder thread mutated
+        the map. */
     public Collection<VpnProfile> getProfiles() {
-        return profiles.values();
+        return new ArrayList<>(profiles.values());
     }
 
     public VpnProfile getProfileByName(String name) {
