@@ -276,6 +276,10 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         unregisterDeviceStateReceiver(mDeviceStateReceiver);
         mDeviceStateReceiver = null;
         ProfileManager.setConnectedVpnProfileDisconnected(this);
+        // Minab Beta v0.9.2 — clear the stale last-connected UUID
+        // too: it was never cleared (only set), so the UI kept
+        // looking up a dead profile on every state update.
+        VpnStatus.setConnectedVPNProfile(null);
         mOpenVPNThread = null;
         if (!mStarting) {
             stopForeground(!mNotificationAlwaysVisible);
@@ -391,9 +395,14 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
                 return R.drawable.ic_stat_vpn_offline;
             case LEVEL_CONNECTING_NO_SERVER_REPLY_YET:
             case LEVEL_WAITING_FOR_USER_INPUT:
-                return R.drawable.ic_stat_vpn_outline;
+                // Minab Beta v0.9.2 — the backpack while connecting,
+                // not the stock key icon: ic_stat_vpn is the white
+                // backpack, ic_logo_sw the black-and-white one, so
+                // the alternation between connecting phases still
+                // reads as a blink.
+                return R.drawable.ic_stat_vpn;
             case LEVEL_CONNECTING_SERVER_REPLIED:
-                return R.drawable.ic_stat_vpn_empty_halo;
+                return R.drawable.ic_logo_sw;
             case LEVEL_VPNPAUSED:
                 return android.R.drawable.ic_media_pause;
             case UNKNOWN_LEVEL:
