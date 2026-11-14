@@ -209,6 +209,9 @@ class ConfigsFragment : ListFragment() {
 
     override fun onPause() {
         super.onPause()
+        // Minab Beta v0.9.2 — a debounced search must not fire
+        // after the fragment is gone (tab switch pauses us).
+        searchDebounceHandler.removeCallbacks(searchDebounceRunnable)
         // Minab v0.6: leaving Configs mid-run stops the real test —
         // but launching LaunchVPN pauses us briefly too, so wait
         // 8 s: a quick round-trip (our own connect/disconnect)
@@ -220,6 +223,7 @@ class ConfigsFragment : ListFragment() {
         // Stop the tests when the fragment is really gone. Results
         // already saved on profiles are kept.
         testPauseHandler.removeCallbacks(testPauseStop)
+        searchDebounceHandler.removeCallbacks(searchDebounceRunnable)
         cancelPingTest()
         cancelRealTest()
         super.onDestroy()
