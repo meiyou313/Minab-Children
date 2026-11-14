@@ -547,7 +547,8 @@
     <!-- Minab Beta v0.6: Real test — actually connect each server and fetch web.telegram.org through the tunnel -->
     <string name="minab_real_test">Real test</string>
     <string name="minab_real_running">Real test %1$d/%2$d — %3$s (%4$d working)</string>
-    <string name="minab_real_ms">Real: %1$d ms</string>
+    <!-- Minab Beta v0.9.1: the real-test badge is small — no "Real:" prefix (fix #13b) -->
+    <string name="minab_real_ms">%1$d ms</string>
     <string name="minab_real_blocked">Blocked</string>
     <string name="minab_real_disconnects_vpn">Real test disconnects the current VPN first.</string>
     <string name="minab_real_cancelled">Real test cancelled.</string>
@@ -559,7 +560,8 @@
          longer wait per server (20 s vs 12 s on Home). -->
     <string name="minab_tests_explained">Ping test: fast but weak\nReal test: slow but accurate</string>
     <string name="minab_configs_test_title">Test servers</string>
-    <string name="minab_configs_test_explained">Ping test is fast: it only checks whether the server answers. Real test actually connects each server and opens Telegram Web through it — slower, but it proves the server really bypasses filtering.</string>
+    <!-- Minab Beta v0.9.1: Configs texts shortened (fix #5) -->
+    <string name="minab_configs_test_explained">Ping test: fast, checks if the server answers. Real test: connects and opens Telegram Web — slower, but proves it really works.</string>
     <string name="minab_real_already_running">A real test is already running.</string>
     <!-- Minab Beta v0.2: short labels for the visible main-screen buttons -->
     <string name="minab_bulk_import_short">Bulk import</string>
@@ -576,6 +578,8 @@
     <string name="minab_tap_to_connect">Tap to connect</string>
     <string name="minab_status_connected">Connected</string>
     <string name="minab_status_connecting">Connecting…</string>
+    <!-- Minab Beta v0.9.1 — the connected panel's Status row (fix #13) -->
+    <string name="minab_status_disconnected">Disconnected</string>
     <string name="minab_no_profiles_yet">No profiles yet — import some configs first.</string>
     <string name="minab_import_progress">Imported %1$d of %2$d…</string>
     <string name="minab_import_categorising">Detecting countries… %1$d of %2$d</string>
@@ -599,7 +603,8 @@
     <string name="minab_update_checking">Checking for updates…</string>
     <string name="minab_update_none">You are up to date (%1$s).</string>
     <string name="minab_update_available_short">Update available: %1$s</string>
-    <string name="minab_update_failed">Could not check for updates. Try again later.</string>
+    <!-- Minab Beta v0.9.1: honest failure text — the check reaches GitHub, which may be unreachable (fix #1) -->
+    <string name="minab_update_failed">Could not reach GitHub to check for updates. Check your connection and try again.</string>
     <string name="minab_check_update">Check for updates</string>
     <string name="minab_check_update_summary">Check GitHub for a newer Minab release</string>
     <string name="minab_show_speed_notification">Show speed in notification</string>
@@ -609,9 +614,11 @@
          projects it is built on at the very end. The links are
          plain text; about.xml sets autoLink="web" so they are
          tappable. -->
-    <string name="minab_about_text">Minab OpenVPN %1$s\nAn Android OpenVPN client by meiyou313.\n\nGitHub: https://github.com/meiyou313\nSource code: https://github.com/meiyou313/Minab-Children-OpenVPN\n\nMore than stock OpenVPN: bulk import · country groups · ping test · real test · data used · copy / move · best-server connect · auto-failover · IP check · search &amp; favorites · home widget · per-app VPN · import from link · full backup.\n\nThanks to ics-openvpn (Arne Schwabe, GPLv2) — without it, Minab would not exist.\n\nMinab OpenVPN %1$s</string>
+    <!-- Minab Beta v0.9.1 — the version appears once, at the top
+         (fix #1); the old string repeated it at the bottom too. -->
+    <string name="minab_about_text">Minab OpenVPN %1$s\nAn Android OpenVPN client by meiyou313.\n\nGitHub: https://github.com/meiyou313\nSource code: https://github.com/meiyou313/Minab-Children-OpenVPN\n\nMore than stock OpenVPN: bulk import · country groups · ping test · real test · data used · copy / move · best-server connect · auto-failover · IP check · search &amp; favorites · home widget · per-app VPN · import from link · full backup.\n\nThanks to ics-openvpn (Arne Schwabe, GPLv2) — without it, Minab would not exist.</string>
     <string name="minab_configs_title">Configs</string>
-    <string name="minab_configs_hint">Tap a config for rename, credentials, category, ping, share or delete. Tick the boxes to select configs, then delete, share, copy or move them.</string>
+    <string name="minab_configs_hint">Tap a config to edit it. Tick boxes to select, then delete, share, copy or move.</string>
     <string name="minab_credentials_for_group">Set for this group</string>
     <string name="minab_credentials_for_all">Set for all configs</string>
     <!-- Minab Beta v0.7: "Data used" on the Graph tab — real measured
@@ -641,7 +648,7 @@
     <string name="minab_all_tab">all</string>
     <string name="minab_faq_settings_summary">Questions about import, groups, ping, real test, data used, updates, best server, failover, widget and backup</string>
     <string name="minab_credentials_title">VPN username &amp; password</string>
-    <string name="minab_credentials_explained">The login your configs use to connect. Set one username and password for this group, or for all configs — the same login is also used for configs you import later.</string>
+    <string name="minab_credentials_explained">One login for this group, or for all configs. New imports use it too.</string>
     <string name="minab_delete_selected">Delete selected</string>
     <string name="minab_share_zip">Share as zip</string>
     <string name="minab_share_selected">Share selected (%1$d)</string>
@@ -662,7 +669,7 @@
     <string name="minab_faq_real_title">What does the real test do?</string>
     <string name="minab_faq_real">Real test connects each server in turn and opens Telegram Web (web.telegram.org) through the tunnel. A server passes only when the page actually loads, so it proves the server really bypasses filtering — a ping cannot prove that. It tests the fastest servers first (from the ping test) and stops as soon as 3 servers have passed. On Home it waits up to 12 seconds per server, on the Configs tab up to 20 seconds. Only one VPN tunnel can be active on Android, so servers are tested one after another, never in parallel.</string>
     <string name="minab_faq_data_title">Where do I see how much data I used?</string>
-    <string name="minab_faq_data">On the Graph tab, the “Data used” card shows your real measured download + upload as bar charts: Daily (last 7 days), Weekly (last 8 weeks) and Monthly (last 6 months). Usage is only recorded from v0.7 onward, so the charts start empty and fill up as you use the VPN.</string>
+    <string name="minab_faq_data">On the Graph tab, the “Data used” card shows your real measured download + upload as bar charts: Daily (last 50 days — swipe sideways to look back), Weekly (last 8 weeks) and Monthly (last 6 months). Usage is only recorded from v0.7 onward, so the charts start empty and fill up as you use the VPN.</string>
     <string name="minab_faq_copymove_title">How do I copy or move configs to another group?</string>
     <string name="minab_faq_copymove">On the Configs tab, tick the boxes next to the configs you want, then tap Copy or Move next to Delete and pick the target group. Move changes the group of the selected configs; Copy leaves the originals where they are and puts a duplicate in the target group.</string>
     <string name="minab_faq_security_title">Are my configs and passwords safe?</string>
@@ -700,7 +707,10 @@
     <string name="minab_per_app_vpn">Apps using the VPN</string>
     <string name="minab_per_app_vpn_summary">Choose which apps go through the VPN and which go direct</string>
     <string name="minab_per_app_only">Only these apps use the VPN</string>
-    <string name="minab_per_app_except">All apps except these use the VPN</string>
+    <!-- Minab Beta v0.9.1: the "bypass" choice is now explicit (fix #2) -->
+    <string name="minab_per_app_except">Bypass — all apps use the VPN except these</string>
+    <string name="minab_per_app_mode">Mode</string>
+    <string name="minab_per_app_mode_explained">Bypass: every app uses the VPN except the ones you tick. Only: only the apps you tick use the VPN.</string>
     <string name="minab_per_app_save">Save</string>
     <string name="minab_per_app_saved">Saved for all configs.</string>
     <string name="minab_per_app_loading">Loading apps…</string>
@@ -724,7 +734,20 @@
     <string name="minab_faq_ip_title">How do I see my IP address and country while connected?</string>
     <string name="minab_faq_ip">When the VPN is connected, Home shows your current public IP address and country under the connect button (for example “IP: 203.0.113.7 · Germany”). The check runs through the tunnel, takes a few seconds, and shows “—” when it cannot reach the IP service.</string>
     <string name="minab_faq_search_title">How do I find a server, or keep one at the top?</string>
-    <string name="minab_faq_search">Type in the search box above the server list on Home to filter by name or country. Tap the star on a server to make it a favorite — favorites always stay at the top of the list. Tap the star again to remove it.</string>
+    <string name="minab_faq_search">Type in the search box above the server list on Home (or on the Configs tab) to filter by name or country. Tap the star on a server to make it a favorite — the gold favorites tab, the first tab, shows all your starred servers.</string>
+
+    <!-- Minab Beta v0.9.1 — favorites tab (fix #7), group reorder (fix #8),
+         per-app VPN mode in the Settings summary (fix #2). -->
+    <string name="minab_favorites_tab">favorites</string>
+    <string name="minab_no_favorites_yet">No favorites yet — tap the star on a server.</string>
+    <string name="minab_reorder_groups">Reorder groups</string>
+    <string name="minab_reorder_hint">Use the arrows to move a group. The order is saved.</string>
+    <string name="minab_per_app_vpn_summary_bypass">Bypass: all apps use the VPN except a few</string>
+    <string name="minab_per_app_vpn_summary_only">Only selected apps use the VPN</string>
+    <string name="minab_conn_name">Name</string>
+    <string name="minab_conn_ip">IP</string>
+    <string name="minab_conn_ping">Ping</string>
+    <string name="minab_conn_status">Status</string>
     <string name="minab_faq_widget_title">Is there a home-screen widget?</string>
     <string name="minab_faq_widget">Yes. Long-press your home screen, choose Widgets, and add the Minab widget. It shows whether the VPN is connected and which server is connected; tap it to connect or disconnect. It connects the last-used server.</string>
     <string name="minab_faq_perapp_title">Can I choose which apps use the VPN?</string>
