@@ -52,6 +52,25 @@ public final class DataUsageStore {
     }
 
     /**
+     * Minab Beta v0.9.1 — the writer and the reader live in different
+     * processes. record() runs in OpenVPNService, which lives in the
+     * ":openvpn" process (AndroidManifest), while the Graph tab reads
+     * in the UI process. A plain MODE_PRIVATE SharedPreferences
+     * instance is cached per process and never re-reads the file, so
+     * the UI process kept showing the values from when the app
+     * started — the live bar never grew and the totals looked wrong
+     * against reality, even though the live line charts (fed by the
+     * AIDL byte-count callback, not by this store) were fine.
+     * MODE_MULTI_PROCESS forces a fresh read from the file on every
+     * get, so the UI always sees the latest recorded bytes. It is
+     * deprecated for general use, but it is exactly the supported
+     * tool for a file written by one process and read by another.
+     */
+    private static SharedPreferences openPrefs(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_MULTI_PROCESS);
+    }
+
+    /**
      * Add one interval's traffic to today's total. Called from
      * OpenVPNService.updateByteCount on every byte-count update
      * (every ~2 s while connected). Safe to call from any thread.
@@ -60,21 +79,25 @@ public final class DataUsageStore {
         long total = diffIn + diffOut;
         if (total <= 0) return;
         synchronized (LOCK) {
-            SharedPreferences prefs =
-                    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            SharedPreferences prefs = openPrefs(context);
             String key = dayKey(Calendar.getInstance());
             long cur = prefs.getLong(key, 0L);
             prefs.edit().putLong(key, cur + total).apply();
         }
     }
 
-    /** Last 7 days, oldest first, today last. Missing days are 0. */
+    /**
+     * Minab Beta v0.9.1 — 50 bars: the past 46 days, today, and the
+     * next 3 days as empty bars, oldest first. The 3 future bars are
+     * always 0; they just round the strip out to 50, as the user
+     * asked. Days with no data are 0, never invented.
+     */
     public static List<Bucket> getDaily(Context context) {
         Map<String, Long> days = getDayMap(context);
-        List<Bucket> out = new ArrayList<>(7);
+        List<Bucket> out = new ArrayList<>(50);
         SimpleDateFormat labelFmt = new SimpleDateFormat("EEE d", Locale.US);
         Calendar today = Calendar.getInstance();
-        for (int i = 6; i >= 0; i--) {
+        for (int i = 46; i >= -3; i--) {
             Calendar c = (Calendar) today.clone();
             c.add(Calendar.DAY_OF_YEAR, -i);
             out.add(new Bucket(
@@ -155,8 +178,7 @@ public final class DataUsageStore {
 
     /** All stored day totals, with keys older than KEEP_DAYS pruned. */
     private static Map<String, Long> getDayMap(Context context) {
-        SharedPreferences prefs =
-                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        SharedPreferences prefs = openPrefs(context);
         Map<String, ?> all = prefs.getAll();
         Map<String, Long> days = new HashMap<>();
         Calendar cutoff = Calendar.getInstance();

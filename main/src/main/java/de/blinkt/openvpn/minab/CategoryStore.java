@@ -32,8 +32,20 @@ import de.blinkt.openvpn.core.ProfileManager;
 public final class CategoryStore {
     public static final String DEFAULT_CATEGORY = "Uncategorized";
 
+    /**
+     * Minab Beta v0.9.1 — sentinel for the favorites pseudo-tab
+     * (fix #7). It is used as the selected-category value, never as
+     * a real category name: it starts with a control character no
+     * user can type into the group-name field, so it can never
+     * collide with a real group.
+     */
+    public static final String FAVORITES_TAB = "\u0001favorites";
+
     private static final String PREFS_NAME = "MinabCategories";
     private static final String KEY_CATEGORIES = "categories";
+    /** Minab Beta v0.9.1 — the saved group order (fix #8), a JSON
+        array string: a StringSet would lose the order. */
+    private static final String KEY_ORDER = "order";
 
     private CategoryStore() {
     }
@@ -129,5 +141,57 @@ public final class CategoryStore {
         if (stored.remove(name)) {
             prefs(context).edit().putStringSet(KEY_CATEGORIES, stored).apply();
         }
+    }
+
+    /**
+     * Minab Beta v0.9.1 — the display order of the group tabs
+     * (fix #8). The order the user set with the reorder dialog is
+     * saved; a category with no saved position yet (newly created)
+     * is inserted just before "Uncategorized", and "Uncategorized"
+     * is last unless the user moved it. Categories that no longer
+     * exist are dropped. Without a saved order, the order is the
+     * same as getCategories() (alphabetical, Uncategorized last).
+     */
+    public static List<String> getOrderedCategories(Context context) {
+        List<String> known = getCategories(context);
+        List<String> saved = readOrder(context);
+        List<String> out = new ArrayList<>();
+        for (String name : saved) {
+            if (known.contains(name) && !out.contains(name)) out.add(name);
+        }
+        List<String> missing = new ArrayList<>();
+        for (String name : known) {
+            if (!out.contains(name)) missing.add(name);
+        }
+        int uncIdx = out.indexOf(DEFAULT_CATEGORY);
+        if (uncIdx < 0) {
+            out.addAll(missing);
+        } else {
+            out.addAll(uncIdx, missing);
+        }
+        return out;
+    }
+
+    /** Save the group order set by the reorder dialog (fix #8). */
+    public static void saveOrder(Context context, List<String> order) {
+        org.json.JSONArray arr = new org.json.JSONArray();
+        for (String name : order) arr.put(name);
+        prefs(context).edit().putString(KEY_ORDER, arr.toString()).apply();
+    }
+
+    private static List<String> readOrder(Context context) {
+        List<String> out = new ArrayList<>();
+        String raw = prefs(context).getString(KEY_ORDER, null);
+        if (raw == null || raw.isEmpty()) return out;
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray(raw);
+            for (int i = 0; i < arr.length(); i++) {
+                String name = arr.optString(i, null);
+                if (name != null && !name.isEmpty()) out.add(normalise(name));
+            }
+        } catch (Exception ignored) {
+            // Corrupt order: fall back to the default order.
+        }
+        return out;
     }
 }

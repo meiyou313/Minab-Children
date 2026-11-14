@@ -245,12 +245,16 @@ public class RealTester implements VpnStatus.StateListener {
                 if (stopped() || myRunId != runId) break;
                 realCurrentName = profile.mName;
                 postRealProgress();
-                // Minab v0.8: fast pre-check — a dead server is
-                // skipped in ~2 s instead of burning the whole
-                // connect cap. A skip records the same "Blocked"
-                // result as a failed full test, so the list stays
-                // truthful; nothing was connected, so there is
-                // nothing to disconnect.
+                // Minab v0.8: fast pre-check — a server that is
+                // PROVABLY dead is skipped in ~2 s instead of burning
+                // the whole connect cap. Minab v0.9.1: the probe is
+                // advisory only (see probeServer). It may skip a
+                // server only on positive proof of death; silence or
+                // a timeout NEVER skips — the full tunnel test runs
+                // instead. A skip records the same "Blocked" result
+                // as a failed full test, so the list stays truthful;
+                // nothing was connected, so there is nothing to
+                // disconnect.
                 if (!probeServer(profile)) {
                     if (myRunId == runId && !cancelled.get()) {
                         profile.mLastRealMs = -1;
@@ -434,37 +438,58 @@ public class RealTester implements VpnStatus.StateListener {
         return !VpnStatus.isVPNActive();
     }
 
-    // --- Minab v0.8: fast pre-check before each full tunnel connect. ---
+    // --- Minab v0.8: fast pre-check before each full tunnel connect.
+    // --- Minab v0.9.1: the probe is advisory only.
     //
     // A dead server used to burn the whole connect cap (12 s on Home,
     // 20 s on Configs) before being marked Blocked. The probe below
     // answers in ~2 s whether the server is even reachable:
     //   - TCP profiles: a direct TCP connect to the profile's remote
-    //     host:port (2 s timeout). Refused / timeout / DNS failure
-    //     means the server is gone — skip it as failed-fast.
+    //     host:port (2 s timeout).
     //   - UDP profiles: one OpenVPN P_CONTROL_HARD_RESET_CLIENT_V2
     //     packet (first byte 0x38, then 8 random session-id bytes,
     //     then 4-byte packet id 0) to the remote host:port, waiting
     //     up to 2 s for ANY UDP reply. A live OpenVPN server answers
-    //     a client reset with its own reset; silence means the
-    //     server (or the path to it) is dead — skip it as failed-fast.
+    //     a client reset with its own reset.
     //
-    // The probe never replaces the real test: it only weeds out the
-    // obviously dead servers, and the full tunnel connect + Telegram
-    // fetch still run for every server that answers. Socket outcomes
-    // (connect failure, timeout, no reply, DNS failure) skip the
-    // server; any unexpected error inside the probe itself falls
-    // through to the normal full test, so a probe bug can never
-    // disable the real test.
+    // v0.9.1 — why the probe must never skip on silence: in v0.9 the
+    // probe skipped a server whenever it did not answer, and that
+    // marked WORKING servers Blocked — including the very server the
+    // user was connected to at the time (it had passed the real test
+    // in v0.8). The cause: servers using tls-auth / tls-crypt silently
+    // drop an unsigned reset packet, and some paths swallow the probe
+    // entirely, so "no answer" proves nothing about the server. The
+    // probe now returns a three-way answer — ALIVE (answered), DEAD
+    // (positive proof the server is gone), UNKNOWN (silence, timeout,
+    // DNS failure, or any other inconclusive outcome) — and a server
+    // is skipped ONLY when the probe says DEAD twice in a row.
+    // Silence falls through to the full tunnel test, which is the
+    // only verdict that counts.
+    //
+    // What counts as DEAD (positive proof):
+    //   - TCP: the connect was REFUSED (ConnectException). The host
+    //     is up and nothing listens on that port.
+    //   - UDP: an ICMP port-unreachable arrived (the socket is
+    //     connected, so receive() throws PortUnreachableException).
+    //     The host is up and the port is closed.
+    // Everything else — timeout, silence, DNS failure, no network —
+    // is UNKNOWN: the full test decides.
 
     /** How long the pre-check waits for an answer (per server). */
     private static final int PROBE_TIMEOUT_MS = 2000;
 
+    /** The probe answered: the server is reachable. */
+    private static final int PROBE_ALIVE = 1;
+    /** The probe was inconclusive: run the full tunnel test. */
+    private static final int PROBE_UNKNOWN = 0;
+    /** The probe proved the server is gone (refused / port closed). */
+    private static final int PROBE_DEAD = -1;
+
     /**
-     * True when the server answered the probe (go on with the full
-     * tunnel test), false when it clearly did not (skip as
-     * failed-fast). An unexpected error inside the probe itself
-     * returns true, so a probe bug can never disable the real test.
+     * True when the full tunnel test should run for this server.
+     * False only when the probe proved the server dead twice in a
+     * row. An unexpected error inside the probe itself returns
+     * true, so a probe bug can never disable the real test.
      */
     private boolean probeServer(VpnProfile profile) {
         String host;
@@ -481,15 +506,16 @@ public class RealTester implements VpnStatus.StateListener {
         }
         if (host == null || host.isEmpty() || port <= 0 || port > 65535) return true;
         try {
-            // Minab v0.9: one retry. A single refused/timeout probe can
-            // be a transient glitch (a brief mobile-data drop, one lost
-            // UDP packet), and a wrongly skipped server is marked
-            // Blocked without ever getting its full test. Two failures
-            // in a row is a real answer; the second try costs at most
-            // another 2 s, still far less than the 12/20 s full wait.
-            boolean ok = udp ? probeUdp(host, port) : probeTcp(host, port);
-            if (!ok) ok = udp ? probeUdp(host, port) : probeTcp(host, port);
-            return ok;
+            int verdict = udp ? probeUdp(host, port) : probeTcp(host, port);
+            if (verdict == PROBE_ALIVE || verdict == PROBE_UNKNOWN) return true;
+            // DEAD: one retry. A single refusal can be a transient
+            // glitch (a brief mobile-data drop), and a wrongly
+            // skipped server is marked Blocked without ever getting
+            // its full test. Two refusals in a row is a real answer;
+            // the second try costs at most another 2 s, still far
+            // less than the 12/20 s full wait.
+            verdict = udp ? probeUdp(host, port) : probeTcp(host, port);
+            return verdict != PROBE_DEAD;
         } catch (IOException e) {
             // Socket setup failed (e.g. no network at all when the
             // socket was created): let the full test decide.
@@ -501,17 +527,24 @@ public class RealTester implements VpnStatus.StateListener {
         }
     }
 
-    /** Direct TCP connect to host:port. IOException (refused /
-        timeout / DNS failure) means the server is unreachable. */
-    private boolean probeTcp(String host, int port) throws IOException {
+    /**
+     * Direct TCP connect to host:port. ALIVE when the connect
+     * succeeds. DEAD only when the connect was refused
+     * (ConnectException) — positive proof nothing listens there.
+     * A connect timeout, DNS failure, or any other IOException is
+     * UNKNOWN: silence is not proof of death.
+     */
+    private int probeTcp(String host, int port) throws IOException {
         Socket socket = new Socket();
         try {
             try {
                 socket.connect(new InetSocketAddress(host, port), PROBE_TIMEOUT_MS);
+            } catch (java.net.ConnectException e) {
+                return PROBE_DEAD;
             } catch (IOException e) {
-                return false;
+                return PROBE_UNKNOWN;
             }
-            return true;
+            return PROBE_ALIVE;
         } finally {
             try {
                 socket.close();
@@ -520,11 +553,17 @@ public class RealTester implements VpnStatus.StateListener {
         }
     }
 
-    /** One OpenVPN client-reset packet to host:port; true when ANY
-        UDP reply arrives within the timeout. IOException from the
-        resolve / send / receive (including the receive timeout and
-        DNS failure) means no answer. */
-    private boolean probeUdp(String host, int port) throws IOException {
+    /**
+     * One OpenVPN client-reset packet to host:port; ALIVE when ANY
+     * UDP reply arrives within the timeout. DEAD only when an ICMP
+     * port-unreachable arrives (the socket is connected, so
+     * receive() throws PortUnreachableException) — positive proof
+     * the port is closed. Silence (timeout) is UNKNOWN: servers
+     * using tls-auth / tls-crypt silently drop an unsigned reset,
+     * and they work perfectly. DNS failure and other IOExceptions
+     * are UNKNOWN too.
+     */
+    private int probeUdp(String host, int port) throws IOException {
         DatagramSocket socket = new DatagramSocket();
         try {
             socket.setSoTimeout(PROBE_TIMEOUT_MS);
@@ -535,13 +574,19 @@ public class RealTester implements VpnStatus.StateListener {
             // Bytes 9-12 stay 0: packet id 0.
             try {
                 InetAddress address = InetAddress.getByName(host);
-                socket.send(new DatagramPacket(payload, payload.length, address, port));
+                // Connected socket: an ICMP port-unreachable for
+                // this port is reported as PortUnreachableException
+                // on receive(), instead of being silently dropped.
+                socket.connect(address, port);
+                socket.send(new DatagramPacket(payload, payload.length));
                 byte[] buf = new byte[512];
                 socket.receive(new DatagramPacket(buf, buf.length));
+            } catch (java.net.PortUnreachableException e) {
+                return PROBE_DEAD;
             } catch (IOException e) {
-                return false;
+                return PROBE_UNKNOWN;
             }
-            return true;
+            return PROBE_ALIVE;
         } finally {
             socket.close();
         }
@@ -583,14 +628,24 @@ public class RealTester implements VpnStatus.StateListener {
     /** Fetch the Telegram web client through the tunnel. Returns the
         milliseconds until the response arrived, or -1 when the fetch
         failed (blocked / timeout / no route). Only a small prefix of
-        the body is read; the point is reachability, not content. */
+        the body is read; the point is reachability, not content.
+        Minab v0.9.1: 10 s timeouts (6 s was too tight on a slow
+        mobile link, and a slow fetch is not a blocked server) and
+        one retry — a single failed fetch must not mark a working
+        server Blocked. */
     private long testTelegram() {
+        long ms = fetchTelegramOnce();
+        if (ms < 0) ms = fetchTelegramOnce();
+        return ms;
+    }
+
+    private long fetchTelegramOnce() {
         long start = SystemClock.elapsedRealtime();
         HttpsURLConnection conn = null;
         try {
             conn = (HttpsURLConnection) new URL("https://web.telegram.org/").openConnection();
-            conn.setConnectTimeout(6000);
-            conn.setReadTimeout(6000);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(10000);
             conn.setRequestMethod("GET");
             conn.setRequestProperty("User-Agent", "Minab");
             conn.setInstanceFollowRedirects(true);

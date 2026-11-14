@@ -20,16 +20,23 @@
  *      profile's remote host:port with a 3 s timeout, send one OpenVPN
  *      P_CONTROL_HARD_RESET_CLIENT_V2 packet, and wait up to 2 s for ANY
  *      reply bytes. A live OpenVPN server answers a client reset with
- *      its own reset. The bare connect alone proves nothing (a
- *      middlebox can answer the TCP handshake in 1-3 ms and then kill
- *      the connection), so the number is only reported when the server
- *      itself answers, and it is the time until the first reply byte.
- *      No reply: reset/closed with no data means Failed; silence with
- *      the connection still open means Timeout (the server may use
- *      tls-auth and silently drop an unsigned reset -- it can still
- *      work, and the real test is the arbiter). This is NOT a true
- *      ICMP ping, but it answers the question the list needs: "is this
- *      server reachable from here, and how fast does it answer?"
+ *      its own reset, and the reported ms is then the time until the
+ *      first reply byte (about two round trips, so it reads higher
+ *      than a bare ICMP ping -- that is honest).
+ *      v0.9.1 -- the probe is ADVISORY, not a verdict. A server that
+ *      never answers it is NOT failed: servers using tls-auth /
+ *      tls-crypt silently drop an unsigned reset, and some
+ *      middleboxes kill the data after the handshake, so an
+ *      unanswered probe proves nothing about the server. When the
+ *      probe goes unanswered, the result falls back to the TCP
+ *      connect time: a connect that took a realistic time (>= 5 ms
+ *      to a public host) proves the server is listening and
+ *      reachable, so it is reported OK with the connect time. A
+ *      connect answered in 1-3 ms by a middlebox on the path still
+ *      yields Timeout, never a green number -- the v0.9 anti-spoof
+ *      fix is kept, only the false-failure part is removed. The
+ *      real test (which does the full handshake) remains the
+ *      arbiter of whether a server really works.
  *      A TCP failure is reported as Failed/Timeout, not as a fake
  *      latency.
  *   Overall per-host budget is ~5 s; a host that answers neither way is
@@ -48,6 +55,19 @@
  *   number, so the TCP step now requires the server itself to answer,
  *   and the ICMP step verifies the replying IP and discards impossible
  *   sub-5 ms values to public addresses.
+ *
+ *   v0.9.1 -- why the probe is advisory now: in v0.9 the ping test
+ *   and the real test started FAILING servers that actually work --
+ *   including the very server the user was connected to at the time.
+ *   The same server had passed both tests in v0.8. The cause was the
+ *   v0.9 probe rule: a server that uses tls-auth / tls-crypt silently
+ *   drops the unsigned reset packet, so tcpPing reported Failed for a
+ *   perfectly working server, and the real test's pre-check skipped
+ *   it as Blocked for the same reason. Silence is not proof of death:
+ *   only a refused connection (or a reply from something else on the
+ *   path) is. So the probe now only ever *confirms* reachability; a
+ *   silent server falls back to the connect time, and the full tunnel
+ *   test decides whether it really works.
  *
  * Concurrency: a fixed pool of 8 threads, one task per profile. Results
  * arrive through PingListener callbacks (already on a worker thread —
@@ -187,7 +207,7 @@ public final class PingTester {
         }
         Long icmp = icmpPing(host, expected);
         if (icmp != null) return new Result(profile, Status.OK, icmp);
-        return tcpPing(profile, host, port);
+        return tcpPing(profile, host, port, expected);
     }
 
     /** The "64 bytes from <ip>" line of the ping output, if any. */
@@ -256,24 +276,30 @@ public final class PingTester {
     }
 
     /**
-     * TCP "ping" that only counts when the server itself answers.
-     * Connect (3 s), then send one OpenVPN client-reset packet and
-     * wait up to 2 s for ANY reply bytes. A live OpenVPN server
-     * answers a client reset with its own reset; the reported ms is
-     * the time from connect start to the first reply byte (about two
-     * round trips, so it reads higher than a bare ICMP ping -- that
-     * is honest). A middlebox that only completes the handshake and
-     * then resets/closes the connection yields Failed (read returns
-     * -1 or the read throws); a server that silently drops the packet
-     * (e.g. tls-auth) leaves the connection open, so the read times
-     * out and the result is Timeout -- not a green number, and the
-     * real test (which does the full handshake) is the arbiter.
+     * TCP "ping": connect (3 s), then send one OpenVPN client-reset
+     * packet and wait up to 2 s for ANY reply bytes.
+     *
+     * v0.9.1 — the reset probe is advisory only. A live OpenVPN
+     * server answers a client reset with its own reset, and the
+     * reported ms is then the time to the first reply byte. But a
+     * server that never answers the probe is NOT failed: servers
+     * using tls-auth / tls-crypt silently drop an unsigned reset,
+     * and they work perfectly. When the probe goes unanswered, the
+     * result falls back to the TCP connect time — a connect that
+     * took a realistic time (>= 5 ms to a public host) proves the
+     * server is listening and reachable. A connect answered in
+     * 1-3 ms by a middlebox on the path still yields Timeout, never
+     * a green number. The real test (full handshake) is the arbiter
+     * of whether a server really works.
      */
-    private static Result tcpPing(VpnProfile profile, String host, int port) {
+    private static Result tcpPing(VpnProfile profile, String host, int port,
+                                  java.net.InetAddress expected) {
         Socket socket = new Socket();
         long start = System.nanoTime();
+        long connectMs = -1;
         try {
             socket.connect(new InetSocketAddress(host, port), TIMEOUT_MS);
+            connectMs = (System.nanoTime() - start) / 1_000_000L;
             socket.setSoTimeout(2000);
             byte[] payload = new byte[13];
             payload[0] = 0x38; // P_CONTROL_HARD_RESET_CLIENT_V2, key id 0
@@ -284,21 +310,27 @@ public final class PingTester {
             socket.getOutputStream().flush();
             byte[] buf = new byte[512];
             int read = socket.getInputStream().read(buf);
-            if (read <= 0) {
-                // Server closed the connection without answering.
-                return new Result(profile, Status.FAILED, -1);
+            if (read > 0) {
+                long ms = (System.nanoTime() - start) / 1_000_000L;
+                return new Result(profile, Status.OK, ms);
             }
-            long ms = (System.nanoTime() - start) / 1_000_000L;
-            return new Result(profile, Status.OK, ms);
+            // No reply: the server closed without answering, or the
+            // read returned -1. The connect succeeded, so the server
+            // is listening — it just never answers a bare reset
+            // (tls-auth / tls-crypt). Fall back to the connect time.
+            return connectFallback(profile, connectMs, expected);
         } catch (java.net.SocketTimeoutException e) {
+            if (connectMs >= 0) {
+                // The read timed out: the connection is still open
+                // and the server is silent (tls-auth). Same fallback.
+                return connectFallback(profile, connectMs, expected);
+            }
+            // The connect itself timed out.
             return new Result(profile, Status.TIMEOUT, -1);
         } catch (java.net.UnknownHostException e) {
             return new Result(profile, Status.FAILED, -1);
         } catch (Exception e) {
-            // Connection refused / reset etc. Distinguish a timeout
-            // (already handled) from a fast refusal: both are
-            // "Failed" here, the user-visible difference is Timeout
-            // vs Failed.
+            // Connection refused / reset etc.
             return new Result(profile, Status.FAILED, -1);
         } finally {
             try {
@@ -306,5 +338,22 @@ public final class PingTester {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    /**
+     * v0.9.1 — the connect-time fallback for a server that never
+     * answers the reset probe. A connect that took a realistic time
+     * (>= 5 ms to a public host) proves the server is listening and
+     * reachable, so report OK with the connect time. A connect
+     * answered in under 5 ms to a public host was answered on the
+     * path by a middlebox, not by the server: Timeout, never a green
+     * number. Local hosts are exempt from the 5 ms floor, like ICMP.
+     */
+    private static Result connectFallback(VpnProfile profile, long connectMs,
+                                          java.net.InetAddress expected) {
+        if (expected != null && isPublicAddress(expected) && connectMs < 5) {
+            return new Result(profile, Status.TIMEOUT, -1);
+        }
+        return new Result(profile, Status.OK, connectMs);
     }
 }
