@@ -89,6 +89,14 @@ class MainActivity : BaseActivity() {
         setUpEdgeEdgeInsetsListener(view, R.id.minab_faq_container, setupBottom = false)
         setContentView(view)
 
+        // Minab Beta v0.9.1 — the backpack icon in the blue toolbar,
+        // left of "Minab OpenVPN" (fix #12): the Home header used to
+        // show the same icon + title again, so the title was shown
+        // twice. The header row is now just the memorial line.
+        supportActionBar?.setDisplayShowHomeEnabled(true)
+        supportActionBar?.setDisplayUseLogoEnabled(true)
+        supportActionBar?.setLogo(R.drawable.ic_logo_bunt)
+
         // Minab Beta v0.5 — the FAQ overlay (see main_activity.xml):
         // the close button hides it, and so does the system back
         // button while it is open.
