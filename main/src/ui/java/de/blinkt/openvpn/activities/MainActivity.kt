@@ -95,7 +95,13 @@ class MainActivity : BaseActivity() {
         // twice. The header row is now just the memorial line.
         supportActionBar?.setDisplayShowHomeEnabled(true)
         supportActionBar?.setDisplayUseLogoEnabled(true)
-        supportActionBar?.setLogo(R.drawable.ic_logo_bunt)
+        // Minab Beta v0.9.2 — the 432 px logo squeezed the title to
+        // zero width. The toolbar logo is 144 px in xxxhdpi
+        // (~36 dp); the title is also set explicitly so it cannot
+        // go missing again.
+        supportActionBar?.setLogo(R.drawable.ic_logo_toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(true)
+        supportActionBar?.title = getString(R.string.app)
 
         // Minab Beta v0.5 — the FAQ overlay (see main_activity.xml):
         // the close button hides it, and so does the system back
@@ -185,7 +191,13 @@ class MainActivity : BaseActivity() {
             intent: Intent?
         ) {
             MinabFailover.onStateChanged(this@MainActivity, level)
-            MinabWidgetProvider.updateAllWidgets(this@MainActivity)
+            // Minab Beta v0.9.2 — the widget refresh (AppWidgetManager
+            // IPC + profile lookup) must NOT run inside this callback:
+            // updateStateString calls listeners while holding the
+            // VpnStatus class lock, and the IPC can block — tab
+            // switches touch the same lock and stall behind it.
+            // Post it to the main thread instead.
+            runOnUiThread { MinabWidgetProvider.updateAllWidgets(this@MainActivity) }
         }
 
         override fun setConnectedVPN(uuid: String?) {}
