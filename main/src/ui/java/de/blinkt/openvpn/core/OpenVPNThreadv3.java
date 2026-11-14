@@ -459,10 +459,21 @@ public class OpenVPNThreadv3 extends ClientAPI_OpenVPNClient implements Runnable
         });
     }
 
+    /**
+     * Minab Beta v0.9.1 — pollStatus used to be a one-shot: run()
+     * posted it once and it never re-scheduled itself, so with the
+     * OpenVPN 3 core the byte counts were pushed exactly once per
+     * connection and then froze — the "Data used" totals stopped
+     * growing even while traffic kept flowing. (The v2 core polls
+     * through the management interface instead, so it was not
+     * affected.) Now it re-schedules itself every byte-count
+     * interval until run() removes it when the thread finishes.
+     */
     private void pollStatus() {
         ClientAPI_TransportStats t = transport_stats();
         long in = t.getBytesIn();
         long out = t.getBytesOut();
         VpnStatus.updateByteCount(in, out);
+        mHandler.postDelayed(this::pollStatus, OpenVPNManagement.mBytecountInterval * 1000);
     }
 }
