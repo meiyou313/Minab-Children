@@ -98,6 +98,7 @@ object MinabFailover {
 
     private val failoverRunnable = Runnable { runFailover() }
 
+    @JvmStatic
     fun isEnabled(context: Context): Boolean {
         return try {
             Preferences.getDefaultSharedPreferences(context).getBoolean(PREF_FAILOVER, true)
@@ -112,6 +113,7 @@ object MinabFailover {
      * pending flag and cancels any switch already scheduled: the
      * drop that follows is the user's own doing, not a failure.
      */
+    @JvmStatic
     fun noteUserDisconnect() {
         userDisconnectAt = SystemClock.elapsedRealtime()
         userDisconnectPending = true
@@ -124,6 +126,7 @@ object MinabFailover {
      * listener). Must be called on the main thread (VpnStatus posts
      * state updates there).
      */
+    @JvmStatic
     fun onStateChanged(context: Context, level: ConnectionStatus?) {
         appContext = context.applicationContext
         if (level == ConnectionStatus.LEVEL_CONNECTED) {
