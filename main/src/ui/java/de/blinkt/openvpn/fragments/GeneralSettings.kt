@@ -23,6 +23,7 @@ import androidx.preference.*
 import de.blinkt.openvpn.BuildConfig
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.activities.OpenSSLSpeed
+import de.blinkt.openvpn.minab.MinabAllowedApps
 import de.blinkt.openvpn.minab.MinabUpdateChecker
 import de.blinkt.openvpn.api.ConfirmDialog.ANONYMOUS_PACKAGE
 import de.blinkt.openvpn.api.ExternalAppDatabase
@@ -140,6 +141,21 @@ class GeneralSettings : PreferenceFragmentCompat(), Preference.OnPreferenceClick
             )
         )
         mAlwaysOnVPN.summary = sb.toString()
+        // Minab Beta v0.9.1 — show the active per-app VPN mode
+        // (fix #2) in the "Apps using the VPN" row.
+        refreshPerAppSummary()
+    }
+
+    /** Minab Beta v0.9.1 — the Settings row says which per-app VPN
+        mode is active: "Bypass: all apps except a few" or "Only
+        selected apps use the VPN". */
+    private fun refreshPerAppSummary() {
+        val pref = findPreference<Preference>("minab_per_app_vpn") ?: return
+        pref.summary = getString(
+            if (MinabAllowedApps.getStoredAreDisallowed(requireContext()))
+                R.string.minab_per_app_vpn_summary_bypass
+            else R.string.minab_per_app_vpn_summary_only
+        )
     }
 
     private fun registerPermissionReceiver() {

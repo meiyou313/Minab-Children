@@ -15,7 +15,6 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.text.Html;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.method.LinkMovementMethod;
@@ -34,23 +33,18 @@ import androidx.fragment.app.Fragment;
 
 import com.android.vending.billing.IInAppBillingService;
 
-import de.blinkt.openvpn.BuildConfig;
-import de.blinkt.openvpn.core.NativeUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Locale;
 import java.util.Vector;
 
 import de.blinkt.openvpn.R;
 import de.blinkt.openvpn.core.VpnStatus;
 import de.blinkt.openvpn.minab.MinabUpdateChecker;
-import kotlin.text.Charsets;
 
 public class AboutFragment extends Fragment implements View.OnClickListener {
 
@@ -87,8 +81,8 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
         ver.setText(getString(R.string.version_info, name, version));
 
         // Minab Beta v0.9 — the About text carries the version at
-        // its top AND its bottom (the string has %1$s twice), so it
-        // is set here, not in the layout.
+        // its top (the string has %1$s), so it is set here, not in
+        // the layout.
         TextView aboutText = v.findViewById(R.id.minab_about_text_view);
         if (aboutText != null) {
             aboutText.setText(getString(R.string.minab_about_text, version));
@@ -125,34 +119,11 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
             });
         }
 
-        TextView verO2 = v.findViewById(R.id.version_ovpn2);
-        TextView verO3 = v.findViewById(R.id.version_ovpn3);
-        TextView osslVer = v.findViewById(R.id.openssl_version);
-
-        verO2.setText(String.format(Locale.US, "OpenVPN version: %s", NativeUtils.getOpenVPN2GitVersion()));
-        if (BuildConfig.openvpn3)
-            verO3.setText(String.format(Locale.US, "OpenVPN3 core version: %s", NativeUtils.getOpenVPN3GitVersion()));
-        else
-            verO3.setText("(OpenVPN 2.x only build. No OpenVPN 3.x core in this app)");
-
-
-        osslVer.setText(String.format(Locale.US, "OpenSSL version: %s", NativeUtils.getOpenSSLVersion()));
-
-
-
-        /* recreating view without onCreate/onDestroy cycle */
-        TextView translation = (TextView) v.findViewById(R.id.translation);
-
-        // Don't print a text for myself
-        if (getString(R.string.translationby).contains("Arne Schwabe"))
-            translation.setText("");
-        else
-            translation.setText(R.string.translationby);
-
-        TextView wv = (TextView) v.findViewById(R.id.full_licenses);
-        wv.setText(Html.fromHtml(readHtmlFromAssets()));
-
-
+        // Minab Beta v0.9.1 — the upstream boilerplate (OpenVPN /
+        // OpenVPN3 / OpenSSL versions, translators, full license
+        // texts) is gone from this screen (fix #1): About now
+        // shows only the version and Minab's own text. The code
+        // that filled those views is gone with them.
 
         ViewCompat.setOnApplyWindowInsetsListener(v, (view, windowInsets) ->
                 {
@@ -189,26 +160,6 @@ public class AboutFragment extends Fragment implements View.OnClickListener {
             updateStatus.setOnClickListener(null);
         }
     }
-
-    String readHtmlFromAssets()
-    {
-        InputStream mvpn;
-
-        try {
-            mvpn = getActivity().getAssets().open("full_licenses.html");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(mvpn, Charsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-            reader.close();
-            return sb.toString();
-        } catch (IOException errabi) {
-            return "full_licenses.html not found";
-        }
-    }
-
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {

@@ -26,6 +26,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -45,12 +47,15 @@ import androidx.fragment.app.ListFragment
 import de.blinkt.openvpn.LaunchVPN
 import de.blinkt.openvpn.R
 import de.blinkt.openvpn.VpnProfile
+import de.blinkt.openvpn.activities.VPNPreferences
 import de.blinkt.openvpn.core.OpenVPNService
 import de.blinkt.openvpn.core.ProfileManager
 import de.blinkt.openvpn.core.VpnStatus
 import de.blinkt.openvpn.minab.CategoryStore
 import de.blinkt.openvpn.minab.FlagHelper
 import de.blinkt.openvpn.minab.MinabBackup
+import de.blinkt.openvpn.minab.MinabCategoryReorder
+import de.blinkt.openvpn.minab.MinabFavorites
 import de.blinkt.openvpn.minab.PingTester
 import de.blinkt.openvpn.minab.RealTester
 import de.blinkt.openvpn.minab.SharedCredentials
@@ -64,6 +69,14 @@ class ConfigsFragment : ListFragment() {
     private var mArrayadapter: ArrayAdapter<VpnProfile>? = null
     private var chipsContainer: LinearLayout? = null
     private lateinit var backupLauncher: ActivityResultLauncher<String>
+    // --- Minab Beta v0.9.1: search (fix #9) + chip cache (fix #4).
+    // The search box filters by name or country, debounced 250 ms
+    // like Home's; the chip bar is only rebuilt when its signature
+    // (selected tab + group order) changed. ---
+    private var searchQuery: String = ""
+    private val searchDebounceHandler = Handler(Looper.getMainLooper())
+    private val searchDebounceRunnable = Runnable { refreshList() }
+    private var chipsSignature: String? = null
     /** UUIDs of the configs ticked for Delete / Share. */
     private val selectedUuids = mutableSetOf<String>()
     private var selectionRow: View? = null
@@ -171,6 +184,18 @@ class ConfigsFragment : ListFragment() {
             toggleSelection(profile)
             true
         }
+        // Minab Beta v0.9.1 — search the configs by name or country
+        // (fix #9), like the search box on Home. Debounced, so
+        // typing does not rebuild the list on every keystroke.
+        v.findViewById<EditText>(R.id.minab_configs_search)?.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                searchQuery = s?.toString()?.trim() ?: ""
+                searchDebounceHandler.removeCallbacks(searchDebounceRunnable)
+                searchDebounceHandler.postDelayed(searchDebounceRunnable, 250)
+            }
+        })
         return v
     }
 
@@ -210,10 +235,25 @@ class ConfigsFragment : ListFragment() {
         val all = pm.getProfiles().toList()
         // Drop selections for configs that no longer exist.
         selectedUuids.retainAll(all.map { it.getUUIDString() }.toSet())
-        val filtered = if (selectedCategory == null) all
-        else all.filter { it.getCategory() == selectedCategory }
+        // Minab Beta v0.9.1 — the favorites pseudo-tab (fix #7):
+        // a starred config shows in its country group AND here.
+        val favorites = MinabFavorites.getAll(context)
+        val filtered = when {
+            selectedCategory == null -> all
+            selectedCategory == CategoryStore.FAVORITES_TAB ->
+                all.filter { favorites.contains(it.getUUIDString()) }
+            else -> all.filter { it.getCategory() == selectedCategory }
+        }
+        // Minab Beta v0.9.1 — search by name or country (fix #9),
+        // case-insensitive; an empty search shows everything.
+        val query = searchQuery.lowercase()
+        val searched = if (query.isEmpty()) filtered else filtered.filter { profile ->
+            val name = profile.mName?.lowercase() ?: ""
+            val category = profile.getCategory()?.lowercase() ?: ""
+            name.contains(query) || category.contains(query)
+        }
         val sorted = TreeSet<VpnProfile>(Comparator { a, b -> (a.mName ?: "").compareTo(b.mName ?: "") })
-        sorted.addAll(filtered)
+        sorted.addAll(searched)
         if (mArrayadapter == null) {
             mArrayadapter = object : ArrayAdapter<VpnProfile>(
                 context, R.layout.minab_config_row, ArrayList(sorted)
@@ -223,33 +263,41 @@ class ConfigsFragment : ListFragment() {
                         ?: LayoutInflater.from(context).inflate(R.layout.minab_config_row, parent, false)
                     val profile = getItem(position)!!
                     (view.findViewById<TextView>(R.id.minab_config_name)).text = profile.mName
-                    // Minab v0.6: the subtitle also carries the last
-                    // test results when present, so the Configs list
-                    // shows them without opening Home.
-                    val subtitle = StringBuilder()
-                    subtitle.append("[").append(profile.getCategory()).append("]")
-                    // Minab v0.7: skip a stale "0 ms" result (see
-                    // VpnProfile migration guard) — 0 is not a
-                    // measurement, it is a never-tested profile.
-                    if (profile.mLastPingResult.isNotEmpty() && profile.mLastPingMs != 0L) {
-                        subtitle.append(" · ").append(profile.mLastPingResult)
-                    }
-                    if (profile.mLastRealResult.isNotEmpty() && profile.mLastRealMs != 0L) {
-                        subtitle.append(" · ").append(profile.mLastRealResult)
-                    }
-                    if (profile.isUserPWAuth()) {
-                        subtitle.append(" · ").append(profile.mUsername)
-                    }
+                    // Minab Beta v0.9.1 — the subtitle is just the
+                    // group (fix #6): the ping / real results live
+                    // in the badges now, and the username is never
+                    // shown under a config.
                     (view.findViewById<TextView>(R.id.minab_config_subtitle)).text =
-                        subtitle.toString()
+                        "[" + profile.getCategory() + "]"
+                    // Minab Beta v0.9.1 — every server gets a flag
+                    // (fix #6): flagResForProfile falls back to the
+                    // globe, so the column is never empty.
                     val flagView = view.findViewById<ImageView>(R.id.minab_config_flag)
-                    val flagRes = FlagHelper.flagResForCategory(profile.getCategory())
-                    if (flagRes != 0) {
-                        flagView.setImageResource(flagRes)
-                        flagView.visibility = View.VISIBLE
-                    } else {
-                        flagView.visibility = View.GONE
+                    flagView.setImageResource(FlagHelper.flagResForProfile(profile))
+                    flagView.visibility = View.VISIBLE
+                    // Minab Beta v0.9.1 — ping / real badges in neat,
+                    // small, regular columns like Home (fix #6).
+                    setConfigBadge(
+                        view.findViewById(R.id.minab_config_ping_badge),
+                        profile.mLastPingMs, profile.mLastPingResult)
+                    setConfigBadge(
+                        view.findViewById(R.id.minab_config_real_badge),
+                        profile.mLastRealMs, profile.mLastRealResult)
+                    // Minab Beta v0.9.1 — the favorite star (fix #6):
+                    // filled for a favorite, outline otherwise.
+                    val star = view.findViewById<ImageView>(R.id.minab_config_star)
+                    val isFavorite = MinabFavorites.isFavorite(context, profile.getUUIDString())
+                    star.setImageResource(
+                        if (isFavorite) R.drawable.minab_star_on else R.drawable.minab_star_off
+                    )
+                    star.setOnClickListener {
+                        MinabFavorites.toggle(context, profile.getUUIDString())
+                        refreshList()
                     }
+                    // Minab Beta v0.9.1 — the pencil opens the server
+                    // editor directly (fix #6).
+                    view.findViewById<ImageView>(R.id.minab_config_edit)
+                        .setOnClickListener { editVPN(profile) }
                     val checkBox = view.findViewById<CheckBox>(R.id.minab_config_checkbox)
                     checkBox.setOnCheckedChangeListener(null)
                     checkBox.isChecked = selectedUuids.contains(profile.getUUIDString())
@@ -273,6 +321,42 @@ class ConfigsFragment : ListFragment() {
         view?.post { expandListView() }
     }
 
+    /** One test badge (ping or real): the value as a coloured pill
+        (green < 100 ms, amber 100–299 ms, grey otherwise), hidden
+        when the profile has no result for it. Mirrors Home's row
+        badges; a 0 ms value is not a measurement (see the
+        VpnProfile migration guard). */
+    private fun setConfigBadge(badge: TextView, ms: Long, result: String) {
+        if (ms > 0) {
+            badge.visibility = View.VISIBLE
+            badge.text = result.ifEmpty { "$ms ms" }
+            badge.setBackgroundResource(
+                when {
+                    ms < 100 -> R.drawable.minab_ping_badge_fast
+                    ms < 300 -> R.drawable.minab_ping_badge_slow
+                    else -> R.drawable.minab_ping_badge_fail
+                }
+            )
+        } else if (result.isNotEmpty() && ms != 0L) {
+            badge.visibility = View.VISIBLE
+            badge.text = result
+            badge.setBackgroundResource(R.drawable.minab_ping_badge_fail)
+        } else {
+            badge.visibility = View.GONE
+        }
+    }
+
+    /** Open the server editor for this config (fix #6: the pencil
+        on the row). The list refreshes on resume after editing. */
+    private fun editVPN(profile: VpnProfile) {
+        val intent = Intent(requireContext(), VPNPreferences::class.java)
+            .putExtra(
+                requireContext().packageName + ".profileUUID",
+                profile.getUUID().toString()
+            )
+        startActivity(intent)
+    }
+
     /** Minab Beta v0.9 — grow the ListView to its full content
         height, so the whole Configs page scrolls as one (like Home).
         Same proven pattern as Home's expandListView: measure each
@@ -293,9 +377,14 @@ class ConfigsFragment : ListFragment() {
         val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
         val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         var totalHeight = 0
+        // Minab Beta v0.9.1 — recycle ONE convertView through the
+        // rows (fix #4): measuring used to inflate a fresh row view
+        // for every row on every refresh.
+        var convertView: View? = null
         for (i in 0 until adapter.count) {
             try {
-                val item = adapter.getView(i, null, list)
+                val item = adapter.getView(i, convertView, list)
+                convertView = item
                 item.measure(widthSpec, heightSpec)
                 totalHeight += item.measuredHeight
             } catch (e: Exception) {
@@ -382,7 +471,7 @@ class ConfigsFragment : ListFragment() {
     private fun showCopyMoveDialog(isCopy: Boolean) {
         val count = selectedUuids.size
         if (count == 0) return
-        val categories = CategoryStore.getCategories(requireContext())
+        val categories = CategoryStore.getOrderedCategories(requireContext())
         val labels = (categories + getString(R.string.minab_new_category)).toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.minab_copy_move_title)
@@ -442,9 +531,10 @@ class ConfigsFragment : ListFragment() {
         val context = requireContext()
         val profiles = when {
             selectedUuids.isNotEmpty() -> selectedProfiles()
-            selectedCategory != null -> ProfileManager.getInstance(context).getProfiles()
-                .toList().filter { it.getCategory() == selectedCategory }
-            else -> ProfileManager.getInstance(context).getProfiles().toList()
+            // Minab Beta v0.9.1 — visibleProfiles() handles the
+            // favorites tab too (fix #7); filtering by category
+            // here would match nothing on that tab.
+            else -> visibleProfiles()
         }
         if (profiles.isEmpty()) {
             Toast.makeText(context, R.string.minab_backup_none, Toast.LENGTH_SHORT).show()
@@ -510,19 +600,31 @@ class ConfigsFragment : ListFragment() {
         out: OutputStream
     ): Int = MinabBackup.writeProfilesZip(context, profiles, out)
 
+    /** The group tabs: favorites + All + one tab per group +
+        Manage + a "+" tab, and a pencil tab to reorder the groups.
+        Minab Beta v0.9.1 (fixes #7, #8): the favorites tab is
+        FIRST (gold star + "favorites"), "manage categories" is
+        second-to-last (right before "+") — Configs had no Manage
+        tab before — and the pencil opens the reorder dialog (the
+        custom order is saved in CategoryStore). The bar is only
+        rebuilt when its signature (selected tab + group order)
+        changed (fix #4). */
     private fun rebuildChips() {
         val container = chipsContainer ?: return
-        container.removeAllViews()
         val context = requireContext()
-        // Minab v0.8: "Uncategorized" goes LAST (just before "+"),
-        // like on Home (v0.7) — it is the catch-all, not a country.
-        val ordered = mutableListOf<String?>(null)
-        ordered.addAll(
-            CategoryStore.getCategories(context)
-                .filter { it != CategoryStore.DEFAULT_CATEGORY }
-        )
-        ordered.add(CategoryStore.DEFAULT_CATEGORY)
-        for (category in ordered) {
+        val ordered = CategoryStore.getOrderedCategories(context)
+        val signature = (selectedCategory ?: "all") + "|" + ordered.joinToString(",")
+        if (signature == chipsSignature && container.childCount > 0) return
+        chipsSignature = signature
+        container.removeAllViews()
+        // Favorites first (fix #7): gold star + "favorites".
+        addFavoritesTab(container)
+        // "all" + country groups in the saved order +
+        // "Uncategorized" last (the catch-all, not a country).
+        val tabs = mutableListOf<String?>(null)
+        tabs.addAll(ordered.filter { it != CategoryStore.DEFAULT_CATEGORY })
+        tabs.add(CategoryStore.DEFAULT_CATEGORY)
+        for (category in tabs) {
             // v0.5: the first tab reads just "all", like Home.
             val label = category ?: getString(R.string.minab_all_tab)
             val selected = category == selectedCategory
@@ -553,18 +655,163 @@ class ConfigsFragment : ListFragment() {
             }
             container.addView(chip)
         }
+        // Manage second-to-last (fix #8), right before "+".
+        val manage = TextView(context)
+        manage.text = getString(R.string.minab_manage_categories)
+        manage.textSize = 11f
+        manage.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
+        manage.setBackgroundResource(R.drawable.minab_chip_bg)
+        manage.setPadding(dp(10), dp(5), dp(10), dp(5))
+        val manageParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        manageParams.marginEnd = dp(6)
+        manage.layoutParams = manageParams
+        manage.setOnClickListener { showManageCategoriesDialog() }
+        container.addView(manage)
         val add = TextView(context)
         add.text = "+ " + getString(R.string.minab_new_group)
         add.textSize = 11f
         add.setTextColor(resources.getColor(R.color.minab_teal, context.theme))
         add.setBackgroundResource(R.drawable.minab_chip_bg)
         add.setPadding(dp(10), dp(5), dp(10), dp(5))
+        val addParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        addParams.marginEnd = dp(6)
+        add.layoutParams = addParams
         add.setOnClickListener { showNewCategoryDialog { refreshList() } }
         container.addView(add)
+        // Reorder pencil (fix #8): opens the group-order dialog.
+        val reorder = ImageView(context)
+        reorder.setImageResource(R.drawable.ic_edit)
+        reorder.setColorFilter(resources.getColor(R.color.minab_teal, context.theme))
+        reorder.setBackgroundResource(R.drawable.minab_chip_bg)
+        reorder.setPadding(dp(8), dp(5), dp(8), dp(5))
+        reorder.contentDescription = getString(R.string.minab_reorder_groups)
+        val reorderParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        reorderParams.marginEnd = dp(6)
+        reorder.layoutParams = reorderParams
+        reorder.setOnClickListener {
+            MinabCategoryReorder.show(context) {
+                chipsSignature = null
+                rebuildChips()
+                refreshList()
+            }
+        }
+        container.addView(reorder)
         // Trailing peek spacer (see Home): the fade shows the bar scrolls.
         val peek = View(context)
         peek.layoutParams = LinearLayout.LayoutParams(dp(20), dp(1))
         container.addView(peek)
+    }
+
+    /** The favorites tab (fix #7): FIRST, before "all". A gold star
+        (minab_star_on is amber) + "favorites". Tapping it shows the
+        starred servers — they stay in their country groups too. */
+    private fun addFavoritesTab(container: LinearLayout) {
+        val context = requireContext()
+        val selected = selectedCategory == CategoryStore.FAVORITES_TAB
+        val tab = LinearLayout(context)
+        tab.orientation = LinearLayout.HORIZONTAL
+        tab.gravity = android.view.Gravity.CENTER_VERTICAL
+        tab.setBackgroundResource(
+            if (selected) R.drawable.minab_chip_bg_selected
+            else R.drawable.minab_chip_bg
+        )
+        tab.setPadding(dp(10), dp(5), dp(10), dp(5))
+        val tabParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        tabParams.marginEnd = dp(6)
+        tab.layoutParams = tabParams
+        val star = ImageView(context)
+        star.setImageResource(R.drawable.minab_star_on)
+        val starParams = LinearLayout.LayoutParams(dp(14), dp(14))
+        starParams.marginEnd = dp(4)
+        star.layoutParams = starParams
+        tab.addView(star)
+        val label = TextView(context)
+        label.text = getString(R.string.minab_favorites_tab)
+        label.textSize = 11f
+        label.setTextColor(
+            resources.getColor(
+                if (selected) R.color.minab_teal_dark else R.color.minab_chip_text,
+                context.theme
+            )
+        )
+        label.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+        tab.addView(label)
+        tab.setOnClickListener {
+            selectedCategory = CategoryStore.FAVORITES_TAB
+            refreshList()
+            if (MinabFavorites.getAll(context).isEmpty()) {
+                Toast.makeText(context, R.string.minab_no_favorites_yet, Toast.LENGTH_SHORT).show()
+            }
+        }
+        container.addView(tab)
+    }
+
+    /** Rename / delete a group (the Manage tab, fix #8). Mirrors
+        Home's dialog; the list refreshes after every change. */
+    private fun showManageCategoriesDialog() {
+        val categories = CategoryStore.getOrderedCategories(requireContext())
+            .filter { it != CategoryStore.DEFAULT_CATEGORY }
+        if (categories.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.minab_new_category, Toast.LENGTH_SHORT).show()
+            showNewCategoryDialog { refreshList() }
+            return
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.minab_manage_categories)
+            .setItems(categories.toTypedArray()) { _, which ->
+                val oldName = categories[which]
+                AlertDialog.Builder(requireContext())
+                    .setTitle(oldName)
+                    .setItems(
+                        arrayOf(
+                            getString(R.string.minab_rename_category),
+                            getString(R.string.minab_delete_category)
+                        )
+                    ) { _, action ->
+                        if (action == 0) {
+                            val entry = EditText(requireContext())
+                            entry.setText(oldName)
+                            AlertDialog.Builder(requireContext())
+                                .setTitle(R.string.minab_rename_category)
+                                .setView(entry)
+                                .setPositiveButton(android.R.string.ok) { _, _ ->
+                                    CategoryStore.renameCategory(
+                                        requireContext(), oldName,
+                                        entry.text.toString()
+                                    )
+                                    if (selectedCategory == oldName) {
+                                        selectedCategory = CategoryStore.normalise(entry.text.toString())
+                                    }
+                                    refreshList()
+                                }
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show()
+                        } else {
+                            CategoryStore.deleteCategory(requireContext(), oldName)
+                            if (selectedCategory == oldName) selectedCategory = null
+                            refreshList()
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .setNeutralButton(R.string.minab_new_category) { _, _ ->
+                showNewCategoryDialog { refreshList() }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     override fun onListItemClick(l: ListView, v: View, position: Int, id: Long) {
@@ -642,22 +889,26 @@ class ConfigsFragment : ListFragment() {
 
     /** group == null means "all profiles". */
     private fun showCredentialsDialog(group: String?) {
-        val title = if (group == null) getString(R.string.minab_credentials_for_all)
-        else getString(R.string.minab_credentials_for_group) + " — " + group
+        // Minab Beta v0.9.1 — the favorites tab is not a real group
+        // (fix #7): "Set for this group" there means all configs.
+        val effectiveGroup =
+            if (group == CategoryStore.FAVORITES_TAB) null else group
+        val title = if (effectiveGroup == null) getString(R.string.minab_credentials_for_all)
+        else getString(R.string.minab_credentials_for_group) + " — " + effectiveGroup
         AlertDialog.Builder(requireContext())
             .setTitle(title)
             .setMessage(R.string.minab_shared_credentials_hint)
             .setPositiveButton(R.string.minab_apply_credentials) { _, _ ->
                 showCredentialsInputDialog { username, password ->
                     SharedCredentials.save(requireContext(), username, password)
-                    val updated = if (group == null) {
+                    val updated = if (effectiveGroup == null) {
                         SharedCredentials.applyToAllProfiles(requireContext(), username, password)
                     } else {
-                        SharedCredentials.applyToCategory(requireContext(), group, username, password)
+                        SharedCredentials.applyToCategory(requireContext(), effectiveGroup, username, password)
                     }
                     Toast.makeText(
                         requireContext(),
-                        if (group == null) getString(R.string.minab_credentials_applied, updated)
+                        if (effectiveGroup == null) getString(R.string.minab_credentials_applied, updated)
                         else getString(R.string.minab_credentials_group_applied, updated),
                         Toast.LENGTH_LONG
                     ).show()
@@ -694,7 +945,7 @@ class ConfigsFragment : ListFragment() {
     }
 
     private fun showAssignCategoryDialog(profile: VpnProfile) {
-        val categories = CategoryStore.getCategories(requireContext())
+        val categories = CategoryStore.getOrderedCategories(requireContext())
         val labels = (categories + getString(R.string.minab_new_category)).toTypedArray()
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.minab_assign_category))
@@ -772,11 +1023,19 @@ class ConfigsFragment : ListFragment() {
     // --- Minab v0.6: the two server tests ---
 
     /** Configs currently shown (same filter as the list): the whole
-        list, or one group when a group tab is selected. */
+        list, one group when a group tab is selected, or the starred
+        servers on the favorites tab (fix #7). */
     private fun visibleProfiles(): List<VpnProfile> {
         val all = ProfileManager.getInstance(requireContext()).getProfiles().toList()
         val wanted = selectedCategory
-        return if (wanted == null) all else all.filter { it.getCategory() == wanted }
+        return when {
+            wanted == null -> all
+            wanted == CategoryStore.FAVORITES_TAB -> {
+                val favorites = MinabFavorites.getAll(requireContext())
+                all.filter { favorites.contains(it.getUUIDString()) }
+            }
+            else -> all.filter { it.getCategory() == wanted }
+        }
     }
 
     /** Fast parallel ping over the visible configs. Ping tests are

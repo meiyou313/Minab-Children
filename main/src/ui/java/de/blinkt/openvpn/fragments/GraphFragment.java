@@ -20,6 +20,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -80,6 +81,16 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
     private static final int DATA_MONTHLY = 2;
     private int mDataMode = DATA_DAILY;
     private LinearLayout mDataBars;
+    private HorizontalScrollView mDataBarsScroll;
+    /**
+     * Minab Beta v0.9.1 — the Daily strip holds 50 bars, wider than
+     * the screen; when the mode changes (or the tab first opens) it
+     * scrolls to the recent end (today + the 3 empty future bars).
+     * Live byte-count updates rebuild the bars but never move the
+     * scroll position, so looking back through history is not
+     * interrupted every 2 seconds.
+     */
+    private boolean mScrollDataToEnd = true;
     private TextView mDataTotal;
     private TextView mDataEmpty;
     private Button mDataDaily;
@@ -112,12 +123,18 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
         // live line charts below it are unchanged.
         View dataHeader = inflater.inflate(R.layout.graph_data_used, mListView, false);
         mDataBars = dataHeader.findViewById(R.id.minab_data_bars);
+        mDataBarsScroll = dataHeader.findViewById(R.id.minab_data_bars_scroll);
         mDataTotal = dataHeader.findViewById(R.id.minab_data_total);
         mDataEmpty = dataHeader.findViewById(R.id.minab_data_empty);
         mDataDaily = dataHeader.findViewById(R.id.minab_data_daily);
         mDataWeekly = dataHeader.findViewById(R.id.minab_data_weekly);
         mDataMonthly = dataHeader.findViewById(R.id.minab_data_monthly);
-        mDataMode = getActivity().getPreferences(MODE_PRIVATE).getInt(PREF_DATA_MODE, DATA_DAILY);
+        // Minab Beta v0.9.1 — Daily is always the default when the
+        // tab opens (fix #3). The last-chosen mode used to persist,
+        // so a past Weekly choice stuck and the user never saw
+        // today's bar first.
+        mDataMode = DATA_DAILY;
+        mScrollDataToEnd = true;
         mDataDaily.setOnClickListener(v1 -> setDataMode(DATA_DAILY));
         mDataWeekly.setOnClickListener(v1 -> setDataMode(DATA_WEEKLY));
         mDataMonthly.setOnClickListener(v1 -> setDataMode(DATA_MONTHLY));
@@ -159,6 +176,7 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
     private void setDataMode(int mode) {
         mDataMode = mode;
         getActivity().getPreferences(MODE_PRIVATE).edit().putInt(PREF_DATA_MODE, mode).apply();
+        mScrollDataToEnd = true;
         renderDataUsed();
     }
 
@@ -192,12 +210,28 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
         int maxBarPx = (int) (88 * density);
         int minBarPx = (int) (2 * density);
         int barWidthPx = (int) (20 * density);
+        // Minab Beta v0.9.1 — Daily is a 50-bar strip (46 past days
+        // + today + 3 future empty bars) inside a
+        // HorizontalScrollView, so it scrolls sideways through
+        // history: fixed-width columns (40dp, wide enough for the
+        // "345.6 MB" value label) and a wrap_content strip. Weekly
+        // (8) and Monthly (6) still fit on screen, so they keep
+        // the flexible weight-1 columns.
+        boolean daily = (mDataMode == DATA_DAILY);
+        int colWidthPx = (int) (40 * density);
+        mDataBars.setLayoutParams(new ViewGroup.LayoutParams(
+                daily ? ViewGroup.LayoutParams.WRAP_CONTENT
+                        : ViewGroup.LayoutParams.MATCH_PARENT,
+                (int) (130 * density)));
         for (DataUsageStore.Bucket b : buckets) {
             LinearLayout col = new LinearLayout(ctx);
             col.setOrientation(LinearLayout.VERTICAL);
             col.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-            col.setLayoutParams(new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+            col.setLayoutParams(daily
+                    ? new LinearLayout.LayoutParams(
+                            colWidthPx, LinearLayout.LayoutParams.MATCH_PARENT)
+                    : new LinearLayout.LayoutParams(
+                            0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
 
             TextView value = new TextView(ctx);
             value.setText(b.bytes > 0 ? DataUsageStore.formatBytes(b.bytes) : "");
@@ -245,6 +279,15 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
                     R.string.minab_data_total, DataUsageStore.formatBytes(total)));
         }
         updateDataChips();
+        // Minab Beta v0.9.1 — after a mode change (or first open)
+        // jump to the recent end of the strip (today + the 3 empty
+        // future bars). Live updates never scroll, so the user can
+        // look back through history undisturbed.
+        if (mScrollDataToEnd && mDataBarsScroll != null) {
+            mScrollDataToEnd = false;
+            mDataBarsScroll.post(() ->
+                    mDataBarsScroll.fullScroll(View.FOCUS_RIGHT));
+        }
     }
 
     /** Minab v0.7: highlight the active Daily / Weekly / Monthly chip. */
@@ -309,7 +352,7 @@ public class GraphFragment extends Fragment implements VpnStatus.ByteCountListen
                 mSpeedStatus.setText(netstat);
                 mChartAdapter.notifyDataSetChanged();
                 // Minab v0.7: the "Data used" bars grow live while
-                // connected (cheap rebuild, at most 8 columns).
+                // connected (cheap rebuild of plain Views).
                 renderDataUsed();
                 mHandler.postDelayed(triggerRefresh, OpenVPNManagement.mBytecountInterval * 1500);
             }
