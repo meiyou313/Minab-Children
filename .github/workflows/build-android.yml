@@ -128,14 +128,29 @@ jobs:
           prerelease: true
           files: main/build/outputs/apk/**/debug/Minab-debug-Beta-${{ github.ref_name }}.apk
           body: |
-            Minab debug Beta v0.9.1 — Android only, debug build signed with the permanent Minab key.
-            Installs over v0.9 normally (no uninstall needed).
+            Minab debug Beta v0.9.2 — Android only, debug build signed with the permanent Minab key.
+            Installs over v0.9.1 normally (no uninstall needed).
 
             OpenVPN client based on ics-openvpn (GPLv2, Arne Schwabe),
             with bulk import of many .ovpn files / a .zip, one username
             and password for all, profile groups (manual + automatic
             by country), and bulk ping test of all profiles or one
             group.
+
+            New in v0.9.2 — fixes from testing v0.9.1:
+            - Switching tabs no longer hangs and closes the app: the
+              connected-profile lookup on the UI thread no longer
+              retries with full disk reloads (a stale last-connected
+              server could block it for 10+ s), the stale UUID is
+              cleared on disconnect, the widget refresh no longer
+              runs under the VpnStatus lock, and the byte-count
+              poller really stops after disconnect.
+            - The blue toolbar now shows "Minab OpenVPN" next to the
+              backpack icon (the 432 px logo squeezed the title out;
+              a 144 px logo is used and the title is set explicitly).
+            - While connecting, the notification shows the
+              black-and-white backpack icon (blinking between two
+              backpack renderings) instead of the old stock key icon.
 
             New in v0.9.1 — 16 fixes from testing v0.9:
             - About: trimmed to version + extra features; the update
@@ -359,4 +374,4 @@ jobs:
               every tab, not only on Home.
 
             Install: download the APK below and install it on Android.
-            It installs over v0.9 normally (same permanent key).
+            It installs over v0.9.1 normally (same permanent key).
