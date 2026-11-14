@@ -122,13 +122,9 @@
                 android:summary="@string/screenoff_summary"
                 android:title="@string/screenoff_title" />
 
-        <CheckBoxPreference app:iconSpaceReserved="false"
-                android:defaultValue="false"
-                android:key="disableconfirmation"
-                android:singleLineTitle="false"
-                android:summary="@string/confirmations_summary"
-                android:title="@string/confirmations_title" />\
-
+        <!-- Minab Beta v0.9.1 — the "disableconfirmation" checkbox
+             is gone with the dialog (fix #11): disconnecting is
+             one tap now, with no confirmation to disable. -->
         <Preference app:iconSpaceReserved="false"
                 android:dependency=""
                 android:key="osslspeed"
