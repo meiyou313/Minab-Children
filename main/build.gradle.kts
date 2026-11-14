@@ -99,8 +99,8 @@ android {
         // v0.2: light minimal UI + visible entry points for bulk import,
         // bulk ping and categories (v0.1 had the features, but hidden
         // in the overflow menu, so users could not find them).
-        versionCode = 11
-        versionName = "0.9.1-beta"
+        versionCode = 12
+        versionName = "0.9.2-beta"
         externalNativeBuild {
             cmake {
                 //arguments+= "-DCMAKE_VERBOSE_MAKEFILE=1"
