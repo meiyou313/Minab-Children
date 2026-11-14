@@ -92,7 +92,7 @@ class MinabWidgetProvider : AppWidgetProvider() {
                 try {
                     val uuid = VpnStatus.getLastConnectedVPNProfile()
                     val profile = uuid?.let {
-                        de.blinkt.openvpn.core.ProfileManager.get(context, it)
+                        de.blinkt.openvpn.core.ProfileManager.getIfPresent(context, it)
                     }
                     profile?.mName
                 } catch (e: Exception) {
