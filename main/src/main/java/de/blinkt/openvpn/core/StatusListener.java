@@ -33,6 +33,15 @@ import java.util.Locale;
  */
 
 public class StatusListener implements VpnStatus.LogListener, VpnStatus.ProfileNotifyListener {
+    /**
+     * Minab Beta v0.9.1 — the version-change forward to the service
+     * runs here, off the UI thread (see notifyProfileVersionChanged
+     * below, fix #15). Single thread, so consecutive changes stay
+     * in order.
+     */
+    private static final java.util.concurrent.ExecutorService sNotifyExecutor =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
+
     private final IStatusCallbacks mCallback = new IStatusCallbacks.Stub() {
         @Override
         public void newLogItem(LogItem item) throws RemoteException {
@@ -194,13 +203,28 @@ public class StatusListener implements VpnStatus.LogListener, VpnStatus.ProfileN
 
     @Override
     public void notifyProfileVersionChanged(String uuid, int version, boolean changedInThisProcess) {
-        if(changedInThisProcess && mConnection.serviceStatus != null)
-        {
-            try {
-                mConnection.serviceStatus.notifyProfileVersionChanged(uuid, version);
-            } catch (RemoteException e) {
-                VpnStatus.logException(e);
-            }
+        if (changedInThisProcess && mConnection.serviceStatus != null) {
+            // Minab Beta v0.9.1 — this used to be a synchronous AIDL
+            // call on the caller's thread (fix #15). The service side
+            // answers it with ProfileManager.get(uuid, version, 100):
+            // a poll loop of up to 100 x 100 ms sleeps, each with a
+            // full profile-list reload from disk (up to ~10 s). When
+            // the profile editor saved a profile, that call ran on
+            // the UI thread — and VpnStatus.notifyProfileVersionChanged
+            // holds the VpnStatus lock while it runs, so the UI froze
+            // past the ANR threshold and the app "hung and closed"
+            // while the VPN (a separate process) stayed up. A version
+            // change is a notification, not a query, so it is safe to
+            // send from a background thread: a single-thread executor
+            // keeps the order of consecutive changes.
+            final IServiceStatus serviceStatus = mConnection.serviceStatus;
+            sNotifyExecutor.execute(() -> {
+                try {
+                    serviceStatus.notifyProfileVersionChanged(uuid, version);
+                } catch (RemoteException e) {
+                    VpnStatus.logException(e);
+                }
+            });
         }
     }
 }
