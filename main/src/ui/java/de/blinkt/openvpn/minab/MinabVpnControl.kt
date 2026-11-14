@@ -16,6 +16,12 @@
  * delay), then servers with a ping (fastest ping), then the rest by
  * name. Favorites are NOT boosted here — this ranking is about
  * health, and the list UI already puts favorites first.
+ *
+ * v0.9.1: bestServers(healthyOnly = true) — for failover only —
+ * returns ONLY servers known healthy from the last tests: real-test
+ * passers, or ping-OK servers the real test never marked Blocked.
+ * Untested, Failed and Blocked servers are never picked for a
+ * failover switch (isHealthy).
  */
 
 package de.blinkt.openvpn.minab
@@ -81,14 +87,38 @@ object MinabVpnControl {
         }
     }
 
-    /** Profiles ranked best-first for "best server" / failover. */
-    fun bestServers(context: Context, excludeUuids: Set<String> = emptySet()): List<VpnProfile> {
+    /**
+     * True when a server is known healthy from the last tests:
+     * it passed the real test, or its ping is OK and the real test
+     * never marked it Blocked. Untested servers (no ping, no real
+     * result) and servers the real test marked Blocked are NOT
+     * healthy — failover must never switch to them (fix #10).
+     * (mLastRealMs == -1 with a non-empty real result means the
+     * real test ran and failed; an empty result means it never ran.)
+     */
+    fun isHealthy(profile: VpnProfile): Boolean {
+        if (profile.mLastRealMs > 0) return true
+        if (profile.mLastPingMs <= 0) return false
+        val realBlocked = profile.mLastRealMs == -1L &&
+            !profile.mLastRealResult.isNullOrEmpty()
+        return !realBlocked
+    }
+
+    /** Profiles ranked best-first for "best server" / failover.
+        With healthyOnly = true (failover), only servers known
+        healthy from the last tests are returned. */
+    fun bestServers(
+        context: Context,
+        excludeUuids: Set<String> = emptySet(),
+        healthyOnly: Boolean = false
+    ): List<VpnProfile> {
         val all = try {
             ProfileManager.getInstance(context).getProfiles().toList()
         } catch (e: Exception) {
             return emptyList()
         }
         val candidates = all.filter { !excludeUuids.contains(it.getUUIDString()) }
+            .filter { !healthyOnly || isHealthy(it) }
         val byReal = candidates.filter { it.mLastRealMs > 0 }.sortedBy { it.mLastRealMs }
         val byPing = candidates.filter { it.mLastRealMs <= 0 && it.mLastPingMs > 0 }
             .sortedBy { it.mLastPingMs }

@@ -8,10 +8,20 @@
  * a clear message with the new server's name (toast + notification)
  * so the user notices.
  *
- * How it decides the drop was NOT the user:
+ * How it decides the drop was NOT the user (v0.9.1):
  *   - The user disconnecting from the app UI (orb / server row /
- *     widget) records the moment (noteUserDisconnect); a drop within
- *     15 s of that is the user's own disconnect, not a failure.
+ *     widget / Quick Settings tile) records it with
+ *     noteUserDisconnect(), which sets a PENDING flag. The NEXT
+ *     non-connected state after that flag is the user's own
+ *     disconnect, however long the service took to stop — and the
+ *     flag is consumed by it. (v0.9 used a 15 s timestamp window
+ *     instead, and re-checked it 20 s after scheduling the switch:
+ *     the window had expired by then, so a manual disconnect still
+ *     failed over and reconnected to a new server. The flag has no
+ *     such race. A note older than 60 s with no state change is
+ *     treated as stale — the disconnect never happened — so it can
+ *     never suppress a later genuine drop. A fresh connection also
+ *     clears the flag.)
  *   - A real test running (RealTester) disconnects servers itself;
  *     failover stays out while one runs.
  *   - OpenVPN retries a dropped connection by itself first
@@ -21,9 +31,12 @@
  *     still down then. A brief blip that OpenVPN heals by itself
  *     never triggers a switch.
  * It never loops forever: at most 3 alternative servers per drop
- * event, then it stops and says so. The alternatives come from the
- * last test results, best first (see MinabVpnControl.bestServers);
- * no test runs as part of a switch.
+ * event, then it stops and says so. The alternatives come only from
+ * servers known healthy from the last tests (real-test passers
+ * first, then ping-OK servers that the real test never marked
+ * Blocked — see MinabVpnControl.bestServers(healthyOnly = true));
+ * an untested, Failed or Blocked server is never picked.
+ * No test runs as part of a switch.
  *
  * Limits, honestly: the state listener lives in MainActivity, so
  * failover only runs while the app is open (in the foreground). If
@@ -52,7 +65,12 @@ import de.blinkt.openvpn.core.VpnStatus
 
 object MinabFailover {
     private const val PREF_FAILOVER = "minab_failover"
-    private const val USER_DISCONNECT_WINDOW_MS = 15_000L
+    /**
+     * Minab v0.9.1 — a user-disconnect note older than this, with no
+     * state change since, is stale (the disconnect never happened)
+     * and must not suppress a later genuine drop.
+     */
+    private const val USER_DISCONNECT_STALE_MS = 60_000L
     /** Wait this long after the drop before switching (lets OpenVPN heal a blip itself). */
     private const val FAILOVER_DELAY_MS = 20_000L
     private const val MAX_ALTERNATIVES = 3
@@ -64,6 +82,13 @@ object MinabFailover {
     private val handler = Handler(Looper.getMainLooper())
     private var appContext: Context? = null
     private var lastConnectedUuid: String? = null
+    /**
+     * Minab v0.9.1 — set by noteUserDisconnect(), consumed by the
+     * next non-connected state. A flag, not a timestamp window:
+     * the drop that follows a user disconnect is the user's own,
+     * however long the service took to stop.
+     */
+    private var userDisconnectPending = false
     private var userDisconnectAt: Long = Long.MIN_VALUE
     private var failoverPending: Boolean = false
     private var failoverAttempts: Int = 0
@@ -81,9 +106,15 @@ object MinabFailover {
         }
     }
 
-    /** Call when the user disconnects from the app UI (orb / row / widget). */
+    /**
+     * Call when the user disconnects (or switches server) from the
+     * app UI — orb / row / widget / Quick Settings tile. Sets the
+     * pending flag and cancels any switch already scheduled: the
+     * drop that follows is the user's own doing, not a failure.
+     */
     fun noteUserDisconnect() {
         userDisconnectAt = SystemClock.elapsedRealtime()
+        userDisconnectPending = true
         handler.removeCallbacks(failoverRunnable)
         failoverPending = false
     }
@@ -102,17 +133,26 @@ object MinabFailover {
                 triedUuids.clear()
             }
             lastConnectedUuid = VpnStatus.getLastConnectedVPNProfile()
+            // A fresh connection resets the user-disconnect flag:
+            // any note from before this connection is spent.
+            userDisconnectPending = false
             handler.removeCallbacks(failoverRunnable)
             failoverPending = false
             return
         }
         // Not connected. Only a drop counts: we must have been
-        // connected in this session, and the user must not have
-        // disconnected just now.
+        // connected in this session, and the drop must not be the
+        // user's own disconnect.
         val wasConnectedUuid = lastConnectedUuid ?: return
         if (RealTester.isRunning()) return
         val now = SystemClock.elapsedRealtime()
-        if (now - userDisconnectAt < USER_DISCONNECT_WINDOW_MS) return
+        if (userDisconnectPending) {
+            val age = now - userDisconnectAt
+            userDisconnectPending = false
+            if (age < USER_DISCONNECT_STALE_MS) return
+            // A stale note (the disconnect never happened): fall
+            // through and treat this drop as genuine.
+        }
         if (failoverPending) return
         droppedUuid = wasConnectedUuid
         triedUuids.add(wasConnectedUuid)
@@ -126,15 +166,24 @@ object MinabFailover {
         if (!isEnabled(context)) return
         if (VpnStatus.isVPNActive()) return // OpenVPN healed it by itself.
         if (RealTester.isRunning()) return
+        // A user disconnect noted after the switch was scheduled
+        // cancels it (noteUserDisconnect removes this runnable, but
+        // check again — the flag is the single source of truth).
+        if (userDisconnectPending) {
+            userDisconnectPending = false
+            return
+        }
         val now = SystemClock.elapsedRealtime()
-        if (now - userDisconnectAt < USER_DISCONNECT_WINDOW_MS) return
         if (failoverAttempts >= MAX_ALTERNATIVES) {
             notifyGaveUp(context)
             failoverAttempts = 0
             triedUuids.clear()
             return
         }
-        val next = MinabVpnControl.bestServers(context, triedUuids).firstOrNull()
+        // Minab v0.9.1 — only servers known healthy from the last
+        // tests (never untested, Failed or Blocked ones).
+        val next = MinabVpnControl.bestServers(context, triedUuids, healthyOnly = true)
+            .firstOrNull()
         if (next == null) {
             notifyGaveUp(context)
             failoverAttempts = 0

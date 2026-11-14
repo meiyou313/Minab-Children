@@ -12,6 +12,18 @@
  * no personal data is sent — the request only reads the latest
  * public release tag of meiyou313/Minab-Children-OpenVPN.
  *
+ * Minab Beta v0.9.1 — why the check failed on the user's phone:
+ * api.github.com was unreachable from their connection (the check
+ * reported "Could not check for updates" even though the phone was
+ * online). Two changes: the timeouts are 10 s now (5 s was tight
+ * on a slow mobile link), and when the API call fails the checker
+ * falls back to the /releases/latest page on github.com itself —
+ * a 302 redirect whose Location header carries the latest tag.
+ * github.com and api.github.com are different hosts, so one can
+ * work while the other does not. The failure message is honest
+ * now ("Could not reach GitHub…"), and the last cached tag is
+ * still used when both routes fail.
+ *
  * Version comparison is numeric on the dotted parts ("0.4" vs
  * "0.10"); a "-beta" suffix is ignored for the comparison, so
  * 0.4-beta and 0.4 count as the same version.
@@ -44,7 +56,9 @@ public final class MinabUpdateChecker {
     private static final String KEY_LATEST_TAG = "latest_tag";
     private static final String KEY_CHECKED_AT = "checked_at";
     private static final long CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000; // 24 h
-    private static final int HTTP_TIMEOUT_MS = 5000;
+    /** Minab Beta v0.9.1: 10 s (was 5 s) — a slow mobile link
+        needs more time, and a slow check is not a failed check. */
+    private static final int HTTP_TIMEOUT_MS = 10000;
 
     /** latestTag is null when the check failed (offline, API error). */
     public interface Callback {
@@ -121,24 +135,23 @@ public final class MinabUpdateChecker {
                 }
             }
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(API_URL).openConnection();
-                conn.setConnectTimeout(HTTP_TIMEOUT_MS);
-                conn.setReadTimeout(HTTP_TIMEOUT_MS);
-                conn.setRequestProperty("User-Agent", "Minab");
-                conn.setRequestProperty("Accept", "application/vnd.github+json");
-                if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                    StringBuilder body = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) body.append(line);
-                    reader.close();
-                    latestTag = new JSONObject(body.toString()).optString("tag_name", null);
-                    if (latestTag != null && latestTag.isEmpty()) latestTag = null;
-                }
-                conn.disconnect();
+                latestTag = fetchLatestTagApi();
             } catch (Exception ignored) {
-                // Offline / API error: keep the last cached tag, if any.
+                // API unreachable: try the redirect fallback below.
+            }
+            if (latestTag == null) {
+                // Minab Beta v0.9.1 — fallback: api.github.com is
+                // unreachable from some networks while github.com
+                // itself works. /releases/latest redirects (302) to
+                // the latest release, and the tag is in the Location
+                // header — no JSON, no API subdomain.
+                try {
+                    latestTag = fetchLatestTagRedirect();
+                } catch (Exception ignored) {
+                    // Both routes failed: keep the cached tag, if any.
+                }
+            }
+            if (latestTag == null) {
                 latestTag = prefs(appContext).getString(KEY_LATEST_TAG, null);
             }
             if (latestTag != null) {
@@ -151,5 +164,55 @@ public final class MinabUpdateChecker {
             mainHandler.post(() -> callback.onResult(
                     found, found != null && isNewer(BuildConfig.VERSION_NAME, found)));
         }).start();
+    }
+
+    /** The releases API: {"tag_name": "v0.9.1", ...}. Null on any failure. */
+    private static String fetchLatestTagApi() throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(API_URL).openConnection();
+        try {
+            conn.setConnectTimeout(HTTP_TIMEOUT_MS);
+            conn.setReadTimeout(HTTP_TIMEOUT_MS);
+            conn.setRequestProperty("User-Agent", "Minab");
+            conn.setRequestProperty("Accept", "application/vnd.github+json");
+            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) return null;
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), "UTF-8"));
+            StringBuilder body = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) body.append(line);
+            reader.close();
+            String tag = new JSONObject(body.toString()).optString("tag_name", null);
+            return (tag != null && !tag.isEmpty()) ? tag : null;
+        } finally {
+            conn.disconnect();
+        }
+    }
+
+    /**
+     * The /releases/latest redirect: a 302 whose Location header
+     * ends with "/tag/<tag>". Null on any failure (not a redirect,
+     * no Location, or no /tag/ in it).
+     */
+    private static String fetchLatestTagRedirect() throws Exception {
+        HttpURLConnection conn = (HttpURLConnection)
+                new URL(RELEASES_URL + "/latest").openConnection();
+        try {
+            conn.setInstanceFollowRedirects(false);
+            conn.setConnectTimeout(HTTP_TIMEOUT_MS);
+            conn.setReadTimeout(HTTP_TIMEOUT_MS);
+            conn.setRequestProperty("User-Agent", "Minab");
+            int code = conn.getResponseCode();
+            if (code != HttpURLConnection.HTTP_MOVED_TEMP
+                    && code != HttpURLConnection.HTTP_MOVED_PERM
+                    && code != HttpURLConnection.HTTP_SEE_OTHER) return null;
+            String location = conn.getHeaderField("Location");
+            if (location == null) return null;
+            int tagIdx = location.lastIndexOf("/tag/");
+            if (tagIdx < 0) return null;
+            String tag = location.substring(tagIdx + 5);
+            return tag.isEmpty() ? null : tag;
+        } finally {
+            conn.disconnect();
+        }
     }
 }

@@ -10,11 +10,18 @@
  * hand-drawn vectors (~25 KB for the whole set). Unknown countries
  * return the generic globe drawable; categories that are not
  * countries at all return 0 (no flag shown). Never throws.
+ *
+ * v0.9.1: flagResForProfile (fix #6 / #13b) — every server gets a
+ * flag, even an Uncategorized one, by also looking at the flag
+ * emoji in the config name and at country names / codes in the
+ * name and server host, with the globe as the fallback. It never
+ * returns 0.
  */
 
 package de.blinkt.openvpn.minab
 
 import de.blinkt.openvpn.R
+import de.blinkt.openvpn.VpnProfile
 import java.util.Locale
 
 object FlagHelper {
@@ -118,5 +125,80 @@ object FlagHelper {
         // generic globe; anything else (a hand-made group name) also
         // gets the globe rather than a wrong flag.
         return R.drawable.minab_flag_globe
+    }
+
+    /**
+     * Minab Beta v0.9.1 — the flag for one profile, for the Home and
+     * Configs rows (fix #6 / #13b). Every server gets a flag, never
+     * nothing:
+     *   1. the profile's category, when it is a known country
+     *      ("Germany", "DE");
+     *   2. a flag emoji inside the config name ("Finland 🇫🇮(TCP)")
+     *      or the server host;
+     *   3. a full country name or 2-letter code anywhere in the
+     *      name or server host ("us-free…", "de-01.example.com");
+     *   4. otherwise the generic globe — so the flag column is
+     *      never empty and every row lines up.
+     * Never returns 0.
+     */
+    fun flagResForProfile(profile: VpnProfile): Int {
+        val category = profile.getCategory()
+        if (!category.isNullOrBlank()) {
+            val key = category.trim().lowercase(Locale.US)
+            if (key != "uncategorized") {
+                byName[key]?.let { return it }
+            }
+        }
+        val name = profile.mName
+        val host = try {
+            profile.getPrimaryRemoteHost()
+        } catch (e: Exception) {
+            null
+        }
+        flagEmojiCode(name)?.let { byName[it]?.let { res -> return res } }
+        flagEmojiCode(host)?.let { byName[it]?.let { res -> return res } }
+        scanCountryToken(name)?.let { return it }
+        scanCountryToken(host)?.let { return it }
+        return R.drawable.minab_flag_globe
+    }
+
+    /** The 2-letter country code of the first flag emoji in [text], or null. */
+    private fun flagEmojiCode(text: String?): String? {
+        if (text.isNullOrEmpty()) return null
+        var i = 0
+        while (i < text.length) {
+            val cp = Character.codePointAt(text, i)
+            if (cp in 0x1F1E6..0x1F1FF) {
+                // A flag is two regional indicators in a row.
+                val j = i + Character.charCount(cp)
+                if (j < text.length) {
+                    val cp2 = Character.codePointAt(text, j)
+                    if (cp2 in 0x1F1E6..0x1F1FF) {
+                        val a = 'A' + (cp - 0x1F1E6)
+                        val b = 'A' + (cp2 - 0x1F1E6)
+                        return "$a$b".lowercase(Locale.US)
+                    }
+                }
+            }
+            i += Character.charCount(cp)
+        }
+        return null
+    }
+
+    /** A country name or 2-letter code token inside [text], or null. */
+    private fun scanCountryToken(text: String?): Int? {
+        if (text.isNullOrBlank()) return null
+        val lower = text.lowercase(Locale.US)
+        // Full country names first (a long name wins over a short code).
+        for ((name, res) in byName) {
+            if (name.length > 2 && lower.contains(name)) return res
+        }
+        // Then 2-letter codes as separate tokens (split on non-letters).
+        for (token in lower.split(Regex("[^a-z]+"))) {
+            if (token.length == 2) {
+                byName[token]?.let { return it }
+            }
+        }
+        return null
     }
 }
